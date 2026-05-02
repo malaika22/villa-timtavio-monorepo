@@ -1,0 +1,9 @@
+@import "@repo/ui/globals.css";
+
+@theme inline {
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* App routes and local components */
+@source "../**/*.{ts,tsx}";
