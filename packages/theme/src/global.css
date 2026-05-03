@@ -1,5 +1,8 @@
 @import 'tailwindcss';
-@import 'tailwindcss-animate';
+
+/* Monorepo: Tailwind must see class strings in @repo/ui (paths relative to this file: packages/theme/src/) */
+@source "../../ui/src/**/*.ts";
+@source "../../ui/src/**/*.tsx";
 
 @custom-variant dark (&:is(.dark *));
 
