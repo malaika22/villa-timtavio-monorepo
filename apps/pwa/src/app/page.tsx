@@ -1,5 +1,10 @@
-import { Loading } from '@/components/Loading';
+import { PageLayout } from '@/components/AppLayout/PageLayout';
+import { Home } from '@/components/home';
 
-export default function Home() {
-  return <Loading />;
+export default function HomePage() {
+  return (
+    <PageLayout>
+      <Home />
+    </PageLayout>
+  );
 }

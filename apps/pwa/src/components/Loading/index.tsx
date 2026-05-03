@@ -28,7 +28,7 @@ export const Loading = () => {
 
         <div className="h-px w-36 overflow-hidden rounded-full bg-[#FFFFFF14]">
           <div
-            className="h-full w-2/5 rounded-full bg-gradient-to-r from-transparent via-[#F5F3F0] to-transparent motion-reduce:animate-none motion-reduce:translate-x-1/2 motion-reduce:opacity-70 animate-[loading-scan_1.8s_ease-in-out_infinite]"
+            className="h-full w-2/5 rounded-full bg-gradient-to-r from-transparent via-timtavio-background to-transparent motion-reduce:animate-none motion-reduce:translate-x-1/2 motion-reduce:opacity-70 animate-[loading-scan_1.8s_ease-in-out_infinite]"
             aria-hidden
           />
         </div>
