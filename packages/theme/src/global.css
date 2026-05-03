@@ -8,6 +8,7 @@
 
 @theme inline {
   /* Casa TimTavio — Figma tokens (file TRYhkxSpS5vqNfpgk4PGqy) */
+  --color-timtavio-background: var(--timtavio-background);
   --color-timtavio-crater-brown: var(--timtavio-crater-brown);
   --color-timtavio-white-90: var(--timtavio-white-90);
   --color-timtavio-white-28: var(--timtavio-white-28);
@@ -67,10 +68,11 @@
    * https://www.figma.com/design/TRYhkxSpS5vqNfpgk4PGqy/Casa-TimTavio---Responsive-Website-2.0
    * Node 98:1047 (status microcopy), Component1 10:14 / 10:34 (buttons & labels)
    */
+  --timtavio-background: #f5f3f0;
   --timtavio-crater-brown: #8c7261;
-  --timtavio-white-90: rgb(255 255 255 / 0.9);
-  --timtavio-white-28: rgb(255 255 255 / 0.28);
-  --timtavio-cod-gray-45: rgb(24 24 24 / 0.45);
+  --timtavio-white-90: #ffffffe6;
+  --timtavio-white-28: #ffffff47;
+  --timtavio-cod-gray-45: #18181873;
   --timtavio-text-micro: 7px;
   --timtavio-text-label: 9px;
   --timtavio-tracking-micro: 0.44em; /* 3.08px at 7px */
