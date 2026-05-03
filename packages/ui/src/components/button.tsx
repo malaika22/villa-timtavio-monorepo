@@ -54,18 +54,13 @@ function Button({
   const Comp = asChild ? Slot : 'button';
 
   return (
-    <div>
-      <div className="bg-green-500 p-4">
-        <span className="text-primary">Primary Text</span>
-      </div>
-      <Comp
-        data-slot="button"
-        data-variant={variant}
-        data-size={size}
-        className={cn(buttonVariants({ variant, size, className }))}
-        {...props}
-      />
-    </div>
+    <Comp
+      data-slot="button"
+      data-variant={variant}
+      data-size={size}
+      className={cn(buttonVariants({ variant, size, className }))}
+      {...props}
+    />
   );
 }
 
