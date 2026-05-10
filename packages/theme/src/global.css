@@ -86,6 +86,7 @@
   --timtavio-white-90: #ffffffe6;
   --timtavio-white-28: #ffffff47;
   --timtavio-cod-gray-45: #18181873;
+  --border: #e3e0da;
   --timtavio-text-micro: 7px;
   --timtavio-text-label: 9px;
   --timtavio-tracking-micro: 0.44em; /* 3.08px at 7px */
@@ -109,7 +110,6 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.87 0 0);
