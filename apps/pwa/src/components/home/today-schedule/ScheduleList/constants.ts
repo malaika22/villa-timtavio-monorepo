@@ -1,0 +1,1 @@
+export const MAX_UPCOMING_EXPERIENCES = 2;
