@@ -8,7 +8,7 @@ export const FOOTER_LINKS = [
   },
   {
     label: 'Explore',
-    href: '/explore',
+    href: '/experiences',
     Icon: LayoutDashboard,
   },
   {

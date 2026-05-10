@@ -11,7 +11,7 @@ export const Footer = () => {
   return (
     <footer
       className={cn(
-        'sticky bottom-0 z-50 bg-white border-t border-gray-100',
+        'sticky bottom-0 z-10 bg-white border-t border-gray-100',
         // Shadow
         'shadow-[0_-4px_20px_rgba(0,0,0,0.08)]',
         // Smooth animation when the footer becomes sticky or re-renders
