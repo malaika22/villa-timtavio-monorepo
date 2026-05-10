@@ -1,0 +1,5 @@
+export {
+  EXPERIENCES_MOCK_DATA,
+  FEATURED_EXPERIENCES_MOCK_DATA,
+  EXPERIENCE_FILTER_CHIPS,
+} from '@/data/experiencesMockData';
