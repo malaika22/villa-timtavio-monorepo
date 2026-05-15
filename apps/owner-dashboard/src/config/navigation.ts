@@ -1,0 +1,67 @@
+import type { LucideIcon } from 'lucide-react';
+import {
+  Activity,
+  Clock,
+  DollarSign,
+  Grid3x3,
+  LineChart,
+  Star,
+  Users,
+} from 'lucide-react';
+
+export type IntelligenceNavItem = {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+  badge?: string;
+};
+
+/**
+ * Casa TimTavio Intelligence Dashboard — Figma node 265:563
+ * https://www.figma.com/design/TRYhkxSpS5vqNfpgk4PGqy/Casa-TimTavio---Responsive-Website-2.0?node-id=265-563
+ */
+export const intelligenceNavigation: IntelligenceNavItem[] = [
+  { title: 'Overview', href: '/', icon: Clock },
+  { title: 'Heat Maps', href: '/heat-maps', icon: Grid3x3, badge: 'HERO' },
+  { title: 'Analytics', href: '/analytics', icon: LineChart },
+  { title: 'Experiences', href: '/experiences', icon: Star },
+  { title: 'Vendors', href: '/vendors', icon: Users },
+  { title: 'Capital Insights', href: '/capital-insights', icon: DollarSign },
+  { title: 'System Health', href: '/system-health', icon: Activity },
+];
+
+export type PageMeta = {
+  title: string;
+  subtitle: string;
+};
+
+export const pageMeta: Record<string, PageMeta> = {
+  '/': {
+    title: 'Estate Overview',
+    subtitle: 'Intelligence summary - March 2026',
+  },
+  '/heat-maps': {
+    title: 'Service Heat Maps',
+    subtitle: 'Real-time activity density across the estate',
+  },
+  '/analytics': {
+    title: 'Analytics',
+    subtitle: 'Revenue trends, occupancy & performance',
+  },
+  '/experiences': {
+    title: 'Experience Intelligence',
+    subtitle: 'Demand analysis & booking trends',
+  },
+  '/vendors': {
+    title: 'Vendor Intelligence',
+    subtitle: 'Performance analysis & ROI tracking',
+  },
+  '/capital-insights': {
+    title: 'Capital Insights',
+    subtitle: 'Buy vs. rent analysis & equipment decisions',
+  },
+  '/system-health': {
+    title: 'System Health',
+    subtitle: 'Platform status, uptime & performance',
+  },
+};

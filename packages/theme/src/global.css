@@ -20,6 +20,52 @@
   --spacing-timtavio-margin-p: var(--timtavio-margin-p);
   --spacing-timtavio-btn-x: var(--timtavio-btn-padding-x);
   --spacing-timtavio-btn-y: var(--timtavio-btn-padding-y);
+  /* Owner Dashboard — Figma node 265:601 */
+  --color-timtavio-navy: var(--timtavio-navy);
+  --color-timtavio-navy-mid: var(--timtavio-navy-mid);
+  --color-timtavio-muted: var(--timtavio-muted);
+  --color-timtavio-border: var(--timtavio-border);
+  --color-timtavio-surface: var(--timtavio-surface);
+  --color-timtavio-brown-dark: var(--timtavio-brown-dark);
+  --spacing-timtavio-sidebar: var(--timtavio-sidebar-width);
+  /* Intelligence Dashboard — Figma Owner Screens 1–7 (node 265:617) */
+  --color-intel-sidebar: var(--intel-sidebar);
+  --color-intel-sidebar-active: var(--intel-sidebar-active);
+  --color-intel-main: var(--intel-main);
+  --color-intel-card: var(--intel-card);
+  --color-intel-maroon: var(--intel-maroon);
+  --color-intel-maroon-muted: var(--intel-maroon-muted);
+  --color-intel-gold: var(--intel-gold);
+  --color-intel-text: var(--intel-text);
+  --color-intel-text-muted: var(--intel-text-muted);
+  --color-intel-border: var(--intel-border);
+  --color-intel-success: var(--intel-success);
+  --color-intel-success-bg: var(--intel-success-bg);
+  --color-intel-warning: var(--intel-warning);
+  --color-intel-warning-bg: var(--intel-warning-bg);
+  --color-intel-info: var(--intel-info);
+  --color-intel-info-bg: var(--intel-info-bg);
+  --color-intel-peach: var(--intel-peach);
+  --color-intel-peach-bg: var(--intel-peach-bg);
+  --color-intel-nav-muted: var(--intel-nav-muted);
+  --color-intel-nav-section: var(--intel-nav-section);
+  --spacing-intel-sidebar: var(--intel-sidebar-width);
+  /* Owner Dashboard Figma — node 248:204 (Screens 1–7) */
+  --color-owner-sidebar: var(--owner-sidebar);
+  --color-owner-sidebar-hover: var(--owner-sidebar-hover);
+  --color-owner-accent: var(--owner-accent);
+  --color-owner-canvas: var(--owner-canvas);
+  --color-owner-card: var(--owner-card);
+  --color-owner-text: var(--owner-text);
+  --color-owner-muted: var(--owner-muted);
+  --color-owner-border: var(--owner-border);
+  --color-owner-success: var(--owner-success);
+  --color-owner-success-bg: var(--owner-success-bg);
+  --color-owner-warning: var(--owner-warning);
+  --color-owner-warning-bg: var(--owner-warning-bg);
+  --color-owner-danger: var(--owner-danger);
+  --color-owner-danger-bg: var(--owner-danger-bg);
+  --spacing-owner-sidebar: var(--owner-sidebar-width);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-inter: var(--font-inter);
@@ -80,6 +126,57 @@
   --timtavio-margin-p: 16px;
   --timtavio-btn-padding-x: 48px;
   --timtavio-btn-padding-y: 18px;
+
+  /* Owner Dashboard palette */
+  --timtavio-navy: #0f1f2e;
+  --timtavio-navy-mid: #1a3040;
+  --timtavio-muted: #797168;
+  --timtavio-border: #e3e0da;
+  --timtavio-surface: #ffffff;
+  --timtavio-brown-dark: #5e4737;
+  --timtavio-sidebar-width: 15rem;
+
+  /* Intelligence Dashboard — Figma node 265:563 */
+  --intel-sidebar: #1a1514;
+  --intel-sidebar-active: #2a1f1e;
+  --intel-nav-muted: #8e8e8e;
+  --intel-nav-section: #6b6560;
+  --intel-main: #fdfbf7;
+  --intel-card: #ffffff;
+  --intel-maroon: #5e3a31;
+  --intel-maroon-muted: #7a4f45;
+  --intel-gold: #c4a882;
+  --intel-chart-fill: #5e3a3120;
+  --intel-text: #1a1614;
+  --intel-text-muted: #7a726c;
+  --intel-border: #e8e4de;
+  --intel-success: #2d6a4f;
+  --intel-success-bg: #e8f5ee;
+  --intel-warning: #b45309;
+  --intel-warning-bg: #fef3e8;
+  --intel-info: #1e4d7b;
+  --intel-info-bg: #e8f0f8;
+  --intel-peach: #c45c3e;
+  --intel-peach-bg: #fdf0ec;
+  --intel-sidebar-width: 13.5rem;
+
+  /* Owner Dashboard — Figma node 248:204 */
+  --owner-sidebar: #121212;
+  --owner-sidebar-hover: #1e1e1e;
+  --owner-accent: #8b2635;
+  --owner-accent-hover: #6d1e2a;
+  --owner-canvas: #f5f5f5;
+  --owner-card: #ffffff;
+  --owner-text: #18181b;
+  --owner-muted: #71717a;
+  --owner-border: #e4e4e7;
+  --owner-success: #15803d;
+  --owner-success-bg: #dcfce7;
+  --owner-warning: #b45309;
+  --owner-warning-bg: #fef3c7;
+  --owner-danger: #b91c1c;
+  --owner-danger-bg: #fee2e2;
+  --owner-sidebar-width: 15.5rem;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);

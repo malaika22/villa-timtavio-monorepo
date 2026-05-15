@@ -1,0 +1,6 @@
+@import '@repo/theme';
+
+@source "../**/*.ts";
+@source "../**/*.tsx";
+@source "../../../../packages/ui/src/**/*.ts";
+@source "../../../../packages/ui/src/**/*.tsx";
