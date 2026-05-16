@@ -1,4 +1,3 @@
-/** Figma 268:1442 — Analytics chart colors */
 export const ANALYTICS_CHART = {
   revenue2026: {
     stroke: '#7b4343',

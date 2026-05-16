@@ -43,7 +43,6 @@ const InsightItem = ({ insight }: { insight: ExperienceInsight }) => {
   );
 };
 
-/** Figma 268:1747 — Demand Insights, title centered above card */
 export const DemandInsightsPanel = () => (
   <section className="flex h-full min-h-0 flex-col">
     <h3 className="mb-3 shrink-0 text-center font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">

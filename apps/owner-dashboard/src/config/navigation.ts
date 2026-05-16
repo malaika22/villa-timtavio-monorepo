@@ -16,10 +16,6 @@ export type IntelligenceNavItem = {
   badge?: string;
 };
 
-/**
- * Casa TimTavio Intelligence Dashboard — Figma node 265:563
- * https://www.figma.com/design/TRYhkxSpS5vqNfpgk4PGqy/Casa-TimTavio---Responsive-Website-2.0?node-id=265-563
- */
 export const intelligenceNavigation: IntelligenceNavItem[] = [
   { title: 'Overview', href: '/', icon: Clock },
   { title: 'Heat Maps', href: '/heat-maps', icon: Grid3x3, badge: 'HERO' },

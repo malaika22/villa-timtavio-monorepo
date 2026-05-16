@@ -43,7 +43,6 @@ const RecommendationItem = ({ item }: { item: VendorRecommendation }) => {
   );
 };
 
-/** Figma 268:2010 — Strategic Recommendations */
 export const StrategicRecommendationsPanel = () => (
   <section className="flex h-full min-h-0 flex-col">
     <h3 className="mb-3 shrink-0 font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">

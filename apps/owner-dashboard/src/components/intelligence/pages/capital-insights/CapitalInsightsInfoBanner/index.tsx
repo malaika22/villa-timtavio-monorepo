@@ -1,6 +1,5 @@
 import { Info } from 'lucide-react';
 
-/** Figma 268:2300 — Capital Insights info banner */
 export const CapitalInsightsInfoBanner = () => (
   <div className="flex gap-3 rounded-lg border border-intel-info/25 bg-intel-info-bg px-4 py-3.5">
     <Info className="mt-0.5 size-4 shrink-0 text-intel-info" strokeWidth={2} />

@@ -52,7 +52,6 @@ const DemographicColumn = ({
   );
 };
 
-/** Figma 268:1442 — section title outside, column labels inside cards */
 export const GuestDemographicsSection = () => (
   <section>
     <h2 className="mb-4 font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">

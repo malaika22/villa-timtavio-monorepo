@@ -4,7 +4,6 @@ import { RecentIncidentsTable } from '@/components/intelligence/pages/system-hea
 import { ServiceStatusUptimeSection } from '@/components/intelligence/pages/system-health/ServiceStatusUptimeSection';
 import { systemHealthMetrics } from '@/lib/mock-data';
 
-/** Owner Screen 7 — System Health (Figma node 268:2508) */
 export const SystemHealthPage = () => (
   <div className="space-y-6">
     <MetricCardGrid metrics={systemHealthMetrics} />

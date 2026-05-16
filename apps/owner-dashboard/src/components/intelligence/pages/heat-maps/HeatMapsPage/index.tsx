@@ -4,7 +4,6 @@ import { HeatMapInsights } from '@/components/intelligence/pages/heat-maps/HeatM
 import { HotZonesPanel } from '@/components/intelligence/pages/heat-maps/HotZonesPanel';
 import { PeakHoursChart } from '@/components/intelligence/pages/heat-maps/PeakHoursChart';
 
-/** Owner Screen 2 — Service Heat Maps (Figma node 266:939) */
 export const HeatMapsPage = () => (
   <div className="grid gap-x-5 gap-y-4 xl:grid-cols-[minmax(0,1fr)_272px] xl:items-stretch">
     <div className="min-w-0 xl:col-span-2">

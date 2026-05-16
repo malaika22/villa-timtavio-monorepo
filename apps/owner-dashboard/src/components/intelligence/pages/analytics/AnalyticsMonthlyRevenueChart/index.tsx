@@ -41,7 +41,6 @@ const endPointDot =
     );
   };
 
-/** Figma 268:1442 — Monthly Revenue card */
 export const AnalyticsMonthlyRevenueChart = () => {
   const [metric, setMetric] = useState<MetricView>('revenue');
   const [yearView, setYearView] = useState<YearView>('2026');
@@ -56,7 +55,6 @@ export const AnalyticsMonthlyRevenueChart = () => {
     }));
   }, [metric]);
 
-  /** Figma: "2026" selected still shows both comparison lines */
   const show2026 = yearView === '2026' || yearView === 'both';
   const show2025 =
     yearView === '2025' || yearView === 'both' || yearView === '2026';

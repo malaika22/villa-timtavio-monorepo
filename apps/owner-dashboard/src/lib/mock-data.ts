@@ -166,7 +166,6 @@ export const upcomingStays: UpcomingStay[] = [
   },
 ];
 
-/** Service Heat Maps — Figma node 266:939 */
 export const heatMapHotZones = [
   { id: 'pool', label: 'Infinity Pool', score: 94 },
   { id: 'spa', label: 'Spa & Wellness', score: 72 },
@@ -176,7 +175,6 @@ export const heatMapHotZones = [
   { id: 'v1', label: 'Villa 1 (Khalil)', score: 41 },
 ];
 
-/** Hourly bars 6am–11pm; peak bars match Figma dark brown */
 export const heatMapPeakHours = [
   { hour: '6am', index: 18, peak: false },
   { hour: '7am', index: 22, peak: false },
@@ -220,7 +218,6 @@ export const topProperties = [
   { property: 'Garden Suite B', revenue: '$11,100', bookings: 15, occupancy: '58%' },
 ];
 
-/** Analytics — Figma node 268:1442 */
 export const analyticsMetrics: MetricCard[] = [
   {
     id: 'q1-revenue',
@@ -252,7 +249,6 @@ export const analyticsMetrics: MetricCard[] = [
   },
 ];
 
-/** Monthly revenue in USD thousands — Figma monthly revenue chart curve */
 export const analyticsRevenueByMonth: RevenueMonth[] = [
   { month: 'Jan', y2026: 20, y2025: 18 },
   { month: 'Feb', y2026: 22, y2025: 20 },
@@ -315,7 +311,6 @@ export const guestProfileBreakdown: DemographicRow[] = [
   { id: 'uhnw', label: 'Other UHNW', percent: 6 },
 ];
 
-/** Experiences Intelligence — Figma node 268:1747 */
 export const experienceIntelligenceMetrics: MetricCard[] = [
   {
     id: 'exp-booked',
@@ -456,7 +451,6 @@ export const experienceDemandInsights: ExperienceInsight[] = [
   },
 ];
 
-/** Vendor Intelligence — Figma node 268:2010 */
 export const vendorIntelligenceMetrics: MetricCard[] = [
   {
     id: 'vendor-spend',
@@ -602,7 +596,6 @@ export const vendorStrategicRecommendations: VendorRecommendation[] = [
   },
 ];
 
-/** Capital Insights — Figma node 268:2300 */
 export const capitalInsightsMetrics: MetricCard[] = [
   {
     id: 'annual-spend',
@@ -727,7 +720,6 @@ const uptimeSegments = (
     return 'operational';
   });
 
-/** System Health — Figma node 268:2508 */
 export const systemHealthMetrics: MetricCard[] = [
   {
     id: 'platform-uptime',

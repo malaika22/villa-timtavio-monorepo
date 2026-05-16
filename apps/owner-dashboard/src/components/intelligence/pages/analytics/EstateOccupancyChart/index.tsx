@@ -19,7 +19,6 @@ const chartConfig = {
 
 const MONTH_TICKS = new Set(['Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov', 'Dec']);
 
-/** Figma 268:1442 — heading inside card */
 export const EstateOccupancyChart = () => (
   <IntelCard className="flex h-full flex-col rounded-xl p-5">
     <div className="shrink-0">

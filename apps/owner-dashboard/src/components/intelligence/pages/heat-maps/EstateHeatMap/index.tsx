@@ -73,9 +73,6 @@ const zones: ZoneConfig[] = [
   },
 ];
 
-/**
- * Figma 266:939 — white outer card, map centered with top/bottom padding, legend footer on white
- */
 export const EstateHeatMap = ({ className }: { className?: string }) => (
   <IntelCard
     padding={false}
@@ -133,7 +130,6 @@ export const EstateHeatMap = ({ className }: { className?: string }) => (
       </div>
     </div>
 
-    {/* Legend row — white card footer (Figma) */}
     <div className="shrink-0 border-t border-intel-border bg-white px-6 py-3.5 md:px-8">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2.5">

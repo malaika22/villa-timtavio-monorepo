@@ -3,7 +3,6 @@ import { activeSessions } from '@/lib/mock-data';
 
 const COLUMNS = ['User', 'Role', 'Device', 'Screen', 'Session Start'] as const;
 
-/** Figma 268:2508 — Active Sessions Now */
 export const ActiveSessionsTable = () => (
   <section>
     <h3 className="mb-3 font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">

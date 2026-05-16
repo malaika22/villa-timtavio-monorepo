@@ -1,7 +1,6 @@
 import { BuyRentDecisionCard } from '@/components/intelligence/pages/capital-insights/BuyRentDecisionCard';
 import { buyRentAnalysisItems } from '@/lib/mock-data';
 
-/** Figma 268:2300 — 3×2 Buy vs. Rent grid */
 export const BuyRentAnalysisSection = () => (
   <section>
     <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

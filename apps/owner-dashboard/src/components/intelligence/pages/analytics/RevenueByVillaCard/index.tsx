@@ -1,7 +1,6 @@
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
 import { revenueByVillaYtd } from '@/lib/mock-data';
 
-/** Figma 268:1442 — card body only (title is outside) */
 const RevenueByVillaCardBody = () => (
   <IntelCard className="flex h-full flex-1 flex-col rounded-xl p-5">
     <ul className="flex flex-1 flex-col justify-center gap-5">
@@ -29,10 +28,6 @@ const RevenueByVillaCardBody = () => (
   </IntelCard>
 );
 
-/**
- * Figma 268:1442 — title centered above card (not inside)
- * https://www.figma.com/design/TRYhkxSpS5vqNfpgk4PGqy/Casa-TimTavio---Responsive-Website-2.0?node-id=268-1442
- */
 export const RevenueByVillaCard = () => (
   <section className="flex h-full min-h-0 flex-col">
     <h3 className="mb-3 shrink-0 text-center font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">

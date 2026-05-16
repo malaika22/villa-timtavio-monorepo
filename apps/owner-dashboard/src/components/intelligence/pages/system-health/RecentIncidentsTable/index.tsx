@@ -4,7 +4,6 @@ import { systemIncidents } from '@/lib/mock-data';
 
 const COLUMNS = ['Date', 'Service', 'Description', 'Duration', 'Root Cause', 'Resolution'] as const;
 
-/** Figma 268:2508 — Recent Incidents */
 export const RecentIncidentsTable = () => (
   <section>
     <h3 className="mb-3 font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">

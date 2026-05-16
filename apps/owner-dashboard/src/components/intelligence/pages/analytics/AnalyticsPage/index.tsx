@@ -5,7 +5,6 @@ import { GuestDemographicsSection } from '@/components/intelligence/pages/analyt
 import { RevenueByVillaCard } from '@/components/intelligence/pages/analytics/RevenueByVillaCard';
 import { analyticsMetrics } from '@/lib/mock-data';
 
-/** Owner Screen 3 — Analytics (Figma node 268:1442) */
 export const AnalyticsPage = () => (
   <div className="space-y-6">
     <MetricCardGrid metrics={analyticsMetrics} />

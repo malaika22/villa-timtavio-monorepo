@@ -160,7 +160,6 @@ export type SystemServiceRow = {
   uptime90d: string;
   lastChecked: string;
   segments: UptimeSegmentStatus[];
-  /** Shown in 90-day sparkline column (Figma shows 5 services) */
   showInUptimeHistory?: boolean;
 };
 

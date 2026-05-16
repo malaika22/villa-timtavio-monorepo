@@ -40,13 +40,8 @@ const uptimePercentClass = (value: string) => {
 
 const uptimeHistoryRows = systemServiceRows.filter((r) => r.showInUptimeHistory !== false);
 
-/**
- * Figma 268:2508 — one header row; left + right cards in the same row below.
- * https://www.figma.com/design/TRYhkxSpS5vqNfpgk4PGqy/Casa-TimTavio---Responsive-Website-2.0?node-id=268-2508
- */
 export const ServiceStatusUptimeSection = () => (
   <section className="min-w-0 space-y-3">
-    {/* Figma header — one row: title | status + history | legend */}
     <div className="grid w-full grid-cols-[auto_1fr_auto] items-center gap-4 pb-1">
       <h3 className={sectionTitleClass}>Service Status</h3>
 

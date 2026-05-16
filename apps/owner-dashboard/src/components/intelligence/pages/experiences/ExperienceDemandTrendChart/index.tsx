@@ -6,7 +6,6 @@ import { Area, CartesianGrid, ComposedChart, XAxis, YAxis } from 'recharts';
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
 import { experienceDemandByMonth } from '@/lib/mock-data';
 
-/** Bottom → top draw order for layered fills (Figma 268:1747) */
 const SERIES = [
   {
     key: 'yachtCharter' as const,
@@ -58,7 +57,6 @@ const endDot =
     );
   };
 
-/** Figma 268:1747 — layered colorful area fills per experience type */
 export const ExperienceDemandTrendChart = () => (
   <IntelCard className="flex flex-col rounded-xl p-5">
     <div>

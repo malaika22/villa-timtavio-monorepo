@@ -7,6 +7,9 @@ import { usePathname } from 'next/navigation';
 import { MobileIntelligenceNav } from '@/components/intelligence/sidebar/MobileIntelligenceNav';
 import type { PageMeta } from '@/config/navigation';
 
+const outlineBtn =
+  'font-inter h-9 gap-1.5 rounded-md border border-[#e8e4de] bg-white px-4 text-sm font-medium text-intel-text shadow-none hover:bg-[#faf9f7]';
+
 export const PageHeader = ({ meta }: { meta: PageMeta }) => {
   const pathname = usePathname();
   const isHeatMaps = pathname === '/heat-maps';
@@ -27,31 +30,25 @@ export const PageHeader = ({ meta }: { meta: PageMeta }) => {
         : 'Mar 2026';
 
   return (
-    <header className="flex flex-col gap-4 border-b border-intel-border bg-intel-main px-4 py-5 sm:flex-row sm:items-center sm:justify-between lg:px-6 lg:py-6">
-      <div className="flex items-start gap-3">
+    <header className="flex shrink-0 flex-col gap-2 border-y border-[#e8e4de] bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between lg:px-6">
+      <div className="flex items-center gap-3">
         <MobileIntelligenceNav />
         <div>
-          <h1 className="font-cormorant text-[32px] leading-tight font-normal text-intel-text">
+          <h1 className="font-cormorant text-[28px] leading-tight font-normal text-intel-text">
             {meta.title}
           </h1>
-          <p className="mt-1 text-sm text-intel-text-muted">{meta.subtitle}</p>
+          <p className="font-inter mt-0.5 text-sm text-intel-text-muted">{meta.subtitle}</p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {!isSystemHealth ? (
-          <Button
-            variant="outline"
-            className="h-9 gap-1.5 rounded-md border-intel-border bg-intel-card px-3 text-sm font-normal text-intel-text shadow-none hover:bg-white"
-          >
+          <Button variant="outline" className={outlineBtn}>
             <Calendar className="size-3.5 text-intel-text-muted" />
             {dateLabel}
             <ChevronDown className="size-3.5 text-intel-text-muted" />
           </Button>
         ) : null}
-        <Button
-          variant="outline"
-          className="h-9 gap-1.5 rounded-md border-intel-border bg-intel-card px-4 text-sm font-normal text-intel-text shadow-none hover:bg-white"
-        >
+        <Button variant="outline" className={outlineBtn}>
           {isSystemHealth ? (
             <>
               <Download className="size-3.5 text-intel-text-muted" />

@@ -48,7 +48,6 @@ const StatusBadge = ({ status }: { status: VendorRoiRow['status'] }) => (
   </span>
 );
 
-/** Figma 268:2010 — Vendor ROI Analysis table */
 export const VendorRoiAnalysisTable = () => (
   <section>
     <h3 className="mb-3 font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">

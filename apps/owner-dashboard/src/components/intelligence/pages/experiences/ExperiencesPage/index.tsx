@@ -4,7 +4,6 @@ import { ExperienceDemandTrendChart } from '@/components/intelligence/pages/expe
 import { ExperiencePerformanceTable } from '@/components/intelligence/pages/experiences/ExperiencePerformanceTable';
 import { experienceIntelligenceMetrics } from '@/lib/mock-data';
 
-/** Owner Screen 4 — Experience Intelligence (Figma node 268:1747) */
 export const ExperiencesPage = () => (
   <div className="space-y-6">
     <MetricCardGrid metrics={experienceIntelligenceMetrics} />

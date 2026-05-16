@@ -3,7 +3,6 @@ import { BuyRentAnalysisSection } from '@/components/intelligence/pages/capital-
 import { CapitalInsightsInfoBanner } from '@/components/intelligence/pages/capital-insights/CapitalInsightsInfoBanner';
 import { capitalInsightsMetrics } from '@/lib/mock-data';
 
-/** Owner Screen 6 — Capital Insights (Figma node 268:2300) */
 export const CapitalInsightsPage = () => (
   <div className="space-y-6">
     <CapitalInsightsInfoBanner />

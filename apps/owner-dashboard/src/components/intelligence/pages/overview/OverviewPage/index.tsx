@@ -11,7 +11,6 @@ import {
   villaOccupancy,
 } from '@/lib/mock-data';
 
-/** Owner Screen 1 — Estate Overview (Figma node 265:563) */
 export const OverviewPage = () => (
   <div className="space-y-6">
     <MetricCardGrid metrics={overviewMetrics} />

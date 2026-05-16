@@ -19,7 +19,7 @@ export const IntelligenceShell = ({
       <IntelligenceSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <PageHeader meta={meta} />
-        <main className="flex-1 overflow-auto p-4 lg:p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-4 lg:p-5">{children}</main>
       </div>
     </div>
   );

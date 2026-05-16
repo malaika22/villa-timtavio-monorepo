@@ -12,7 +12,6 @@ const DECLINED_HIGH = '#a64b4b';
 const DECLINED_LOW = '#6b8e6b';
 const MUTED_GREY = '#8e8e8e';
 
-/** High decline rate — Figma reddish-brown; low/zero — muted green */
 const declinedColor = (row: ExperiencePerformanceRow) => {
   if (row.declined === 0 || row.declinedPercent < 10) return DECLINED_LOW;
   return DECLINED_HIGH;
@@ -20,7 +19,6 @@ const declinedColor = (row: ExperiencePerformanceRow) => {
 
 const cellBorder = 'border-r border-intel-border last:border-r-0';
 
-/** Figma 268:1747 — conditional column colors */
 export const ExperiencePerformanceTable = () => (
   <section className="flex h-full min-h-0 flex-col">
     <h3 className="mb-3 shrink-0 text-center font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">
