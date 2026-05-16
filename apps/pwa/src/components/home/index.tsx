@@ -3,6 +3,8 @@ import { ArrivalStatus } from '@/types/arrivalStatus';
 import { HeroCard } from './hero-card';
 import { ArrivalCountdown } from '../ArrivalCountdown';
 import { GuestManifestPrompt } from './guest-manifest/GuestManifestPrompt';
+import { TodaySchedule } from './today-schedule';
+import { FeaturedExperiences } from '../featured-experiences';
 
 export const Home = () => {
   return (
@@ -17,6 +19,8 @@ export const Home = () => {
       <ArrivalCountdown />
       <GuestManifestPrompt />
       <div className="bg-[#E3E0DA] h-[1px]" />
+      <TodaySchedule />
+      <FeaturedExperiences />
     </div>
   );
 };

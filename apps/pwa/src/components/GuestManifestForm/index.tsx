@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Drawer, DrawerContent } from '@repo/ui';
+import { Button, Drawer, DrawerContent, Input } from '@repo/ui';
 import { cn } from '@repo/ui/lib/utils';
 import { ArrowRight, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -22,9 +22,9 @@ import {
   isRoomFull,
   ROOM_OPTIONS,
 } from './rooms';
+import { Textarea } from '@repo/ui/components/textarea';
 
-const inputClass =
-  'w-full rounded-lg border border-[#E3E0DA] bg-white px-3 py-2.5 text-[12px] text-[#2B2824] placeholder:text-[#B0AAA0] outline-none transition-[border-color,box-shadow] focus-visible:border-[#0F1F2E] focus-visible:ring-1 focus-visible:ring-[#0F1F2E]/15';
+const inputClass = 'text-[12px]';
 
 const labelClass =
   'mb-1.5 block text-[8px] font-medium uppercase tracking-[3.08px] text-[#797168]';
@@ -171,7 +171,7 @@ export function GuestManifestForm({
                     <label htmlFor="fullName" className={labelClass}>
                       Full name <span className="text-[#B42318]">*</span>
                     </label>
-                    <input
+                    <Input
                       id="fullName"
                       type="text"
                       autoComplete="name"
@@ -191,7 +191,7 @@ export function GuestManifestForm({
                     <label htmlFor="email" className={labelClass}>
                       Email address <span className="text-[#B42318]">*</span>
                     </label>
-                    <input
+                    <Input
                       id="email"
                       type="email"
                       inputMode="email"
@@ -213,14 +213,14 @@ export function GuestManifestForm({
                       Phone number{' '}
                       <span className="text-[#797168]">(optional)</span>
                     </label>
-                    <input
+                    <Input
                       id="phone"
                       type="tel"
                       inputMode="tel"
                       autoComplete="tel"
                       placeholder="+1 (555) 000-0000"
-                      className={inputClass}
                       {...register('phone')}
+                      className={cn(inputClass)}
                     />
                   </div>
                 </div>
@@ -238,7 +238,7 @@ export function GuestManifestForm({
                       aria-label="Relationship to primary member"
                     >
                       {RELATIONSHIP_VALUES.map((value) => (
-                        <button
+                        <Button
                           key={value}
                           type="button"
                           role="radio"
@@ -252,7 +252,7 @@ export function GuestManifestForm({
                           )}
                         >
                           {RELATIONSHIP_LABEL[value]}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   )}
@@ -274,11 +274,11 @@ export function GuestManifestForm({
                 <label htmlFor="dateOfBirth" className={labelClass}>
                   Birthday
                 </label>
-                <input
+                <Input
                   id="dateOfBirth"
                   type="date"
-                  className={inputClass}
                   {...register('dateOfBirth')}
+                  className={cn(inputClass)}
                 />
               </section>
 
@@ -306,13 +306,14 @@ export function GuestManifestForm({
           ) : (
             <>
               <header className="space-y-3">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={goBackToStep1}
                   className="text-[10px] font-medium uppercase tracking-[2.4px] text-[#797168] underline-offset-2 hover:underline"
                 >
                   ← Edit guest details
-                </button>
+                </Button>
                 <h1 className="font-cormorant text-[26px] font-medium italic leading-tight text-[#2B2824]">
                   Room + preferences
                 </h1>
@@ -330,7 +331,7 @@ export function GuestManifestForm({
                 <select
                   id="roomId"
                   className={cn(
-                    inputClass,
+                    'w-full rounded-lg border border-[#E3E0DA] bg-white px-3 py-2.5 text-[12px] text-[#2B2824] placeholder:text-[#B0AAA0] outline-none transition-[border-color,box-shadow] focus-visible:border-[#0F1F2E] focus-visible:ring-1 focus-visible:ring-[#0F1F2E]/15',
                     'appearance-none bg-[length:12px] bg-[right_12px_center] bg-no-repeat pr-10',
                     errors.roomId && 'border-[#B42318]',
                   )}
@@ -373,7 +374,7 @@ export function GuestManifestForm({
                       {DIETARY_VALUES.map((value) => {
                         const active = field.value.includes(value);
                         return (
-                          <button
+                          <Button
                             key={value}
                             type="button"
                             aria-pressed={active}
@@ -388,7 +389,7 @@ export function GuestManifestForm({
                             )}
                           >
                             {DIETARY_LABEL[value]}
-                          </button>
+                          </Button>
                         );
                       })}
                     </div>
@@ -400,7 +401,7 @@ export function GuestManifestForm({
                       Describe &quot;other&quot; restriction{' '}
                       <span className="text-[#B42318]">*</span>
                     </label>
-                    <textarea
+                    <Textarea
                       id="dietaryOtherDetails"
                       rows={2}
                       className={cn(
@@ -433,7 +434,7 @@ export function GuestManifestForm({
                 <label htmlFor="foodAllergies" className={labelClass}>
                   Food allergies
                 </label>
-                <textarea
+                <Textarea
                   id="foodAllergies"
                   rows={3}
                   className={cn(
@@ -454,7 +455,7 @@ export function GuestManifestForm({
                 <label htmlFor="beveragePreferences" className={labelClass}>
                   Optional
                 </label>
-                <textarea
+                <Textarea
                   id="beveragePreferences"
                   rows={2}
                   className={cn(inputClass, 'resize-y')}
@@ -468,7 +469,7 @@ export function GuestManifestForm({
                 <label htmlFor="specialNotes" className={labelClass}>
                   Optional
                 </label>
-                <textarea
+                <Textarea
                   id="specialNotes"
                   rows={2}
                   className={cn(inputClass, 'resize-y')}
@@ -485,13 +486,14 @@ export function GuestManifestForm({
                   Save guest
                 </Button>
                 {onRemoveGuest && (
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
                     onClick={onRemoveGuest}
                     className="text-center text-[12px] font-medium text-[#B42318] underline-offset-2 hover:underline"
                   >
                     Remove this guest
-                  </button>
+                  </Button>
                 )}
               </div>
             </>
