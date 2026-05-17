@@ -36,4 +36,9 @@ export const ExperienceStatusChipConfig: Record<
     dot: 'bg-[#7A7872]',
   },
   [ExperienceStatus.LOCKED_PRE_ARRIVAL]: null,
+  [ExperienceStatus.READY]: {
+    label: 'READY',
+    chip: 'border-[#1A4A2E] bg-[#1A4A2E] text-white',
+    dot: 'bg-white',
+  },
 };
