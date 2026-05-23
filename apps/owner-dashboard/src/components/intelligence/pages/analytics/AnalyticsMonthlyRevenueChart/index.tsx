@@ -6,7 +6,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from '@repo/ui';
+} from '@repo/ui/components/chart';
 import { Area, CartesianGrid, ComposedChart, XAxis, YAxis } from 'recharts';
 
 import { ANALYTICS_CHART } from '@/components/intelligence/pages/analytics/chart-theme';
@@ -24,22 +24,33 @@ type YearView = '2026' | '2025' | 'both';
 
 const LAST_INDEX = analyticsRevenueByMonth.length - 1;
 
+function EndPointDot({
+  color,
+  cx,
+  cy,
+  index,
+}: {
+  color: string;
+  cx?: number;
+  cy?: number;
+  index?: number;
+}) {
+  if (index !== LAST_INDEX || cx == null || cy == null) return null;
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={4}
+      fill={color}
+      stroke="#fff"
+      strokeWidth={1.5}
+    />
+  );
+}
+
 const endPointDot =
-  (color: string) =>
-  (props: { cx?: number; cy?: number; index?: number }) => {
-    const { cx, cy, index } = props;
-    if (index !== LAST_INDEX || cx == null || cy == null) return null;
-    return (
-      <circle
-        cx={cx}
-        cy={cy}
-        r={4}
-        fill={color}
-        stroke="#fff"
-        strokeWidth={1.5}
-      />
-    );
-  };
+  (color: string) => (props: { cx?: number; cy?: number; index?: number }) =>
+    EndPointDot({ color, ...props });
 
 export const AnalyticsMonthlyRevenueChart = () => {
   const [metric, setMetric] = useState<MetricView>('revenue');
@@ -99,12 +110,24 @@ export const AnalyticsMonthlyRevenueChart = () => {
         >
           <defs>
             <linearGradient id="analytics2026Fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={ANALYTICS_CHART.revenue2026.fillTop} />
-              <stop offset="100%" stopColor={ANALYTICS_CHART.revenue2026.fillBottom} />
+              <stop
+                offset="0%"
+                stopColor={ANALYTICS_CHART.revenue2026.fillTop}
+              />
+              <stop
+                offset="100%"
+                stopColor={ANALYTICS_CHART.revenue2026.fillBottom}
+              />
             </linearGradient>
             <linearGradient id="analytics2025Fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={ANALYTICS_CHART.revenue2025.fillTop} />
-              <stop offset="100%" stopColor={ANALYTICS_CHART.revenue2025.fillBottom} />
+              <stop
+                offset="0%"
+                stopColor={ANALYTICS_CHART.revenue2025.fillTop}
+              />
+              <stop
+                offset="100%"
+                stopColor={ANALYTICS_CHART.revenue2025.fillBottom}
+              />
             </linearGradient>
           </defs>
           <CartesianGrid

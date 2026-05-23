@@ -1,6 +1,11 @@
 'use client';
 
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from '@repo/ui';
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@repo/ui/components/chart';
 import { Area, CartesianGrid, ComposedChart, XAxis, YAxis } from 'recharts';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
@@ -47,15 +52,33 @@ const chartConfig = Object.fromEntries(
 
 const LAST_INDEX = experienceDemandByMonth.length - 1;
 
+function EndDot({
+  color,
+  cx,
+  cy,
+  index,
+}: {
+  color: string;
+  cx?: number;
+  cy?: number;
+  index?: number;
+}) {
+  if (index !== LAST_INDEX || cx == null || cy == null) return null;
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={3.5}
+      fill={color}
+      stroke="#fff"
+      strokeWidth={1.5}
+    />
+  );
+}
+
 const endDot =
-  (color: string) =>
-  (props: { cx?: number; cy?: number; index?: number }) => {
-    const { cx, cy, index } = props;
-    if (index !== LAST_INDEX || cx == null || cy == null) return null;
-    return (
-      <circle cx={cx} cy={cy} r={3.5} fill={color} stroke="#fff" strokeWidth={1.5} />
-    );
-  };
+  (color: string) => (props: { cx?: number; cy?: number; index?: number }) =>
+    EndDot({ color, ...props });
 
 export const ExperienceDemandTrendChart = () => (
   <IntelCard className="flex flex-col rounded-xl p-5">
@@ -75,7 +98,14 @@ export const ExperienceDemandTrendChart = () => (
       >
         <defs>
           {SERIES.map((s) => (
-            <linearGradient key={s.fillId} id={s.fillId} x1="0" y1="0" x2="0" y2="1">
+            <linearGradient
+              key={s.fillId}
+              id={s.fillId}
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
               <stop offset="0%" stopColor={s.fillTop} />
               <stop offset="100%" stopColor={s.fillBottom} />
             </linearGradient>
@@ -118,7 +148,10 @@ export const ExperienceDemandTrendChart = () => (
     <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-intel-text">
       {[...SERIES].reverse().map((s) => (
         <span key={s.key} className="flex items-center gap-1.5">
-          <span className="size-2 rounded-full" style={{ backgroundColor: s.color }} />
+          <span
+            className="size-2 rounded-full"
+            style={{ backgroundColor: s.color }}
+          />
           {s.label}
         </span>
       ))}

@@ -5,7 +5,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from '@repo/ui';
+} from '@repo/ui/components/chart';
 import { Area, CartesianGrid, ComposedChart, XAxis, YAxis } from 'recharts';
 
 import { ANALYTICS_CHART } from '@/components/intelligence/pages/analytics/chart-theme';
@@ -13,8 +13,14 @@ import { IntelCard } from '@/components/intelligence/ui/IntelCard';
 import { estateOccupancyByMonth } from '@/lib/mock-data';
 
 const chartConfig = {
-  y2026: { label: '2026 Occupancy', color: ANALYTICS_CHART.occupancy2026.stroke },
-  y2025: { label: '2025 Occupancy', color: ANALYTICS_CHART.occupancy2025.stroke },
+  y2026: {
+    label: '2026 Occupancy',
+    color: ANALYTICS_CHART.occupancy2026.stroke,
+  },
+  y2025: {
+    label: '2025 Occupancy',
+    color: ANALYTICS_CHART.occupancy2025.stroke,
+  },
 } satisfies ChartConfig;
 
 const MONTH_TICKS = new Set(['Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov', 'Dec']);
@@ -25,22 +31,39 @@ export const EstateOccupancyChart = () => (
       <h3 className="font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">
         Estate Occupancy Rate
       </h3>
-      <p className="mt-1 text-xs text-intel-text-muted">Monthly · 2026 vs 2025</p>
+      <p className="mt-1 text-xs text-intel-text-muted">
+        Monthly · 2026 vs 2025
+      </p>
     </div>
 
-    <ChartContainer config={chartConfig} className="mt-4 min-h-[200px] w-full flex-1">
+    <ChartContainer
+      config={chartConfig}
+      className="mt-4 min-h-[200px] w-full flex-1"
+    >
       <ComposedChart
         data={estateOccupancyByMonth}
         margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
       >
         <defs>
           <linearGradient id="occupancy2026Fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={ANALYTICS_CHART.occupancy2026.fillTop} />
-            <stop offset="100%" stopColor={ANALYTICS_CHART.occupancy2026.fillBottom} />
+            <stop
+              offset="0%"
+              stopColor={ANALYTICS_CHART.occupancy2026.fillTop}
+            />
+            <stop
+              offset="100%"
+              stopColor={ANALYTICS_CHART.occupancy2026.fillBottom}
+            />
           </linearGradient>
           <linearGradient id="occupancy2025Fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={ANALYTICS_CHART.occupancy2025.fillTop} />
-            <stop offset="100%" stopColor={ANALYTICS_CHART.occupancy2025.fillBottom} />
+            <stop
+              offset="0%"
+              stopColor={ANALYTICS_CHART.occupancy2025.fillTop}
+            />
+            <stop
+              offset="100%"
+              stopColor={ANALYTICS_CHART.occupancy2025.fillBottom}
+            />
           </linearGradient>
         </defs>
         <CartesianGrid
@@ -55,7 +78,9 @@ export const EstateOccupancyChart = () => (
           tick={{ fill: ANALYTICS_CHART.tick, fontSize: 11 }}
           dy={6}
           interval={0}
-          tickFormatter={(value: string) => (MONTH_TICKS.has(value) ? value : '')}
+          tickFormatter={(value: string) =>
+            MONTH_TICKS.has(value) ? value : ''
+          }
         />
         <YAxis
           tickLine={false}

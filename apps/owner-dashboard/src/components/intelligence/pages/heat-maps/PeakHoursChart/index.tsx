@@ -1,6 +1,6 @@
 'use client';
 
-import { ChartContainer, type ChartConfig } from '@repo/ui';
+import { ChartContainer, type ChartConfig } from '@repo/ui/components/chart';
 import { Bar, BarChart, Cell, XAxis, YAxis } from 'recharts';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
@@ -14,9 +14,16 @@ const AXIS_LABELS = new Set(['6am', '12pm', '6pm', '11pm']);
 
 export const PeakHoursChart = () => (
   <IntelCard className="flex h-full min-h-0 flex-col p-4">
-    <h3 className="shrink-0 text-sm font-semibold text-intel-text">Peak Hours Today</h3>
-    <p className="mt-0.5 shrink-0 text-xs text-intel-text-muted">Activity index by hour</p>
-    <ChartContainer config={chartConfig} className="mt-3 min-h-[120px] w-full flex-1">
+    <h3 className="shrink-0 text-sm font-semibold text-intel-text">
+      Peak Hours Today
+    </h3>
+    <p className="mt-0.5 shrink-0 text-xs text-intel-text-muted">
+      Activity index by hour
+    </p>
+    <ChartContainer
+      config={chartConfig}
+      className="mt-3 min-h-[120px] w-full flex-1"
+    >
       <BarChart
         data={heatMapPeakHours}
         margin={{ top: 4, right: 2, left: -28, bottom: 0 }}
@@ -28,7 +35,9 @@ export const PeakHoursChart = () => (
           axisLine={false}
           tick={{ fill: '#7A726C', fontSize: 10 }}
           interval={0}
-          tickFormatter={(value: string) => (AXIS_LABELS.has(value) ? value : '')}
+          tickFormatter={(value: string) =>
+            AXIS_LABELS.has(value) ? value : ''
+          }
         />
         <YAxis hide domain={[0, 100]} />
         <Bar dataKey="index" radius={[2, 2, 0, 0]} maxBarSize={10}>
