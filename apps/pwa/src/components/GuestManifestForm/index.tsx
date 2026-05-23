@@ -149,7 +149,7 @@ export function GuestManifestForm({
         </Button>
         <form
           onSubmit={onSubmit}
-          className="mx-auto max-w-md space-y-6 rounded-[10px]  bg-white px-[14px] py-5 shadow-[0_1px_2px_rgba(15,31,46,0.04)] h-full overflow-scroll"
+          className="max-w-md space-y-6 rounded-[10px]  bg-white px-[24px] py-5 shadow-[0_1px_2px_rgba(15,31,46,0.04)] h-full overflow-scroll"
           noValidate
         >
           {uiStep === 1 ? (

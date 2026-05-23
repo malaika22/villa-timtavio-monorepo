@@ -5,6 +5,7 @@ import { Button } from '@repo/ui';
 import { Progress } from '@repo/ui/components/progress';
 import { ArrowRight, Plus } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 const MAX_GUESTS = 16;
@@ -18,9 +19,14 @@ export const GuestManifestPrompt = ({
 }: GuestManifestPromptProps) => {
   const pct = Math.min(100, Math.round((guestsAdded / MAX_GUESTS) * 100));
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
 
   const handleAddGuest = () => {
     setIsOpen(true);
+  };
+
+  const handleSave = () => {
+    router.push('/guest-submitted');
   };
 
   return (
@@ -89,7 +95,7 @@ export const GuestManifestPrompt = ({
           open={isOpen}
           onClose={() => setIsOpen(false)}
           onCancel={() => setIsOpen(false)}
-          onSave={() => setIsOpen(false)}
+          onSave={handleSave}
           onRemoveGuest={() => setIsOpen(false)}
         />
       )}

@@ -13,7 +13,7 @@ export const FOOTER_LINKS = [
   },
   {
     label: 'Folio',
-    href: '/contact',
+    href: '/folio',
     Icon: FileText,
   },
   {

@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@plugin "tailwindcss-animate";
 
 /* Monorepo: Tailwind must see class strings in @repo/ui (paths relative to this file: packages/theme/src/) */
 @source "../../ui/src/**/*.ts";

@@ -9,4 +9,6 @@ export enum ExperienceStatus {
   COMPLETED = 'completed',
   /** Pre-check-in — grey overlay + lock + "Available at check-in" */
   LOCKED_PRE_ARRIVAL = 'locked-pre-arrival',
+  /** Setup complete and ready for the guest */
+  READY = 'ready',
 }
