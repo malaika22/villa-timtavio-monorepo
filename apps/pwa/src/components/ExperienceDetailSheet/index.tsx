@@ -13,7 +13,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { ExperienceBadge } from '@/components/featured-experiences/ExperienceBadge';
 import { RequestExperienceSheet } from '@/components/RequestExperienceSheet';
-import { Button } from '@repo/ui';
+import { Button } from '@repo/ui/components/button';
 import { Drawer, DrawerContent, DrawerTitle } from '@repo/ui/components/drawer';
 
 interface Props {

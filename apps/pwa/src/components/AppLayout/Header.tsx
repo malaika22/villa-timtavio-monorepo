@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@repo/ui';
+import { Button } from '@repo/ui/components/button';
 import { BellIcon, Phone } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
@@ -15,7 +15,12 @@ export const Header = () => {
   return (
     <>
       <div className="min-h-[44px] flex items-center px-[14px] py-4 border-b border-[#E3E0DA] justify-between sticky top-0 bg-white z-10">
-        <Image src="/images/dark-logo.svg" alt="Logo" width={100} height={100} />
+        <Image
+          src="/images/dark-logo.svg"
+          alt="Logo"
+          width={100}
+          height={100}
+        />
         <div className="space-x-3">
           <Button
             onClick={() => setNotificationsOpen(true)}

@@ -7,7 +7,7 @@ import {
   DrawerContent,
   DrawerTitle,
 } from '@repo/ui/components/drawer';
-import { Button } from '@repo/ui';
+import { Button } from '@repo/ui/components/button';
 import { ArrowLeft, Phone } from 'lucide-react';
 import Image from 'next/image';
 

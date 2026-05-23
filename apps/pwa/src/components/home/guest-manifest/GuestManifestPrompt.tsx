@@ -1,7 +1,7 @@
 'use client';
 
 import { GuestManifestForm } from '@/components/GuestManifestForm';
-import { Button } from '@repo/ui';
+import { Button } from '@repo/ui/components/button';
 import { Progress } from '@repo/ui/components/progress';
 import { ArrowRight, Plus } from 'lucide-react';
 import Link from 'next/link';

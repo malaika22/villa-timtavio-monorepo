@@ -7,7 +7,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@repo/ui/components/tabs';
-import { Button } from '@repo/ui';
+import { Button } from '@repo/ui/components/button';
 import { cn } from '@repo/ui/lib/utils';
 import { X } from 'lucide-react';
 import { useState } from 'react';

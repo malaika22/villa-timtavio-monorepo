@@ -11,7 +11,7 @@ import { EXPERIENCES_MOCK_DATA } from '@/data/experiencesMockData';
 import { FilterChips } from './FilterChips';
 import { CATALOG_TOTAL, PAGE_SIZE } from './constants';
 import { staggerDelay } from './animations';
-import { Button } from '@repo/ui';
+import { Button } from '@repo/ui/components/button';
 
 export function ExperiencesCatalog() {
   const [filter, setFilter] = useState<ExperienceFilterId>('all');

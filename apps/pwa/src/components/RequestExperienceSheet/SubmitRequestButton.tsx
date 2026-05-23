@@ -1,4 +1,4 @@
-import { Button } from '@repo/ui';
+import { Button } from '@repo/ui/components/button';
 import { Drawer, DrawerContent, DrawerTitle } from '@repo/ui/components/drawer';
 import { cn } from '@repo/ui/lib/utils';
 import { Bell, ArrowRight } from 'lucide-react';

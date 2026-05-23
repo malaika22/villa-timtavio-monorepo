@@ -1,7 +1,9 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Drawer, DrawerContent, Input } from '@repo/ui';
+import { Button } from '@repo/ui/components/button';
+import { Drawer, DrawerContent } from '@repo/ui/components/drawer';
+import { Input } from '@repo/ui/components/input';
 import { cn } from '@repo/ui/lib/utils';
 import { ArrowRight, X } from 'lucide-react';
 import { useMemo, useState } from 'react';

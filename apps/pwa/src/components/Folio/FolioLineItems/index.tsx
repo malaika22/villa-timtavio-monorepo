@@ -61,10 +61,7 @@ export const FolioLineItems = () => {
       {/* Summary */}
       <div className="mx-4 mt-2 mb-6 border-t border-[#E3E0DA] pt-4 flex flex-col gap-2.5">
         <SummaryRow label="Subtotal" value={fmtAmount(totals.subtotal)} />
-        <SummaryRow
-          label={totals.taxLabel}
-          value={fmtAmount(tax)}
-        />
+        <SummaryRow label={totals.taxLabel} value={fmtAmount(tax)} />
         <div className="mt-1 flex items-center justify-between">
           <span className="text-[14px] font-semibold text-[#1A1A18]">
             Grand Total
