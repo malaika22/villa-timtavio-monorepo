@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { GuestStepper } from './GuestStepper';
 import { ExperienceSheetProps } from './types';
 import { CalenderPicker } from '../CalenderPicker';
+import { SubmitRequestButton } from './SubmitRequestButton';
 
 export function RequestExperienceSheet({
   experience,
@@ -145,12 +146,7 @@ export function RequestExperienceSheet({
       </div>
 
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#FAF8F4] from-70% to-transparent px-5 pb-8 pt-8">
-        <button
-          type="button"
-          className="w-full rounded-xl bg-[#181818] py-4 text-[11px] font-medium uppercase tracking-[2px] text-white transition-colors active:bg-[#333]"
-        >
-          Submit Request
-        </button>
+        <SubmitRequestButton confirmationMessage="We'll confirm your request within the hour. You'll be notified." />
       </div>
     </motion.div>
   );
