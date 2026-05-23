@@ -3,7 +3,14 @@
 import { usePathname } from 'next/navigation';
 import { Menu } from 'lucide-react';
 import { useState } from 'react';
-import { Button, Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@repo/ui';
+import { Button } from '@repo/ui/components/button';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@repo/ui/components/sheet';
 
 import { ManagerNavLinks } from '@/components/manager/sidebar/ManagerNavLinks';
 
@@ -30,10 +37,15 @@ export const MobileManagerNav = () => {
           <SheetTitle className="font-cormorant text-2xl font-normal text-white">
             Casa TimTavio
           </SheetTitle>
-          <p className="text-[10px] tracking-[0.2em] text-white/50 uppercase">Estate Manager</p>
+          <p className="text-[10px] tracking-[0.2em] text-white/50 uppercase">
+            Estate Manager
+          </p>
         </SheetHeader>
         <nav className="overflow-y-auto px-3 py-4">
-          <ManagerNavLinks pathname={pathname} onNavigate={() => setOpen(false)} />
+          <ManagerNavLinks
+            pathname={pathname}
+            onNavigate={() => setOpen(false)}
+          />
         </nav>
       </SheetContent>
     </Sheet>

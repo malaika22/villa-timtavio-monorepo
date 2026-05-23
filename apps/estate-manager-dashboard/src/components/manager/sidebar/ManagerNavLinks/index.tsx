@@ -22,7 +22,9 @@ export const ManagerNavLinks = ({ pathname, onNavigate, className }: Props) => (
         <ul className="space-y-0.5">
           {section.items.map((item) => {
             const isActive =
-              item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+              item.href === '/'
+                ? pathname === '/'
+                : pathname.startsWith(item.href);
             const Icon = item.icon;
 
             return (
