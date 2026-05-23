@@ -56,7 +56,7 @@ export const NOTIFICATIONS_MOCK: AppNotification[] = [
     id: 3,
     category: 'estate',
     title: 'Check-in tomorrow',
-    body: 'Your arrival at Casa TimTavio is confirmed for 3:00 pm. Estate Manager will greet you.',
+    body: 'Your arrival at Villa TimTavio is confirmed for 3:00 pm. Estate Manager will greet you.',
     timestamp: '1 hr ago',
     read: false,
     Icon: Calendar,

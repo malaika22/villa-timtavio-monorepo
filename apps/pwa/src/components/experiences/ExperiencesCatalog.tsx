@@ -5,7 +5,7 @@ import { ExperienceCard } from '@/components/Experience';
 import { ExperienceDetailSheet } from '@/components/ExperienceDetailSheet';
 import { cn } from '@repo/ui/lib/utils';
 import { ChevronDown, Search, X } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EXPERIENCES_MOCK_DATA } from '@/data/experiencesMockData';
 import { FilterChips } from './FilterChips';
@@ -213,15 +213,11 @@ export function ExperiencesCatalog() {
         </motion.button>
       ) : null}
 
-      <AnimatePresence>
-        {selectedExperience && (
-          <ExperienceDetailSheet
-            key={selectedExperience.id}
-            experience={selectedExperience}
-            onClose={() => setSelectedExperience(null)}
-          />
-        )}
-      </AnimatePresence>
+      <ExperienceDetailSheet
+        open={selectedExperience !== null}
+        experience={selectedExperience}
+        onClose={() => setSelectedExperience(null)}
+      />
     </div>
   );
 }

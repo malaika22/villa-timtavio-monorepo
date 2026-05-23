@@ -15,7 +15,7 @@ export const CheckoutHeader = () => {
 
       {/* Brand label */}
       <p className="text-[9px] font-medium uppercase tracking-[3px] text-[#5C5A54]">
-        Casa Timtavio
+        Villa Timtavio
       </p>
 
       {/* Heading */}

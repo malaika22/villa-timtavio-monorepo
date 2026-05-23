@@ -2,9 +2,10 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Casa TimTavio',
+    name: 'Villa TimTavio',
     short_name: 'TimTavio',
-    description: 'Your private villa concierge — experiences, folio, and guest manifest.',
+    description:
+      'Your private villa concierge — experiences, folio, and guest manifest.',
     start_url: '/',
     display: 'standalone',
     orientation: 'portrait',

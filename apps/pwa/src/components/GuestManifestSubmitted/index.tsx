@@ -36,7 +36,7 @@ export const GuestManifestSubmitted = () => {
             has been submitted.
           </h1>
           <p className="text-[13px] font-light leading-relaxed text-[#797168] max-w-[280px]">
-            The Casa TimTavio team will review and confirm within 24 hours.
+            The Villa TimTavio team will review and confirm within 24 hours.
             You&apos;ll be notified once approved.
           </p>
         </div>
@@ -119,7 +119,10 @@ function StatusChip({
         chip,
       )}
     >
-      <span className={cn('size-[5px] rounded-full shrink-0', dot)} aria-hidden />
+      <span
+        className={cn('size-[5px] rounded-full shrink-0', dot)}
+        aria-hidden
+      />
       {label}
     </div>
   );

@@ -66,7 +66,7 @@ export const STATUS_MOCK_DATA: StatusRequest[] = [
     title: "Chef's Table",
     date: 'TODAY',
     time: '2:00 PM',
-    meta: 'CHEF MARIA',
+    meta: 'CHEF BILLY',
     status: ExperienceStatus.IN_PROGRESS,
     progressPercent: 65,
     progressLabel: 'STAFF PREPARING · ETA 2:15 PM',
@@ -165,7 +165,7 @@ export const REQUEST_DETAIL_MOCK_DATA: Record<number, RequestDetail> = {
       {
         id: 'preparation-started',
         label: 'Preparation Started',
-        detail: 'CHEF MARIA ON SITE · ETA 2:15 PM',
+        detail: 'CHEF BILLY ON SITE · ETA 2:15 PM',
         state: 'active',
       },
       {

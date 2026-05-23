@@ -56,7 +56,7 @@ export const FOLIO_MOCK: FolioMeta = {
       category: 'experience',
       title: "Chef's Table Dinner",
       amount: 450,
-      meta: 'MAR 21 · 6PM · CHEF MARIA',
+      meta: 'MAR 21 · 6PM · CHEF BILLY',
       date: 'MAR 21',
       description:
         '8-course tasting menu with wine pairing. Completed poolside terrace.',

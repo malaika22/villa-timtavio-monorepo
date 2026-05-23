@@ -57,7 +57,7 @@ export const NotificationsDrawer = ({
         className={cn(
           'bg-white rounded-t-[20px] border-none',
           'flex flex-col p-0',
-          'max-h-[92dvh]',
+          'h-[100dvh] data-[vaul-drawer-direction=bottom]:max-h-none',
           '[&>div:first-child]:hidden',
         )}
       >

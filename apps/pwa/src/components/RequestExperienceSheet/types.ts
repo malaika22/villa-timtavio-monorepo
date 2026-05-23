@@ -1,6 +1,7 @@
 import { Experience, ExperienceDetailData } from '@/types/experience';
 
 export interface ExperienceSheetProps {
+  open: boolean;
   experience: Experience;
   detail: ExperienceDetailData;
   preSelectedTimeId: string | null;

@@ -28,14 +28,14 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Casa TimTavio',
+  title: 'Villa TimTavio',
   description:
     'Your private villa concierge — experiences, folio, and guest manifest.',
-  applicationName: 'Casa TimTavio',
+  applicationName: 'Villa TimTavio',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Casa TimTavio',
+    title: 'Villa TimTavio',
     startupImage: '/icons/apple-touch-icon.png',
   },
   formatDetection: {

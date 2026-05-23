@@ -192,19 +192,19 @@ export const EXPERIENCE_DETAIL_DATA: Record<number, ExperienceDetailData> = {
     about:
       "A private multi-course dining experience designed around the estate's garden and the morning's catch.",
     longDescription:
-      'Chef Maria personally crafts each menu the morning of your dinner. No printed menu — just conversation and cuisine.',
+      'Chef Billy personally crafts each menu the morning of your dinner. No printed menu — just conversation and cuisine.',
     included: [
       '8-course tasting menu',
       'Wine pairing from private cellar',
       'Setup & service by estate staff',
     ],
     host: {
-      name: 'Chef Maria Lopez',
+      name: 'Chef Billy',
       role: 'Private Chef',
       category: 'Culinary',
       avatar: '/images/experience.png',
       reviewNote:
-        '"You\'ve dined with Chef Maria twice before · 4.9★ from your visits."',
+        '"You\'ve dined with Chef Billy twice before · 4.9★ from your visits."',
     },
     availableDate: '26TH MARCH',
     availableTimes: [
