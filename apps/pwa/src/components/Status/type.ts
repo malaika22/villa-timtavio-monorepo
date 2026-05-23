@@ -9,6 +9,7 @@ export interface StatusTabFilterProps {
 
 export interface RequestCardProps {
   request: StatusRequest;
+  onSelect: (id: number) => void;
 }
 
 export interface StatusSectionLabelProps {
@@ -23,4 +24,5 @@ export interface StatusTabFilterConfig {
 
 export interface RequestSectionProps {
   visibleRequests: StatusRequest[];
+  onSelect: (id: number) => void;
 }
