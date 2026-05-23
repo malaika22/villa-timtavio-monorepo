@@ -9,7 +9,11 @@ import prettierPlugin from "eslint-plugin-prettier";
 
 const configDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(configDir, "../..");
-const nextAppRoots = [path.join(repoRoot, "apps", "pwa")];
+const nextAppRoots = [
+  path.join(repoRoot, "apps", "pwa"),
+  path.join(repoRoot, "apps", "owner-dashboard"),
+  path.join(repoRoot, "apps", "estate-manager-dashboard"),
+];
 
 const eslintConfig = defineConfig([
   ...nextVitals,

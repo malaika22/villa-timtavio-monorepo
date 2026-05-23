@@ -21,7 +21,7 @@
   --text-lg: 1rem; /* 16px */
   --text-lg--line-height: 1.5rem; /* 24px */
 
-  /* Casa TimTavio — Figma tokens (file TRYhkxSpS5vqNfpgk4PGqy) */
+  /* Casa TimTavio design tokens */
   --color-timtavio-background: var(--timtavio-background);
   --color-timtavio-crater-brown: var(--timtavio-crater-brown);
   --color-timtavio-white-90: var(--timtavio-white-90);
@@ -34,6 +34,73 @@
   --spacing-timtavio-margin-p: var(--timtavio-margin-p);
   --spacing-timtavio-btn-x: var(--timtavio-btn-padding-x);
   --spacing-timtavio-btn-y: var(--timtavio-btn-padding-y);
+  /* Owner Dashboard */
+  --color-timtavio-navy: var(--timtavio-navy);
+  --color-timtavio-navy-mid: var(--timtavio-navy-mid);
+  --color-timtavio-muted: var(--timtavio-muted);
+  --color-timtavio-border: var(--timtavio-border);
+  --color-timtavio-surface: var(--timtavio-surface);
+  --color-timtavio-brown-dark: var(--timtavio-brown-dark);
+  --spacing-timtavio-sidebar: var(--timtavio-sidebar-width);
+  /* Intelligence Dashboard */
+  --color-intel-sidebar: var(--intel-sidebar);
+  --color-intel-sidebar-active: var(--intel-sidebar-active);
+  --color-intel-main: var(--intel-main);
+  --color-intel-card: var(--intel-card);
+  --color-intel-maroon: var(--intel-maroon);
+  --color-intel-maroon-muted: var(--intel-maroon-muted);
+  --color-intel-gold: var(--intel-gold);
+  --color-intel-text: var(--intel-text);
+  --color-intel-text-muted: var(--intel-text-muted);
+  --color-intel-border: var(--intel-border);
+  --color-intel-success: var(--intel-success);
+  --color-intel-success-bg: var(--intel-success-bg);
+  --color-intel-warning: var(--intel-warning);
+  --color-intel-warning-bg: var(--intel-warning-bg);
+  --color-intel-info: var(--intel-info);
+  --color-intel-info-bg: var(--intel-info-bg);
+  --color-intel-peach: var(--intel-peach);
+  --color-intel-peach-bg: var(--intel-peach-bg);
+  --color-intel-nav-muted: var(--intel-nav-muted);
+  --color-intel-nav-section: var(--intel-nav-section);
+  --spacing-intel-sidebar: var(--intel-sidebar-width);
+  /* Owner Dashboard palette */
+  --color-owner-sidebar: var(--owner-sidebar);
+  --color-owner-sidebar-hover: var(--owner-sidebar-hover);
+  --color-owner-accent: var(--owner-accent);
+  --color-owner-canvas: var(--owner-canvas);
+  --color-owner-card: var(--owner-card);
+  --color-owner-text: var(--owner-text);
+  --color-owner-muted: var(--owner-muted);
+  --color-owner-border: var(--owner-border);
+  --color-owner-success: var(--owner-success);
+  --color-owner-success-bg: var(--owner-success-bg);
+  --color-owner-warning: var(--owner-warning);
+  --color-owner-warning-bg: var(--owner-warning-bg);
+  --color-owner-danger: var(--owner-danger);
+  --color-owner-danger-bg: var(--owner-danger-bg);
+  --spacing-owner-sidebar: var(--owner-sidebar-width);
+  /* Estate Manager Dashboard */
+  --color-manager-sidebar: var(--manager-sidebar);
+  --color-manager-sidebar-active: var(--manager-sidebar-active);
+  --color-manager-main: var(--manager-main);
+  --color-manager-card: var(--manager-card);
+  --color-manager-accent: var(--manager-accent);
+  --color-manager-accent-muted: var(--manager-accent-muted);
+  --color-manager-text: var(--manager-text);
+  --color-manager-text-muted: var(--manager-text-muted);
+  --color-manager-border: var(--manager-border);
+  --color-manager-success: var(--manager-success);
+  --color-manager-success-bg: var(--manager-success-bg);
+  --color-manager-warning: var(--manager-warning);
+  --color-manager-warning-bg: var(--manager-warning-bg);
+  --color-manager-danger: var(--manager-danger);
+  --color-manager-danger-bg: var(--manager-danger-bg);
+  --color-manager-info: var(--manager-info);
+  --color-manager-info-bg: var(--manager-info-bg);
+  --color-manager-nav-muted: var(--manager-nav-muted);
+  --color-manager-nav-section: var(--manager-nav-section);
+  --spacing-manager-sidebar: var(--manager-sidebar-width);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-inter: var(--font-inter);
@@ -77,11 +144,7 @@
 }
 
 :root {
-  /*
-   * Casa TimTavio — Responsive Website 2.0 (Figma MCP)
-   * https://www.figma.com/design/TRYhkxSpS5vqNfpgk4PGqy/Casa-TimTavio---Responsive-Website-2.0
-   * Node 98:1047 (status microcopy), Component1 10:14 / 10:34 (buttons & labels)
-   */
+  /* Casa TimTavio base palette */
   --timtavio-background: #f5f3f0;
   --timtavio-crater-brown: #8c7261;
   --timtavio-white-90: #ffffffe6;
@@ -95,6 +158,79 @@
   --timtavio-margin-p: 16px;
   --timtavio-btn-padding-x: 48px;
   --timtavio-btn-padding-y: 18px;
+
+  /* Owner Dashboard palette */
+  --timtavio-navy: #0f1f2e;
+  --timtavio-navy-mid: #1a3040;
+  --timtavio-muted: #797168;
+  --timtavio-border: #e3e0da;
+  --timtavio-surface: #ffffff;
+  --timtavio-brown-dark: #5e4737;
+  --timtavio-sidebar-width: 15rem;
+
+  /* Intelligence Dashboard palette */
+  --intel-sidebar: #1a1514;
+  --intel-sidebar-active: #2a1f1e;
+  --intel-nav-muted: #8e8e8e;
+  --intel-nav-section: #6b6560;
+  --intel-main: #fdfbf7;
+  --intel-card: #ffffff;
+  --intel-maroon: #5e3a31;
+  --intel-maroon-muted: #7a4f45;
+  --intel-gold: #c4a882;
+  --intel-chart-fill: #5e3a3120;
+  --intel-text: #1a1614;
+  --intel-text-muted: #7a726c;
+  --intel-border: #e8e4de;
+  --intel-success: #2d6a4f;
+  --intel-success-bg: #e8f5ee;
+  --intel-warning: #b45309;
+  --intel-warning-bg: #fef3e8;
+  --intel-info: #1e4d7b;
+  --intel-info-bg: #e8f0f8;
+  --intel-peach: #c45c3e;
+  --intel-peach-bg: #fdf0ec;
+  --intel-sidebar-width: 13.5rem;
+
+  /* Owner Dashboard palette */
+  --owner-sidebar: #121212;
+  --owner-sidebar-hover: #1e1e1e;
+  --owner-accent: #8b2635;
+  --owner-accent-hover: #6d1e2a;
+  --owner-canvas: #f5f5f5;
+  --owner-card: #ffffff;
+  --owner-text: #18181b;
+  --owner-muted: #71717a;
+  --owner-border: #e4e4e7;
+  --owner-success: #15803d;
+  --owner-success-bg: #dcfce7;
+  --owner-warning: #b45309;
+  --owner-warning-bg: #fef3c7;
+  --owner-danger: #b91c1c;
+  --owner-danger-bg: #fee2e2;
+  --owner-sidebar-width: 15.5rem;
+
+  /* Estate Manager Dashboard palette */
+  --manager-sidebar: #1c1c1c;
+  --manager-sidebar-active: #3d2a28;
+  --manager-nav-muted: #9a8f88;
+  --manager-nav-section: #6b6560;
+  --manager-main: #fdfbf7;
+  --manager-card: #ffffff;
+  --manager-accent: #633131;
+  --manager-accent-muted: #7a4f45;
+  --manager-text: #1a1614;
+  --manager-text-muted: #7a726c;
+  --manager-border: #e8e4de;
+  --manager-success: #1e7e34;
+  --manager-success-bg: #e6f4ea;
+  --manager-warning: #b45309;
+  --manager-warning-bg: #fff4e5;
+  --manager-danger: #c53030;
+  --manager-danger-bg: #fce8e8;
+  --manager-info: #1e429f;
+  --manager-info-bg: #e1effe;
+  --manager-sidebar-width: 14rem;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
