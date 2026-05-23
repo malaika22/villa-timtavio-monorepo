@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from '@repo/ui';
 import { cn } from '@repo/ui/lib/utils';
 
@@ -16,13 +18,16 @@ export const RequestExperienceButton = ({
 }: {
   className?: string;
   variant?: RequestExperienceButtonVariant;
+  confirmationMessage?: string;
 }) => {
   return (
-    <Button
-      type="button"
-      className={cn('w-full uppercase', variants[variant], className)}
-    >
-      {variant === 'requestAgain' ? 'Request again' : 'Request'}
-    </Button>
+    <>
+      <Button
+        type="button"
+        className={cn('w-full uppercase', variants[variant], className)}
+      >
+        {variant === 'requestAgain' ? 'Request again' : 'Request'}
+      </Button>
+    </>
   );
 };
