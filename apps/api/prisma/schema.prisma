@@ -1,0 +1,635 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum BookingStatus {
+  CONFIRMED
+  CHECKED_IN
+  SETTLED
+  DEPARTURE_TODAY
+  CHECKED_OUT
+  CANCELLED
+}
+
+enum ManifestStatus {
+  INCOMPLETE
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+}
+
+enum GuestRole {
+  PRIMARY
+  SECONDARY
+}
+
+enum RoomType {
+  KING_MASTER_SUITE
+  LUXURY_BUNK_ROOM
+}
+
+enum RequestStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum FolioItemType {
+  ESTATE_BASE_RATE
+  EXPERIENCE
+  INCIDENTAL
+  PRE_STOCKED
+}
+
+enum CatalogCategory {
+  INCLUDED
+  ARRIVAL_TRANSIT
+  WELLNESS
+  CULINARY_AGAVE
+  OCEAN_ADVENTURE
+  EXCURSIONS
+  PRIVATE
+}
+
+enum MenuCategory {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACKS
+  BEVERAGES
+}
+
+enum VendorStatus {
+  ACTIVE
+  INACTIVE
+  ON_LEAVE
+}
+
+enum NotificationType {
+  EXPERIENCE_READY
+  REQUEST_CONFIRMED
+  CHARGE_ADDED
+  REQUEST_CANCELLED
+  MANIFEST_APPROVED
+  MAGIC_LINK_SENT
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  DISMISSED
+}
+
+enum AuditAction {
+  BOOKING_CREATED
+  BOOKING_UPDATED
+  BOOKING_STATUS_CHANGED
+  BOOKING_CHECKED_OUT
+  MANIFEST_GUEST_ADDED
+  MANIFEST_GUEST_UPDATED
+  MANIFEST_GUEST_REMOVED
+  MANIFEST_SUBMITTED
+  MANIFEST_APPROVED
+  MAGIC_LINK_SENT
+  MAGIC_LINK_RESENT
+  SESSION_REVOKED
+  CATALOG_ITEM_CREATED
+  CATALOG_ITEM_UPDATED
+  CATALOG_ITEM_DELETED
+  EXPERIENCE_REQUESTED
+  EXPERIENCE_CONFIRMED
+  EXPERIENCE_CANCELLED
+  EXPERIENCE_READY
+  EXPERIENCE_COMPLETED
+  FOLIO_CHARGE_ADDED
+  FOLIO_CHARGE_EDITED
+  CHECKOUT_TRIGGERED
+  PAYMENT_CAPTURED
+  PAYMENT_FAILED
+  VENDOR_CREATED
+  VENDOR_UPDATED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BOOKING
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Booking {
+  id                      String         @id @default(cuid())
+  lodgifyId               String         @unique
+  lodgifyRawData          Json?
+  checkIn                 DateTime
+  checkOut                DateTime
+  nights                  Int
+  totalGuests             Int            @default(1)
+  status                  BookingStatus  @default(CONFIRMED)
+  manifestStatus          ManifestStatus @default(INCOMPLETE)
+  baseRate                Decimal        @db.Decimal(10, 2)
+  taxRate                 Decimal        @db.Decimal(5, 4) @default(0.08)
+  serviceChargeRate       Decimal        @db.Decimal(5, 4) @default(0.15)
+  stripeCustomerId        String?
+  stripePaymentIntentId   String?
+  stripeDepositAmount     Decimal?       @db.Decimal(10, 2)
+  stripeDepositCaptured   Boolean        @default(false)
+  stripeCheckoutAmount    Decimal?       @db.Decimal(10, 2)
+  stripeCapturedAt        DateTime?
+  internalNotes           String?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
+
+ // Relations — explicit names to avoid Prisma ambiguity
+  primaryGuestId          String
+  primaryGuest            Guest              @relation("BookingPrimaryGuest", fields: [primaryGuestId], references: [id])
+  manifestGuests          ManifestGuest[]
+  folioItems              FolioItem[]
+  experienceRequests      ExperienceRequest[]
+  notifications           Notification[]
+  auditLogs               AuditLog[]
+
+  @@index([status])
+  @@index([checkIn])
+  @@index([checkOut])
+  @@index([lodgifyId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GUEST
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Guest {
+  id                    String     @id @default(cuid())
+  email                 String     @unique
+  firstName             String
+  lastName              String
+  phone                 String?
+  auth0Id               String?    @unique
+  role                  GuestRole  @default(SECONDARY)
+  beveragePreferences   String?
+  winePreferences       String?
+  dietaryRestrictions   String[]   @default([])
+  allergies             String?
+  favouriteExperiences  String[]   @default([])
+  preferredTimes        String?
+  dateOfBirth           DateTime?
+  specialOccasions      String?
+  preferredRoomType     RoomType?
+  pillarPreferences     String?
+  totalVisits           Int        @default(0)
+  totalSpend            Decimal    @db.Decimal(12, 2) @default(0)
+  firstStayDate         DateTime?
+  lastStayDate          DateTime?
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+
+  // Use the same explicit relation name here
+  primaryBookings       Booking[]  @relation("BookingPrimaryGuest")
+  crmNotes              CrmNote[]
+
+  @@index([email])
+  @@index([auth0Id])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CRM NOTE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CrmNote {
+  id          String   @id @default(cuid())
+  guestId     String
+  guest       Guest    @relation(fields: [guestId], references: [id])
+  note        String
+  addedBy     String
+  isStale     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([guestId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MANIFEST GUEST
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ManifestGuest {
+  id                    String    @id @default(cuid())
+  bookingId             String
+  booking               Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  firstName             String
+  lastName              String
+  email                 String
+  phone                 String?
+  dateOfBirth           DateTime?
+  relationship          String?
+  roomNumber            Int?
+  room                  Room?     @relation(fields: [roomNumber], references: [number])
+  dietaryRestrictions   String[]  @default([])
+  allergies             String?
+  beveragePreferences   String?
+  specialNotes          String?
+  auth0UserId           String?
+  pwaLinkSent           Boolean   @default(false)
+  pwaLinkSentAt         DateTime?
+  pwaLinkOpened         Boolean   @default(false)
+  pwaLinkOpenedAt       DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([bookingId])
+  @@index([email])
+  @@unique([bookingId, email])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ROOM
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Room {
+  number          Int      @id
+  name            String
+  type            RoomType
+  capacity        Int
+  bedConfig       String
+  floorLevel      Int?
+  isActive        Boolean  @default(true)
+
+  manifestGuests  ManifestGuest[]
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CATALOG ITEM
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CatalogItem {
+  id                      String          @id @default(cuid())
+  name                    String
+  category                CatalogCategory
+  description             String          @db.Text
+  shortDescription        String?
+  isIncluded              Boolean         @default(false)
+  isActive                Boolean         @default(true)
+  durationMinutes         Int?
+  durationLabel           String?
+  photoUrls               String[]        @default([])
+  primaryPhotoUrl         String?
+  isMultiDay              Boolean         @default(false)
+  multiDayDuration        Int?
+  availableTimeSlots      String[]        @default([])
+  maxGuestCount           Int?
+  setupLeadTimeMinutes    Int?
+  vendorId                String?
+  vendor                  Vendor?         @relation(fields: [vendorId], references: [id])
+  breezeWayTeamId         String?
+  breezeWayTemplateId     String?
+  sortOrder               Int             @default(0)
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  createdBy               String?
+
+  experienceRequests      ExperienceRequest[]
+
+  @@index([category])
+  @@index([isActive])
+  @@index([isIncluded])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MENU ITEM
+// ─────────────────────────────────────────────────────────────────────────────
+
+model MenuItem {
+  id                  String       @id @default(cuid())
+  name                String
+  category            MenuCategory
+  description         String?      @db.Text
+  photoUrl            String?
+  isActive            Boolean      @default(true)
+  isVegetarian        Boolean      @default(false)
+  isVegan             Boolean      @default(false)
+  isGlutenFree        Boolean      @default(false)
+  containsNuts        Boolean      @default(false)
+  containsDairy       Boolean      @default(false)
+  containsShellfish   Boolean      @default(false)
+  otherDietaryNotes   String?
+  sortOrder           Int          @default(0)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  createdBy           String?
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RECOMMENDATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Recommendation {
+  id            String   @id @default(cuid())
+  name          String
+  category      String
+  location      String?
+  description   String?  @db.Text
+  photoUrl      String?
+  externalUrl   String?
+  isActive      Boolean  @default(true)
+  isFeatured    Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdBy     String?
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VENDOR
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Vendor {
+  id              String          @id @default(cuid())
+  name            String
+  category        CatalogCategory
+  role            String
+  bio             String?         @db.Text
+  photoUrl        String?
+  email           String?
+  phone           String?
+  status          VendorStatus    @default(ACTIVE)
+  notes           String?
+  totalBookings   Int             @default(0)
+  averageRating   Decimal?        @db.Decimal(3, 2)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  catalogItems    CatalogItem[]
+  vendorRatings   VendorRating[]
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// VENDOR RATING
+// ─────────────────────────────────────────────────────────────────────────────
+
+model VendorRating {
+  id                    String            @id @default(cuid())
+  vendorId              String
+  vendor                Vendor            @relation(fields: [vendorId], references: [id])
+  experienceRequestId   String            @unique
+  experienceRequest     ExperienceRequest @relation(fields: [experienceRequestId], references: [id])
+  rating                Int
+  notes                 String?
+  createdAt             DateTime          @default(now())
+
+  @@index([vendorId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXPERIENCE REQUEST
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ExperienceRequest {
+  id                    String        @id @default(cuid())
+  bookingId             String
+  booking               Booking       @relation(fields: [bookingId], references: [id])
+  catalogItemId         String
+  catalogItem           CatalogItem   @relation(fields: [catalogItemId], references: [id])
+  requestedByEmail      String
+  requestedByName       String
+  guestTier             GuestRole
+  preferredDate         DateTime
+  preferredTime         String
+  guestCount            Int
+  specialRequests       String?       @db.Text
+  returnDate            DateTime?
+  transportPreference   String?
+  status                RequestStatus @default(PENDING)
+  statusUpdatedAt       DateTime      @default(now())
+  confirmedDate         DateTime?
+  confirmedTime         String?
+  confirmedCost         Decimal?      @db.Decimal(10, 2)
+  emNotes               String?
+  declineReason         String?
+  breezeWayTaskId       String?       @unique
+  breezeWayTaskCreatedAt DateTime?
+  setupPhotoUrl         String?
+  setupCompletedAt      DateTime?
+  staffMemberName       String?
+  folioItemId           String?       @unique
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  folioItem             FolioItem?    @relation("RequestFolioItem", fields: [folioItemId], references: [id])
+  vendorRating          VendorRating?
+
+  @@index([bookingId])
+  @@index([status])
+  @@index([catalogItemId])
+  @@index([breezeWayTaskId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FOLIO ITEM
+// ─────────────────────────────────────────────────────────────────────────────
+
+model FolioItem {
+  id                    String        @id @default(cuid())
+  bookingId             String
+  booking               Booking       @relation(fields: [bookingId], references: [id])
+  type                  FolioItemType
+  description           String
+  amount                Decimal       @db.Decimal(10, 2)
+  quantity              Int           @default(1)
+  attributedToEmail     String?
+  attributedToName      String?
+  staffNote             String?
+  loggedBy              String
+  loggedAt              DateTime      @default(now())
+  editableUntil         DateTime
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  experienceRequest     ExperienceRequest? @relation("RequestFolioItem")
+
+  @@index([bookingId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NOTIFICATION
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Notification {
+  id              String             @id @default(cuid())
+  bookingId       String
+  booking         Booking            @relation(fields: [bookingId], references: [id])
+  recipientEmail  String
+  type            NotificationType
+  title           String
+  body            String
+  deepLink        String?
+  status          NotificationStatus @default(UNREAD)
+  readAt          DateTime?
+  pushSent        Boolean            @default(false)
+  pushSentAt      DateTime?
+  pushEndpoint    String?
+  createdAt       DateTime           @default(now())
+
+  @@index([bookingId])
+  @@index([recipientEmail])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PUSH SUBSCRIPTION
+// ─────────────────────────────────────────────────────────────────────────────
+
+model PushSubscription {
+  id          String   @id @default(cuid())
+  guestEmail  String
+  bookingId   String
+  endpoint    String   @unique
+  p256dhKey   String
+  authKey     String
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([guestEmail])
+  @@index([bookingId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INVENTORY ITEM
+// ─────────────────────────────────────────────────────────────────────────────
+
+model InventoryItem {
+  id                String          @id @default(cuid())
+  name              String
+  category          String
+  unit              String
+  currentStock      Int             @default(0)
+  reorderThreshold  Int
+  maxStock          Int?
+  isOnOrder         Boolean         @default(false)
+  onOrderSince      DateTime?
+  notes             String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  stockMovements    StockMovement[]
+
+  @@index([category])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STOCK MOVEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+model StockMovement {
+  id              String        @id @default(cuid())
+  inventoryItemId String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  delta           Int
+  reason          String?
+  bookingId       String?
+  performedBy     String
+  createdAt       DateTime      @default(now())
+
+  @@index([inventoryItemId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SERVICE EVENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ServiceEvent {
+  id              String   @id @default(cuid())
+  occurredAt      DateTime
+  timeBlock       String
+  estateSpace     String
+  serviceType     String
+  catalogCategory String?
+  hasCost         Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([estateSpace])
+  @@index([timeBlock])
+  @@index([occurredAt])
+  @@index([serviceType])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EQUIPMENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Equipment {
+  id                              String   @id @default(cuid())
+  name                            String
+  category                        String
+  description                     String?
+  rentalCostPerUse                Decimal? @db.Decimal(10, 2)
+  rentalCostPerMonth              Decimal? @db.Decimal(10, 2)
+  totalRentalCost                 Decimal  @db.Decimal(10, 2) @default(0)
+  totalUses                       Int      @default(0)
+  purchasePrice                   Decimal? @db.Decimal(10, 2)
+  estimatedAnnualMaintenanceCost  Decimal? @db.Decimal(10, 2)
+  breakEvenMonths                 Int?
+  recommendation                  String?
+  lastCalculatedAt                DateTime?
+  seasonalNotes                   String?
+  createdAt                       DateTime @default(now())
+  updatedAt                       DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIT LOG
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id              String      @id @default(cuid())
+  action          AuditAction
+  entityType      String
+  entityId        String
+  performedBy     String
+  performedByRole String
+  beforeState     Json?
+  afterState      Json?
+  metadata        Json?
+  bookingId       String?
+  booking         Booking?    @relation(fields: [bookingId], references: [id])
+  createdAt       DateTime    @default(now())
+
+  @@index([action])
+  @@index([entityType, entityId])
+  @@index([bookingId])
+  @@index([performedBy])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SYSTEM ALERT
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SystemAlert {
+  id          String   @id @default(cuid())
+  severity    String
+  title       String
+  message     String
+  category    String
+  isDismissed Boolean  @default(false)
+  dismissedBy String?
+  dismissedAt DateTime?
+  entityType  String?
+  entityId    String?
+  createdAt   DateTime @default(now())
+
+  @@index([severity])
+  @@index([isDismissed])
+}
