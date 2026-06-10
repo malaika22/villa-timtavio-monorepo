@@ -1,4 +1,3 @@
-// apps/api/src/catalog/catalog.controller.ts
 import {
   Controller,
   Get,
@@ -8,19 +7,24 @@ import {
   Param,
   Body,
   Query,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CatalogService } from './catalog.service';
 import { CreateCatalogItemDto } from './dto/create-catalog-item.dto';
 import { UpdateCatalogItemDto } from './dto/update-catalog-item.dto';
+import { CatalogCategory } from '@prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { CatalogCategory } from '@prisma/client';
 
 @Controller('api/v1/catalog')
 export class CatalogController {
   constructor(private catalogService: CatalogService) {}
 
-  // Guest PWA routes
+  // ─── Guest PWA routes ────────────────────────────────────────────────────
+
   @Get()
   findActive(@Query('category') category?: CatalogCategory) {
     return this.catalogService.findAllActive(category);
@@ -51,18 +55,46 @@ export class CatalogController {
     return this.catalogService.findOne(id);
   }
 
-  // Estate Manager routes
+  // ─── Estate Manager: view all ────────────────────────────────────────────
+
   @Get('admin/all')
   @Roles('estate_manager', 'owner')
   findAll(@Query('category') category?: CatalogCategory) {
     return this.catalogService.findAll(category);
   }
 
+  // ─── Estate Manager: individual add ─────────────────────────────────────
+
   @Post()
   @Roles('estate_manager')
   create(@Body() dto: CreateCatalogItemDto, @CurrentUser() user: any) {
     return this.catalogService.create(dto, user.auth0Id);
   }
+
+  // ─── Estate Manager: CSV bulk upload ────────────────────────────────────
+
+  @Post('import/csv')
+  @Roles('estate_manager')
+  @UseInterceptors(FileInterceptor('file'))
+  async importCsv(
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: any,
+  ) {
+    if (!file) throw new BadRequestException('No file uploaded');
+
+    const allowedMimeTypes = ['text/csv', 'application/vnd.ms-excel'];
+    if (
+      !allowedMimeTypes.includes(file.mimetype) &&
+      !file.originalname.endsWith('.csv')
+    ) {
+      throw new BadRequestException('File must be a CSV');
+    }
+
+    const csvContent = file.buffer.toString('utf8');
+    return this.catalogService.importFromCsv(csvContent, user.auth0Id);
+  }
+
+  // ─── Estate Manager: update/delete ──────────────────────────────────────
 
   @Patch(':id')
   @Roles('estate_manager')
@@ -86,7 +118,8 @@ export class CatalogController {
     return this.catalogService.remove(id, user.auth0Id);
   }
 
-  // Menu routes
+  // ─── Menu item routes ────────────────────────────────────────────────────
+
   @Post('menus')
   @Roles('estate_manager')
   createMenuItem(@Body() data: any, @CurrentUser() user: any) {
@@ -105,7 +138,8 @@ export class CatalogController {
     return this.catalogService.removeMenuItem(id);
   }
 
-  // Recommendations routes
+  // ─── Recommendation routes ────────────────────────────────────────────────
+
   @Post('recommendations')
   @Roles('estate_manager')
   createRecommendation(@Body() data: any, @CurrentUser() user: any) {
