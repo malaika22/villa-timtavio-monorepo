@@ -2,11 +2,14 @@
 import { useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth/useAuthStore';
+import { useBookingStore } from '@/store/useBookingStore';
 import { config } from '@/config';
 import { decodeJwt } from '@/helpers/jwt';
+import { bookingsApi } from '@/lib/api/bookings';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { setUser, clearUser, setLoading } = useAuthStore();
+  const setBooking = useBookingStore((s) => s.setBooking);
   const router = useRouter();
 
   useEffect(() => {
@@ -45,6 +48,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       accessToken: token,
       tokenExpiry: payload.exp,
     });
+
+    // Prefetch current booking into Zustand store (non-blocking)
+    bookingsApi
+      .getCurrent()
+      .then(setBooking)
+      .catch((error) => {
+        console.error('Failed to fetch current booking:', error);
+      });
   }, []);
 
   return <>{children}</>;
