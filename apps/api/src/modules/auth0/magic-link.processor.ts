@@ -1,8 +1,9 @@
 // apps/api/src/auth0/magic-link.processor.ts
-import { Process, Processor } from '@nestjs/bull';
+import { Processor, Process, OnQueueFailed } from '@nestjs/bull';
 import { Job } from 'bull';
 import { Logger } from '@nestjs/common';
-import { MagicLinkService, SendMagicLinkPayload } from './magic-link.service';
+import { MagicLinkService } from './magic-link.service';
+import { SendMagicLinkPayload } from './types';
 
 @Processor('magic-links')
 export class MagicLinkProcessor {
@@ -12,7 +13,17 @@ export class MagicLinkProcessor {
 
   @Process('send')
   async handleSend(job: Job<SendMagicLinkPayload>) {
-    this.logger.log(`Processing magic link job for ${job.data.email}`);
+    this.logger.log(
+      `Processing magic link [attempt ${job.attemptsMade + 1}] for ${job.data.email}`,
+    );
     await this.magicLinkService.processMagicLink(job.data);
+    this.logger.log(`Magic link sent to ${job.data.email}`);
+  }
+
+  @OnQueueFailed()
+  handleFailed(job: Job, error: Error) {
+    this.logger.error(
+      `Magic link job failed for ${job.data?.email}: ${error.message}`,
+    );
   }
 }

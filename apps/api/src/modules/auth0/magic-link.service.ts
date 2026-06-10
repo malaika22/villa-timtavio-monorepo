@@ -1,23 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { Auth0ManagementService } from './auth0-management.service';
 import axios from 'axios';
 import { PrismaService } from '../../prisma/prisma.service';
-
-export interface SendMagicLinkPayload {
-  email: string;
-  firstName: string;
-  lastName: string;
-  bookingId: string;
-  role: 'primary_member' | 'secondary_guest';
-  guestTier: 'primary' | 'secondary';
-  // How many hours before checkout the link expires
-  // Primary member: link sent 24h before check-in, expires 24h after checkout
-  // Secondary guest: link expires 24h after checkout
-  checkOutDate: Date;
-}
+import { SendMagicLinkPayload } from './types';
 
 @Injectable()
 export class MagicLinkService {
@@ -52,14 +44,21 @@ export class MagicLinkService {
       // Step 1: Find or create Auth0 user
       const auth0UserId = await this.auth0Mgmt.findOrCreateUser({
         email: payload.email,
+        firstName: payload.firstName,
+        lastName: payload.lastName,
         role: payload.role,
         bookingId: payload.bookingId,
         guestTier: payload.guestTier,
-        firstName: payload.firstName,
-        lastName: payload.lastName,
       });
 
-      // Step 2: Send passwordless email via Auth0
+      // Step 2 — Send passwordless magic link via Auth0
+      const state = Buffer.from(
+        JSON.stringify({
+          bookingId: payload.bookingId,
+          tier: payload.guestTier,
+        }),
+      ).toString('base64');
+
       await axios.post(
         `https://${this.config.get('AUTH0_DOMAIN')}/passwordless/start`,
         {
@@ -74,31 +73,52 @@ export class MagicLinkService {
             audience: this.config.get('AUTH0_AUDIENCE'),
             response_type: 'code',
             // Pass booking context through state parameter
-            state: Buffer.from(
-              JSON.stringify({
-                bookingId: payload.bookingId,
-                tier: payload.guestTier,
-              }),
-            ).toString('base64'),
+            state,
           },
         },
+        { headers: { 'Content-Type': 'application/json' } },
       );
+      this.logger.log(`Magic link sent to ${payload.email}`);
 
-      // Step 3: Update manifest guest record with Auth0 user ID
+      // Step 3 — Update database records
       if (payload.guestTier === 'secondary') {
         await this.prisma.manifestGuest.updateMany({
-          where: {
-            bookingId: payload.bookingId,
-            email: payload.email,
-          },
+          where: { bookingId: payload.bookingId, email: payload.email },
           data: {
             pwaLinkSent: true,
+            pwaLinkSentAt: new Date(),
             auth0UserId,
           },
         });
+      } else {
+        // Update primary guest Auth0 ID
+        const booking = await this.prisma.booking.findUnique({
+          where: { id: payload.bookingId },
+          include: { primaryGuest: true },
+        });
+        if (booking?.primaryGuest) {
+          await this.prisma.guest.update({
+            where: { id: booking.primaryGuest.id },
+            data: { auth0Id: auth0UserId },
+          });
+        }
       }
 
-      this.logger.log(`Magic link sent successfully to ${payload.email}`);
+      // Step 4 — Audit log
+      await this.prisma.auditLog.create({
+        data: {
+          action: 'MAGIC_LINK_SENT',
+          entityType: 'Guest',
+          entityId: auth0UserId,
+          performedBy: 'system',
+          performedByRole: 'system',
+          bookingId: payload.bookingId,
+          metadata: {
+            email: payload.email,
+            tier: payload.guestTier,
+          } as any,
+        },
+      });
     } catch (error) {
       this.logger.error(
         `Failed to send magic link to ${payload.email}: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -109,53 +129,59 @@ export class MagicLinkService {
 
   // ─── Revoke Access (called at checkout + 24h) ────────────────────────────────
 
-  async revokeAccess(bookingId: string): Promise<void> {
-    this.logger.log(`Revoking PWA access for booking ${bookingId}`);
+  async revokeBookingAccess(bookingId: string): Promise<void> {
+    this.logger.log(`Revoking access for booking ${bookingId}`);
 
-    // Get all guests for this booking
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
-        primaryGuest: true,
-        manifestGuests: true,
+        primaryGuest: { select: { auth0Id: true } },
+        manifestGuests: { select: { auth0UserId: true } },
       },
     });
 
     if (!booking) return;
 
-    const allAuth0Ids: string[] = [];
+    const auth0Ids: string[] = [];
 
-    // Primary guest
     if (booking.primaryGuest.auth0Id) {
-      allAuth0Ids.push(booking.primaryGuest.auth0Id);
+      auth0Ids.push(booking.primaryGuest.auth0Id);
     }
 
-    // Secondary guests
     for (const guest of booking.manifestGuests) {
-      if (guest.auth0UserId) {
-        allAuth0Ids.push(guest.auth0UserId);
-      }
+      if (guest.auth0UserId) auth0Ids.push(guest.auth0UserId);
     }
 
-    // Revoke sessions for all guests
     await Promise.allSettled(
-      allAuth0Ids.map((id) => this.auth0Mgmt.revokeUserSessions(id)),
+      auth0Ids.map((id) => this.auth0Mgmt.revokeUserSessions(id)),
     );
 
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'SESSION_REVOKED',
+        entityType: 'Booking',
+        entityId: bookingId,
+        performedBy: 'system',
+        performedByRole: 'system',
+        bookingId,
+        metadata: { revokedCount: auth0Ids.length } as any,
+      },
+    });
+
     this.logger.log(
-      `Revoked access for ${allAuth0Ids.length} guests on booking ${bookingId}`,
+      `Revoked ${auth0Ids.length} sessions for booking ${bookingId}`,
     );
   }
 
   // ─── Resend Magic Link (EM action from dashboard) ────────────────────────────
 
-  async resendMagicLink(manifestGuestId: string): Promise<void> {
+  async resendToManifestGuest(manifestGuestId: string): Promise<void> {
     const guest = await this.prisma.manifestGuest.findUnique({
       where: { id: manifestGuestId },
       include: { booking: true },
     });
 
-    if (!guest) throw new Error('Guest not found');
+    if (!guest) throw new InternalServerErrorException('Guest not found');
 
     await this.sendMagicLink({
       email: guest.email,
@@ -165,6 +191,23 @@ export class MagicLinkService {
       role: 'secondary_guest',
       guestTier: 'secondary',
       checkOutDate: guest.booking.checkOut,
+    });
+
+    await this.prisma.manifestGuest.update({
+      where: { id: manifestGuestId },
+      data: { pwaLinkSent: true, pwaLinkSentAt: new Date() },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'MAGIC_LINK_RESENT',
+        entityType: 'ManifestGuest',
+        entityId: manifestGuestId,
+        performedBy: 'estate_manager',
+        performedByRole: 'estate_manager',
+        bookingId: guest.bookingId,
+        metadata: { email: guest.email } as any,
+      },
     });
   }
 }
