@@ -8,26 +8,35 @@ import { RequestSection } from './RequestSection';
 import { StatusSectionLabel } from './StatusSectionLabel';
 import { StatusTabFilter } from './StatusTabFilter';
 import { StatusTabId } from './type';
+import { useBookingRequests } from '@/hooks/useRequests';
+import { mapRequestToStatusRequest } from '@/lib/mappers/request';
+import type { StatusRequest } from './mockData';
 
 export const Status = () => {
   const [activeTab, setActiveTab] = useState<StatusTabId>('all');
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const visibleRequests = STATUS_MOCK_DATA.filter((r) =>
-    r.tabs.includes(activeTab),
-  );
+  const { data: apiRequests, isLoading } = useBookingRequests();
 
-  const activeCount = STATUS_MOCK_DATA.filter((r) =>
-    r.tabs.includes('active'),
-  ).length;
+  const requests: StatusRequest[] = apiRequests
+    ? apiRequests.map(
+        (r) => mapRequestToStatusRequest(r) as unknown as StatusRequest,
+      )
+    : STATUS_MOCK_DATA;
+
+  const visibleRequests = requests.filter((r) => r.tabs.includes(activeTab));
+
+  const activeCount = requests.filter((r) => r.tabs.includes('active')).length;
 
   return (
     <>
       <div className="flex flex-col gap-4">
-        {/* Active requests banner */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1.5 rounded-full bg-[#1A1A18] px-3 py-1.5">
-            <span className="size-[5px] rounded-full bg-[#4CAF50]" aria-hidden />
+            <span
+              className="size-[5px] rounded-full bg-[#4CAF50]"
+              aria-hidden
+            />
             <span className="text-[9px] font-semibold uppercase tracking-[1.4px] text-white">
               {activeCount} Active Requests
             </span>
@@ -40,10 +49,21 @@ export const Status = () => {
         <StatusTabFilter activeTab={activeTab} setActiveTab={setActiveTab} />
         <StatusSectionLabel activeTab={activeTab} />
 
-        <RequestSection
-          visibleRequests={visibleRequests}
-          onSelect={setSelectedId}
-        />
+        {isLoading ? (
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-20 animate-pulse rounded-[12px] bg-[#E3E0DA]"
+              />
+            ))}
+          </div>
+        ) : (
+          <RequestSection
+            visibleRequests={visibleRequests}
+            onSelect={setSelectedId}
+          />
+        )}
       </div>
 
       <RequestDetailView

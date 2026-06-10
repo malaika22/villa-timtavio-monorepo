@@ -1,4 +1,4 @@
-import { FOLIO_MOCK } from '../mockData';
+import { FolioHeaderProps } from './types';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-US', {
@@ -8,8 +8,8 @@ const fmt = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n);
 
-export const FolioHeader = () => {
-  const { breakdown, paymentInfo, totals } = FOLIO_MOCK;
+export const FolioHeader = ({ data }: FolioHeaderProps) => {
+  const { breakdown, paymentInfo, totals } = data;
   const currentTotal = totals.subtotal;
 
   return (
@@ -25,8 +25,9 @@ export const FolioHeader = () => {
           {fmt(currentTotal)}
         </h1>
         <p className="mt-2 text-[11px] font-light text-[#5C5A54]">
-          Villa {fmt(breakdown.villa)} · Experiences {fmt(breakdown.experiences)}{' '}
-          · Incidentals {fmt(breakdown.incidentals)}
+          Villa {fmt(breakdown.villa)} · Experiences{' '}
+          {fmt(breakdown.experiences)} · Incidentals{' '}
+          {fmt(breakdown.incidentals)}
         </p>
       </div>
 
@@ -39,7 +40,10 @@ export const FolioHeader = () => {
 
       {/* Payment line */}
       <div className="flex items-center gap-2 mt-1">
-        <span className="size-[5px] rounded-full bg-[#5C5A54] shrink-0" aria-hidden />
+        <span
+          className="size-[5px] rounded-full bg-[#5C5A54] shrink-0"
+          aria-hidden
+        />
         <p className="text-[10px] font-light text-[#5C5A54]">
           Auto-charged at checkout · {paymentInfo}
         </p>

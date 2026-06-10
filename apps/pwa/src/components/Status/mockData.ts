@@ -3,7 +3,7 @@ import type { StatusRequestKey } from './chipConfig';
 import { StatusTabId } from './type';
 
 export interface StatusRequest {
-  id: number;
+  id: string;
   title: string;
   /** Display string, e.g. "TODAY", "TOMORROW", "MAR 22" */
   date: string;
@@ -35,7 +35,7 @@ export interface RequestTimelineStep {
 }
 
 export interface RequestDetail {
-  id: number;
+  id: string;
   /** Thumbnail image path */
   image?: string;
   timeline: RequestTimelineStep[];
@@ -51,7 +51,7 @@ export interface RequestDetail {
 
 export const STATUS_MOCK_DATA: StatusRequest[] = [
   {
-    id: 1,
+    id: '1',
     title: 'Pool Exclusive',
     date: 'TODAY',
     time: '7:00 PM',
@@ -62,7 +62,7 @@ export const STATUS_MOCK_DATA: StatusRequest[] = [
     tabs: ['active', 'all', 'today'],
   },
   {
-    id: 2,
+    id: '2',
     title: "Chef's Table",
     date: 'TODAY',
     time: '2:00 PM',
@@ -73,7 +73,7 @@ export const STATUS_MOCK_DATA: StatusRequest[] = [
     tabs: ['active', 'all', 'today'],
   },
   {
-    id: 3,
+    id: '3',
     title: 'Wine Vault Evening',
     date: 'TOMORROW',
     time: '7:00 PM',
@@ -82,7 +82,7 @@ export const STATUS_MOCK_DATA: StatusRequest[] = [
     tabs: ['active', 'all'],
   },
   {
-    id: 4,
+    id: '4',
     title: 'Private Spa Ritual',
     date: 'MAR 22',
     time: '10:00 AM',
@@ -92,9 +92,9 @@ export const STATUS_MOCK_DATA: StatusRequest[] = [
   },
 ];
 
-export const REQUEST_DETAIL_MOCK_DATA: Record<number, RequestDetail> = {
+export const REQUEST_DETAIL_MOCK_DATA: Record<string, RequestDetail> = {
   1: {
-    id: 1,
+    id: '1',
     image: '/images/experience.png',
     timeline: [
       {
@@ -141,7 +141,7 @@ export const REQUEST_DETAIL_MOCK_DATA: Record<number, RequestDetail> = {
     contactWhatsApp: '+34 600 000 001',
   },
   2: {
-    id: 2,
+    id: '2',
     image: '/images/experience.png',
     timeline: [
       {
@@ -188,7 +188,7 @@ export const REQUEST_DETAIL_MOCK_DATA: Record<number, RequestDetail> = {
     contactWhatsApp: '+34 600 000 001',
   },
   3: {
-    id: 3,
+    id: '3',
     image: '/images/experience.png',
     timeline: [
       {
@@ -233,7 +233,7 @@ export const REQUEST_DETAIL_MOCK_DATA: Record<number, RequestDetail> = {
     contactWhatsApp: '+34 600 000 001',
   },
   4: {
-    id: 4,
+    id: '4',
     image: '/images/experience.png',
     timeline: [
       {

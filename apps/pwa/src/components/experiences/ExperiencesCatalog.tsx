@@ -8,8 +8,11 @@ import { ChevronDown, Search, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EXPERIENCES_MOCK_DATA } from '@/data/experiencesMockData';
+import { useCatalog } from '@/hooks/useCatalog';
+import { useBookingStore } from '@/store/useBookingStore';
+import { mapCatalogItemsToExperiences } from '@/lib/mappers/experience';
 import { FilterChips } from './FilterChips';
-import { CATALOG_TOTAL, PAGE_SIZE } from './constants';
+import { bookingStatusMap, CATALOG_TOTAL, PAGE_SIZE } from './constants';
 import { staggerDelay } from './animations';
 import { Button } from '@repo/ui/components/button';
 
@@ -19,16 +22,28 @@ export function ExperiencesCatalog() {
   const [selectedExperience, setSelectedExperience] =
     useState<Experience | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+
+  const arrivalStatus = useBookingStore((s) => s.arrivalStatus);
+
+  const bookingStatus = arrivalStatus
+    ? bookingStatusMap[arrivalStatus]
+    : undefined;
+
+  const { data: catalogItems } = useCatalog();
+  const apiExperiences = catalogItems
+    ? mapCatalogItemsToExperiences(catalogItems, bookingStatus)
+    : null;
   /** Drives RTL collapse: fixed to right edge while shrinking. Cleared after close. */
   const [shrinkFromRight, setShrinkFromRight] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
+    const sourceData = apiExperiences ?? EXPERIENCES_MOCK_DATA;
     let list =
       filter === 'all'
-        ? EXPERIENCES_MOCK_DATA
-        : EXPERIENCES_MOCK_DATA.filter((e) => e.filterCategory === filter);
+        ? sourceData
+        : sourceData.filter((e) => e.filterCategory === filter);
 
     const q = searchQuery.trim().toLowerCase();
     if (q) {
@@ -43,6 +58,7 @@ export function ExperiencesCatalog() {
   }, [filter, searchQuery]);
 
   const total = filtered.length;
+  const catalogTotal = apiExperiences ? apiExperiences.length : CATALOG_TOTAL;
   const visible = filtered.slice(0, visibleCount);
   const remaining = Math.max(0, total - visibleCount);
   const loadedCount = visible.length;
@@ -54,9 +70,9 @@ export function ExperiencesCatalog() {
   }, [searchOpen]);
 
   const countLabel =
-    total === CATALOG_TOTAL
-      ? `${CATALOG_TOTAL} experience${CATALOG_TOTAL === 1 ? '' : 's'}`
-      : `${total} of ${CATALOG_TOTAL} experience${CATALOG_TOTAL === 1 ? '' : 's'}`;
+    total === catalogTotal
+      ? `${catalogTotal} experience${catalogTotal === 1 ? '' : 's'}`
+      : `${total} of ${catalogTotal} experience${catalogTotal === 1 ? '' : 's'}`;
 
   return (
     <div className="mx-auto max-w-md space-y-5 pb-28">

@@ -12,7 +12,7 @@ export default async function RequestDetailPage({
 
   return (
     <PageLayout>
-      <RequestDetailView id={Number(id)} open={true} onClose={() => {}} />
+      <RequestDetailView id={id} open={true} onClose={() => {}} />
     </PageLayout>
   );
 }

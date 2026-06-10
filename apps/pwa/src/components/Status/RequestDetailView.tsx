@@ -10,18 +10,22 @@ import {
 import { Button } from '@repo/ui/components/button';
 import { ArrowLeft, Phone } from 'lucide-react';
 import Image from 'next/image';
-
 import { StatusChip } from './StatusChip';
 import {
   REQUEST_DETAIL_MOCK_DATA,
   STATUS_MOCK_DATA,
   type RequestTimelineStep,
 } from './mockData';
+import { useRequestById } from '@/hooks/useRequests';
+import {
+  mapRequestToStatusRequest,
+  buildTimelineFromRequest,
+} from '@/lib/mappers/request';
 
 interface RequestDetailViewProps {
   open: boolean;
   onClose: () => void;
-  id: number | null;
+  id: string | null;
 }
 
 export const RequestDetailView = ({
@@ -29,8 +33,23 @@ export const RequestDetailView = ({
   onClose,
   id,
 }: RequestDetailViewProps) => {
-  const request = id != null ? STATUS_MOCK_DATA.find((r) => r.id === id) : null;
-  const detail = id != null ? REQUEST_DETAIL_MOCK_DATA[id] : null;
+  const { data: apiRequest } = useRequestById(id);
+
+  const mockRequest =
+    id != null ? STATUS_MOCK_DATA.find((r) => r.id === id) : null;
+  const mockDetail = id != null ? REQUEST_DETAIL_MOCK_DATA[id] : null;
+
+  const request = apiRequest
+    ? (mapRequestToStatusRequest(apiRequest) as unknown as typeof mockRequest)
+    : mockRequest;
+
+  const timeline: RequestTimelineStep[] | null = apiRequest
+    ? buildTimelineFromRequest(apiRequest)
+    : (mockDetail?.timeline ?? null);
+
+  const detail = mockDetail
+    ? { ...mockDetail, timeline: timeline ?? mockDetail.timeline }
+    : null;
 
   return (
     <Drawer open={open} onOpenChange={(v) => !v && onClose()} direction="right">

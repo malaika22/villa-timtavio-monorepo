@@ -6,11 +6,11 @@ import { useState } from 'react';
 
 import {
   FOLIO_CATEGORY_CONFIG,
-  FOLIO_MOCK,
   FOLIO_TABS,
   type FolioItem,
   type FolioTabId,
 } from '../mockData';
+import { FolioLineItemsProps } from './types';
 
 const fmtAmount = (n: number) =>
   new Intl.NumberFormat('en-US', {
@@ -20,9 +20,9 @@ const fmtAmount = (n: number) =>
     maximumFractionDigits: 2,
   }).format(n);
 
-export const FolioLineItems = () => {
+export const FolioLineItems = ({ data }: FolioLineItemsProps) => {
   const [activeTab, setActiveTab] = useState<FolioTabId>('all');
-  const { items, totals } = FOLIO_MOCK;
+  const { items, totals } = data;
 
   const tax = totals.subtotal * totals.taxRate;
   const grandTotal = totals.subtotal + tax;

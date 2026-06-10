@@ -59,7 +59,7 @@ export default function AuthCallback() {
         }
       }
 
-      router.replace('/home');
+      router.replace('/');
     } catch (err: any) {
       setErrorMessage(err.message || 'Something went wrong');
       setStatus('error');

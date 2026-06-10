@@ -10,7 +10,7 @@ import type {
  */
 export const EXPERIENCES_MOCK_DATA: Experience[] = [
   {
-    id: 1,
+    id: '1',
     category: 'Culinary',
     filterCategory: 'culinary',
     title: "Chef's Table Dinner",
@@ -19,7 +19,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.AVAILABLE,
   },
   {
-    id: 2,
+    id: '2',
     category: 'Water',
     filterCategory: 'water',
     title: 'Pool Exclusive',
@@ -28,7 +28,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.IN_PROGRESS,
   },
   {
-    id: 3,
+    id: '3',
     category: 'Private',
     filterCategory: 'private',
     title: 'Private Spa Ritual',
@@ -37,7 +37,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.LOCKED_PRE_ARRIVAL,
   },
   {
-    id: 4,
+    id: '4',
     category: 'Adventure',
     filterCategory: 'adventure',
     title: 'Surf Session',
@@ -46,7 +46,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.COMPLETED,
   },
   {
-    id: 5,
+    id: '5',
     category: 'Wellness',
     filterCategory: 'wellness',
     title: 'Sunrise Yoga Deck',
@@ -55,7 +55,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.AVAILABLE,
   },
   {
-    id: 6,
+    id: '6',
     category: 'Culinary',
     filterCategory: 'culinary',
     title: 'Wine & Olive Oil Tasting',
@@ -64,7 +64,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.AVAILABLE,
   },
   {
-    id: 7,
+    id: '7',
     category: 'Water',
     filterCategory: 'water',
     title: 'Coastal Sail',
@@ -73,7 +73,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.PENDING,
   },
   {
-    id: 8,
+    id: '8',
     category: 'Private',
     filterCategory: 'private',
     title: 'Villa Cinema Night',
@@ -82,7 +82,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.AVAILABLE,
   },
   {
-    id: 9,
+    id: '9',
     category: 'Wellness',
     filterCategory: 'wellness',
     title: 'Thermal Circuit',
@@ -91,7 +91,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.AVAILABLE,
   },
   {
-    id: 10,
+    id: '10',
     category: 'Adventure',
     filterCategory: 'adventure',
     title: 'Hiking & Picnic',
@@ -100,7 +100,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.AVAILABLE,
   },
   {
-    id: 11,
+    id: '11',
     category: 'Culinary',
     filterCategory: 'culinary',
     title: 'Market Walk & Lunch',
@@ -109,7 +109,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.CONFIRMED,
   },
   {
-    id: 12,
+    id: '12',
     category: 'Water',
     filterCategory: 'water',
     title: 'Kayak Cove',
@@ -118,7 +118,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.AVAILABLE,
   },
   {
-    id: 13,
+    id: '13',
     category: 'Private',
     filterCategory: 'private',
     title: 'Chef at Villa',
@@ -127,7 +127,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.AVAILABLE,
   },
   {
-    id: 14,
+    id: '14',
     category: 'Wellness',
     filterCategory: 'wellness',
     title: 'Sound Bath',
@@ -136,7 +136,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.AVAILABLE,
   },
   {
-    id: 15,
+    id: '15',
     category: 'Adventure',
     filterCategory: 'adventure',
     title: 'E-bike Countryside',
@@ -145,7 +145,7 @@ export const EXPERIENCES_MOCK_DATA: Experience[] = [
     status: ExperienceStatus.COMPLETED,
   },
   {
-    id: 16,
+    id: '16',
     category: 'Culinary',
     filterCategory: 'culinary',
     title: 'Sunset Aperitivo',
@@ -182,7 +182,7 @@ export const DEFAULT_EXPERIENCE_DETAIL: ExperienceDetailData = {
   priceUnit: 'per villa',
 };
 
-export const EXPERIENCE_DETAIL_DATA: Record<number, ExperienceDetailData> = {
+export const EXPERIENCE_DETAIL_DATA: Record<string, ExperienceDetailData> = {
   1: {
     images: [
       '/images/experience.png',

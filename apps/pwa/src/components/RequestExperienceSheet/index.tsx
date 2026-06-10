@@ -14,6 +14,8 @@ import { GuestStepper } from './GuestStepper';
 import { ExperienceSheetProps } from './types';
 import { CalenderPicker } from '../CalenderPicker';
 import { SubmitRequestButton } from './SubmitRequestButton';
+import { useCreateRequest } from '@/hooks/useRequests';
+import { format } from 'date-fns';
 
 export function RequestExperienceSheet({
   open,
@@ -31,6 +33,25 @@ export function RequestExperienceSheet({
 
   const maxGuests = detail.maxGuests ?? 8;
   const base = detail.basePrice ?? 0;
+  const createRequest = useCreateRequest();
+
+  const handleSubmitRequest = async () => {
+    const timeSlot = detail.availableTimes?.find(
+      (t) => t.id === selectedTimeId,
+    );
+    const preferredTime = timeSlot?.time ?? '12:00';
+    const preferredDate = selectedDate
+      ? format(selectedDate, 'yyyy-MM-dd')
+      : format(new Date(), 'yyyy-MM-dd');
+
+    await createRequest.mutateAsync({
+      catalogItemId: experience.id,
+      preferredDate,
+      preferredTime,
+      guestCount,
+      specialRequests: specialRequests || undefined,
+    });
+  };
   const thumbImage =
     detail.images && detail.images.length > 0
       ? detail.images[0]
@@ -164,7 +185,10 @@ export function RequestExperienceSheet({
 
         {/* ── Sticky CTA ── */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#FAF8F4] from-70% to-transparent px-5 pb-8 pt-8">
-          <SubmitRequestButton confirmationMessage="We'll confirm your request within the hour. You'll be notified." />
+          <SubmitRequestButton
+            confirmationMessage="We'll confirm your request within the hour. You'll be notified."
+            onSubmit={handleSubmitRequest}
+          />
         </div>
       </DrawerContent>
     </Drawer>

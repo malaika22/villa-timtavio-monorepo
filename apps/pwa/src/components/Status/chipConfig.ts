@@ -4,7 +4,9 @@ export type StatusRequestKey =
   | ExperienceStatus.READY
   | ExperienceStatus.IN_PROGRESS
   | ExperienceStatus.CONFIRMED
-  | ExperienceStatus.PENDING;
+  | ExperienceStatus.PENDING
+  | ExperienceStatus.COMPLETED
+  | ExperienceStatus.CANCELLED;
 
 export const STATUS_CHIP_CONFIG: Record<
   StatusRequestKey,
@@ -38,5 +40,17 @@ export const STATUS_CHIP_CONFIG: Record<
     chip: 'border-[#C7A0464D] bg-[#C7A04624] text-[#8B6914]',
     dot: 'bg-[#C7A046]',
     cardBorderLeft: 'border-l-[#C7A046]',
+  },
+  [ExperienceStatus.COMPLETED]: {
+    label: 'COMPLETED',
+    chip: 'border-[#6b8e6b40] bg-[#6b8e6b1a] text-[#3A5E48]',
+    dot: 'bg-[#3A5E48]',
+    cardBorderLeft: 'border-l-[#3A5E4860]',
+  },
+  [ExperienceStatus.CANCELLED]: {
+    label: 'CANCELLED',
+    chip: 'border-[#a64b4b40] bg-[#a64b4b1a] text-[#a64b4b]',
+    dot: 'bg-[#a64b4b]',
+    cardBorderLeft: 'border-l-[#a64b4b60]',
   },
 };

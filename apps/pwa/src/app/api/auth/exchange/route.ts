@@ -35,11 +35,22 @@ export async function POST(req: NextRequest) {
 
     const tokens = await tokenRes.json();
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       access_token: tokens.access_token,
       id_token: tokens.id_token,
       expires_in: tokens.expires_in,
     });
+
+    // Set HttpOnly cookie so middleware can verify session server-side
+    response.cookies.set('auth_session', '1', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: tokens.expires_in ?? 86400,
+    });
+
+    return response;
   } catch {
     return NextResponse.json(
       { message: 'Internal server error' },

@@ -5,13 +5,32 @@ import { Bell, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
+interface Props {
+  confirmationMessage?: string;
+  onSubmit?: () => Promise<void>;
+  disabled?: boolean;
+}
+
 export const SubmitRequestButton = ({
   confirmationMessage = "We'll confirm your request within the hour. You'll be notified.",
-}: {
-  confirmationMessage?: string;
-}) => {
+  onSubmit,
+  disabled,
+}: Props) => {
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
+
+  const handleSubmit = async () => {
+    if (onSubmit) {
+      setIsSubmitting(true);
+      try {
+        await onSubmit();
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+    setOpen(true);
+  };
 
   const handleTrackRequest = () => {
     setOpen(false);
@@ -26,8 +45,9 @@ export const SubmitRequestButton = ({
     <>
       <Button
         type="button"
-        className="w-full rounded-xl bg-[#181818] py-4 text-[11px] font-medium uppercase tracking-[2px] text-white transition-colors active:bg-[#333]"
-        onClick={() => setOpen(true)}
+        className="w-full rounded-xl bg-[#181818] py-4 text-[11px] font-medium uppercase tracking-[2px] text-white transition-colors active:bg-[#333] disabled:opacity-60"
+        onClick={handleSubmit}
+        disabled={disabled || isSubmitting}
       >
         Submit Request
       </Button>

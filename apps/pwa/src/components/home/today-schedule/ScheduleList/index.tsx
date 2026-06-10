@@ -1,14 +1,21 @@
+'use client';
 import Link from 'next/link';
 
-import { SCHEDULE_LIST_MOCK } from './mockData';
 import { ScheduleCard } from './ScheduleCard';
 import { groupItemsByUpcoming } from '@/components/featured-experiences/helpers';
-import { MAX_UPCOMING_EXPERIENCES } from './constants';
+import { MAX_UPCOMING_EXPERIENCES, STATUS_MAP } from './constants';
+import { ExperienceStatus } from '@/types/experienceStatus';
+import { ScheduleListProps } from './types';
 
-export const ScheduleList = () => {
-  const { current, upcoming } = groupItemsByUpcoming(SCHEDULE_LIST_MOCK);
+export const ScheduleList = ({ items }: ScheduleListProps) => {
+  const mapped = items.map((item) => ({
+    ...item,
+    status: STATUS_MAP[item.status] ?? ExperienceStatus.CONFIRMED,
+  }));
+
+  const { current, upcoming } = groupItemsByUpcoming(mapped);
   const hasUpcomingExperiences = upcoming.length > 0;
-  console.log({ current, upcoming });
+
   return (
     <div className="space-y-4">
       <div className="space-y-3">
@@ -24,7 +31,7 @@ export const ScheduleList = () => {
               Upcoming
             </div>
             <Link
-              href="/schedule"
+              href="/status"
               className="text-xs uppercase tracking-[1.44px] text-[#5C3530]"
             >
               View All
