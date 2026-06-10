@@ -12,6 +12,7 @@ export type GuestListItem = {
   memberSince?: string;
   status: GuestListStatus;
   isPast?: boolean;
+  activeBookingId?: string | null;
 };
 
 export type GuestStayActivityStatus = 'Completed' | 'Pending' | 'Conflict';
@@ -203,7 +204,11 @@ export type CalendarEvent = {
 
 export type CalendarViewMode = 'day' | 'week' | 'month';
 
-export type CalendarTimelineEventType = 'occupancy' | 'experience' | 'arrival' | 'departure';
+export type CalendarTimelineEventType =
+  | 'occupancy'
+  | 'experience'
+  | 'arrival'
+  | 'departure';
 
 export type CalendarWeekDay = {
   key: string;
