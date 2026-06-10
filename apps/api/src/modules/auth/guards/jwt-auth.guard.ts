@@ -23,10 +23,19 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
-  handleRequest(err: any, user: any) {
-    if (err || !user) {
-      throw new UnauthorizedException('Invalid or expired token');
+  handleRequest(err: any, user: any, info: any) {
+    if (err) throw err;
+
+    if (!user) {
+      const message =
+        info?.name === 'TokenExpiredError'
+          ? 'Your session has expired'
+          : info?.name === 'JsonWebTokenError'
+            ? 'Invalid token'
+            : 'Authentication required';
+      throw new UnauthorizedException(message);
     }
+
     return user;
   }
 }
