@@ -1,6 +1,9 @@
 import type { CrmNote } from './crm';
+import type { BookingStatus, ManifestStatus, RoomType } from './bookings';
 
 export type GuestRole = 'PRIMARY' | 'SECONDARY';
+
+export type { RoomType };
 
 export interface GuestSummary {
   id: string;
@@ -15,8 +18,30 @@ export interface GuestSummary {
   allergies?: string | null;
   favouriteExperiences: string[];
   preferredTimes?: string | null;
+  dateOfBirth?: string | null;
+  specialOccasions?: string | null;
+  preferredRoomType?: RoomType | null;
+  pillarPreferences?: string | null;
+  totalVisits: number;
+  totalSpend: number;
+  firstStayDate?: string | null;
+  lastStayDate?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface BookingSummaryForGuest {
+  id: string;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  status: BookingStatus;
+  manifestStatus: ManifestStatus;
+  totalGuests: number;
+}
+
+export interface GuestWithBookings extends GuestSummary {
+  primaryBookings: BookingSummaryForGuest[];
 }
 
 export interface GuestProfileStats {
@@ -27,6 +52,7 @@ export interface GuestProfileStats {
 }
 
 export interface GuestProfile extends GuestSummary {
+  primaryBookings: BookingSummaryForGuest[];
   crmNotes: CrmNote[];
   stats: GuestProfileStats;
   preStockSuggestions: {

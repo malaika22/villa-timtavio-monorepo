@@ -1,3 +1,5 @@
+import type { ExperienceRequest } from './requests';
+
 export interface CrmNote {
   id: string;
   guestId: string;
@@ -17,17 +19,26 @@ export interface AddBeveragePreferenceDto {
   notes?: string;
 }
 
+export interface AddDietaryRestrictionDto {
+  restriction: string;
+}
+
 export interface PreStockSuggestion {
   type: string;
   description: string;
   source: string;
 }
 
-export interface ExperienceHistoryItem {
-  id: string;
-  title: string;
-  status: string;
-  requestedDate?: string | null;
-  scheduledDate?: string | null;
-  amount?: number | null;
+export interface ExperienceHistoryItem
+  extends Pick<
+    ExperienceRequest,
+    | 'id'
+    | 'status'
+    | 'preferredDate'
+    | 'confirmedDate'
+    | 'confirmedCost'
+    | 'createdAt'
+  > {
+  catalogItemName: string;
+  catalogItemCategory: string;
 }

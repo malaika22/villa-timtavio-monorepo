@@ -1,29 +1,65 @@
-export type ExperienceRequestStatus =
+import type { CatalogItem } from './catalog';
+
+export type RequestStatus =
   | 'PENDING'
   | 'CONFIRMED'
   | 'IN_PROGRESS'
   | 'READY'
   | 'COMPLETED'
-  | 'DECLINED'
   | 'CANCELLED';
+
+export type GuestTier = 'PRIMARY' | 'SECONDARY';
 
 export interface ExperienceRequest {
   id: string;
   bookingId: string;
   catalogItemId: string;
-  status: ExperienceRequestStatus;
-  requestedDate?: string | null;
-  scheduledDate?: string | null;
-  guestCount?: number | null;
+  catalogItem?: Pick<CatalogItem, 'id' | 'name' | 'category' | 'primaryPhotoUrl' | 'durationLabel'>;
+  requestedByEmail: string;
+  requestedByName: string;
+  guestTier: GuestTier;
+  preferredDate: string;
+  preferredTime: string;
+  guestCount: number;
   specialRequests?: string | null;
+  returnDate?: string | null;
+  transportPreference?: string | null;
+  status: RequestStatus;
+  statusUpdatedAt: string;
+  confirmedDate?: string | null;
+  confirmedTime?: string | null;
+  confirmedCost?: number | null;
+  emNotes?: string | null;
+  declineReason?: string | null;
+  setupPhotoUrl?: string | null;
+  setupCompletedAt?: string | null;
+  staffMemberName?: string | null;
+  primaryApproved: boolean;
+  requiresPrimaryApproval: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateExperienceRequestDto {
   catalogItemId: string;
-  requestedDate?: string;
-  preferredTimeId?: string;
-  guestCount?: number;
+  preferredDate: string;
+  preferredTime: string;
+  guestCount: number;
   specialRequests?: string;
+  returnDate?: string;
+  transportPreference?: string;
+}
+
+export interface ConfirmRequestDto {
+  confirmedDate?: string;
+  confirmedTime?: string;
+  emNotes?: string;
+}
+
+export interface ConfirmCostDto {
+  confirmedCost: number;
+}
+
+export interface DeclineRequestDto {
+  declineReason?: string;
 }

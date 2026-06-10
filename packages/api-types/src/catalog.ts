@@ -1,18 +1,95 @@
+export type CatalogCategory =
+  | 'INCLUDED'
+  | 'ARRIVAL_TRANSIT'
+  | 'WELLNESS'
+  | 'CULINARY_AGAVE'
+  | 'OCEAN_ADVENTURE'
+  | 'EXCURSIONS'
+  | 'PRIVATE';
+
+export type MenuCategory =
+  | 'BREAKFAST'
+  | 'LUNCH'
+  | 'DINNER'
+  | 'SNACKS'
+  | 'BEVERAGES';
+
 export interface CatalogItem {
   id: string;
-  title: string;
-  description?: string | null;
-  category: string;
-  basePrice?: number | null;
-  durationMinutes?: number | null;
-  imageUrl?: string | null;
+  name: string;
+  category: CatalogCategory;
+  description: string;
+  shortDescription?: string | null;
+  isIncluded: boolean;
   isActive: boolean;
+  durationMinutes?: number | null;
+  durationLabel?: string | null;
+  photoUrls: string[];
+  primaryPhotoUrl?: string | null;
+  isMultiDay: boolean;
+  multiDayDuration?: number | null;
+  availableTimeSlots: string[];
+  maxGuestCount?: number | null;
+  setupLeadTimeMinutes?: number | null;
+  vendorId?: string | null;
+  vendor?: { id: string; name: string; status: string } | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CatalogItemDetail extends CatalogItem {
-  about?: string | null;
-  longDescription?: string | null;
-  included?: string[];
-  maxGuests?: number | null;
-  images?: string[];
+  experienceRequests?: { id: string; status: string }[];
 }
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  category: MenuCategory;
+  description?: string | null;
+  photoUrl?: string | null;
+  isActive: boolean;
+  isVegetarian: boolean;
+  isVegan: boolean;
+  isGlutenFree: boolean;
+  containsNuts: boolean;
+  containsDairy: boolean;
+  containsShellfish: boolean;
+  otherDietaryNotes?: string | null;
+  sortOrder: number;
+}
+
+export interface Recommendation {
+  id: string;
+  name: string;
+  category: string;
+  location?: string | null;
+  description?: string | null;
+  photoUrl?: string | null;
+  externalUrl?: string | null;
+  isActive: boolean;
+  isFeatured: boolean;
+  sortOrder: number;
+}
+
+export interface CreateCatalogItemDto {
+  name: string;
+  category: CatalogCategory;
+  description: string;
+  shortDescription?: string;
+  isIncluded?: boolean;
+  isActive?: boolean;
+  durationMinutes?: number;
+  durationLabel?: string;
+  photoUrls?: string[];
+  primaryPhotoUrl?: string;
+  isMultiDay?: boolean;
+  multiDayDuration?: number;
+  availableTimeSlots?: string[];
+  maxGuestCount?: number;
+  setupLeadTimeMinutes?: number;
+  vendorId?: string;
+  sortOrder?: number;
+}
+
+export interface UpdateCatalogItemDto extends Partial<CreateCatalogItemDto> {}
