@@ -10,8 +10,12 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@repo/api-client": "*",
+    "@repo/api-types": "*",
     "@repo/theme": "*",
     "@repo/ui": "*",
+    "@tanstack/react-query": "^5.101.0",
+    "axios": "^1.17.0",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.562.0",
     "motion": "^12.38.0",
@@ -21,7 +25,8 @@
     "react-dom": "19.2.4",
     "react-hook-form": "^7.75.0",
     "tailwindcss": "^4.2.4",
-    "zod": "^4.4.2"
+    "zod": "^4.4.2",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",

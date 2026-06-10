@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Cormorant_Garamond } from 'next/font/google';
 import './globals.css';
 import { AppLayout } from '@/components/AppLayout';
+import { AuthProvider } from '@/providers/auth-provider';
+import { QueryProvider } from '@/providers/query-provider';
 
 const cormorant = Cormorant_Garamond({
   subsets: ['latin'],
@@ -68,7 +70,11 @@ export default function RootLayout({
       className={`${cormorant.variable} ${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col antialiased">
-        <AppLayout>{children}</AppLayout>
+        <AppLayout>
+          <QueryProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </QueryProvider>
+        </AppLayout>
       </body>
     </html>
   );

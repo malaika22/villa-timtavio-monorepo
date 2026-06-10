@@ -8,7 +8,7 @@ const withPWA = require('next-pwa')({
 });
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@repo/ui'],
+  transpilePackages: ['@repo/ui', '@repo/api-client', '@repo/api-types'],
 };
 
 export default withPWA({
