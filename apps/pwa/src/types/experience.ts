@@ -10,7 +10,7 @@ export type ExperienceCatalogFilter =
 export type ExperienceFilterId = ExperienceCatalogFilter | 'all';
 
 export interface Experience {
-  id: number;
+  id: string;
   /** Label shown on the image pill */
   category: string;
   /** Used for filter chips on /experiences */
