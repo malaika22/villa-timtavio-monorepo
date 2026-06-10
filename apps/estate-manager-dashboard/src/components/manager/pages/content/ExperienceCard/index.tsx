@@ -11,13 +11,14 @@ import type { ContentExperience } from '@/types';
 
 type Props = {
   experience: ContentExperience;
+  onToggle?: () => void;
 };
 
 function useCategoryPill(experience: ContentExperience) {
   return !experience.active;
 }
 
-export const ExperienceCard = ({ experience }: Props) => {
+export const ExperienceCard = ({ experience, onToggle }: Props) => {
   const tone = experience.imageTone ?? experience.category;
   const gradient = experienceImageTones[tone] ?? experienceImageTones.dining;
   const categoryPill = useCategoryPill(experience);
@@ -32,7 +33,10 @@ export const ExperienceCard = ({ experience }: Props) => {
         )}
       >
         <div className="flex justify-end">
-          <ExperienceToggle active={experience.active} />
+          <ExperienceToggle
+            active={experience.active}
+            onChange={onToggle ? () => onToggle() : undefined}
+          />
         </div>
         <span
           className={cn(

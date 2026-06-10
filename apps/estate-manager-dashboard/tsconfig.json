@@ -20,7 +20,9 @@
       "@/*": ["./src/*"],
       "@repo/ui": ["../../packages/ui/src/index.ts"],
       "@repo/ui/*": ["../../packages/ui/src/*"],
-      "@repo/dashboard-ui": ["../../packages/dashboard-ui/src/index.ts"]
+      "@repo/dashboard-ui": ["../../packages/dashboard-ui/src/index.ts"],
+      "@repo/api-client": ["../../packages/api-client/src/index.ts"],
+      "@repo/api-types": ["../../packages/api-types/src/index.ts"]
     }
   },
   "include": [

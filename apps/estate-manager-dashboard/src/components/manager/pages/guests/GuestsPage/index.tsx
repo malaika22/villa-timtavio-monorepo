@@ -4,11 +4,8 @@ import { useMemo, useState } from 'react';
 
 import { GuestDetailPanel } from '@/components/manager/pages/guests/GuestDetailPanel';
 import { GuestListPanel } from '@/components/manager/pages/guests/GuestListPanel';
-import {
-  getGuestProfile,
-  guestListCurrent,
-  guestListPast,
-} from '@/lib/guest-dna-mock-data';
+import { useGuestProfile, useGuests } from '@/hooks/useGuests';
+import { guestListCurrent, getGuestProfile } from '@/lib/guest-dna-mock-data';
 import type { GuestListItem } from '@/types';
 
 function filterGuests(items: GuestListItem[], query: string) {
@@ -26,13 +23,26 @@ export const GuestsPage = () => {
   const [selectedId, setSelectedId] = useState('jm');
   const [search, setSearch] = useState('');
 
-  const current = useMemo(() => filterGuests(guestListCurrent, search), [search]);
-  const past = useMemo(() => filterGuests(guestListPast, search), [search]);
+  const { current: apiCurrent, past: apiPast } = useGuests(search);
 
-  const allItems = useMemo(() => [...guestListCurrent, ...guestListPast], []);
+  const current = useMemo(
+    () => filterGuests(apiCurrent, search),
+    [apiCurrent, search],
+  );
+  const past = useMemo(() => filterGuests(apiPast, search), [apiPast, search]);
+
+  const allItems = useMemo(
+    () => [...apiCurrent, ...apiPast],
+    [apiCurrent, apiPast],
+  );
   const selectedItem =
-    allItems.find((g) => g.id === selectedId) ?? guestListCurrent[0]!;
-  const profile = getGuestProfile(selectedItem.id, selectedItem);
+    allItems.find((g) => g.id === selectedId) ??
+    current[0] ??
+    guestListCurrent[0]!;
+
+  const profileQuery = useGuestProfile(selectedItem.id);
+  const profile =
+    profileQuery.data ?? getGuestProfile(selectedItem.id, selectedItem);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">

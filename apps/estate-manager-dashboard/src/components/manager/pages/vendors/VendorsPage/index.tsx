@@ -7,6 +7,8 @@ import { VendorCard } from '@/components/manager/pages/vendors/VendorCard';
 import { VendorsFilterBar } from '@/components/manager/pages/vendors/VendorsFilterBar';
 import { vendorProfiles } from '@/lib/vendors-mock-data';
 import type { VendorFilterTab, VendorProfile } from '@/types';
+import { useVendors } from '@/hooks/useVendors';
+import { mapVendorToProfile } from '@/lib/mappers/vendor';
 
 function filterVendors(
   items: VendorProfile[],
@@ -32,9 +34,14 @@ export const VendorsPage = () => {
   const [activeTab, setActiveTab] = useState<VendorFilterTab>('all');
   const [search, setSearch] = useState('');
 
+  const { data: vendorData, isLoading } = useVendors();
+  const allVendors: VendorProfile[] = vendorData
+    ? vendorData.map(mapVendorToProfile)
+    : vendorProfiles;
+
   const filtered = useMemo(
-    () => filterVendors(vendorProfiles, activeTab, search),
-    [activeTab, search],
+    () => filterVendors(allVendors, activeTab, search),
+    [allVendors, activeTab, search],
   );
 
   return (
@@ -46,12 +53,23 @@ export const VendorsPage = () => {
         onSearchChange={setSearch}
       />
 
-      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-        {filtered.map((vendor) => (
-          <VendorCard key={vendor.id} vendor={vendor} />
-        ))}
-        <AddVendorCard />
-      </div>
+      {isLoading ? (
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-64 animate-pulse rounded-xl bg-manager-border"
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((vendor) => (
+            <VendorCard key={vendor.id} vendor={vendor} />
+          ))}
+          <AddVendorCard />
+        </div>
+      )}
     </div>
   );
 };

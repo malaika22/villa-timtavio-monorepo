@@ -10,9 +10,16 @@ import { PreArrivalChecklist } from '@/components/manager/pages/bookings/PreArri
 import { RequestedExperiencesCard } from '@/components/manager/pages/bookings/RequestedExperiencesCard';
 import { currentBooking } from '@/lib/bookings-mock-data';
 import type { BookingTab } from '@/types';
+import { useCurrentGuests } from '@/hooks/useGuests';
+import { useManifest } from '@/hooks/useManifest';
 
 export const BookingsPage = () => {
   const [activeTab, setActiveTab] = useState<BookingTab>('current');
+  const { data: currentGuests } = useCurrentGuests();
+
+  // Use the first current guest's active booking ID for manifest
+  const activeBookingId = currentGuests?.[0]?.activeBookingId ?? null;
+  const { data: manifest } = useManifest(activeBookingId);
 
   if (activeTab !== 'current') {
     return (
@@ -33,7 +40,10 @@ export const BookingsPage = () => {
       <CurrentBookingHero booking={currentBooking} />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <GuestManifestCard booking={currentBooking} />
+        <GuestManifestCard
+          bookingId={activeBookingId ?? currentBooking.id}
+          manifest={manifest}
+        />
         <RequestedExperiencesCard booking={currentBooking} />
       </div>
 

@@ -10,46 +10,39 @@ import {
   conflictDetectedMessage,
 } from '@/lib/approvals-mock-data';
 import type { ApprovalFilterTab, ApprovalQueueItem } from '@/types';
-
-function filterByTab(items: ApprovalQueueItem[], tab: ApprovalFilterTab): ApprovalQueueItem[] {
-  switch (tab) {
-    case 'pending':
-      return items.filter((i) => i.status === 'Pending');
-    case 'confirmed':
-      return items.filter((i) => i.status === 'Confirmed');
-    case 'in-progress':
-      return items.filter((i) => i.status === 'In Progress');
-    case 'completed':
-      return items.filter((i) => i.status === 'Completed');
-    case 'declined':
-      return items.filter((i) => i.status === 'Declined');
-    default:
-      return items;
-  }
-}
-
-function filterBySearch(items: ApprovalQueueItem[], query: string): ApprovalQueueItem[] {
-  const q = query.trim().toLowerCase();
-  if (!q) return items;
-  return items.filter(
-    (i) =>
-      i.guestName.toLowerCase().includes(q) ||
-      i.experience.toLowerCase().includes(q) ||
-      i.villa.toLowerCase().includes(q) ||
-      i.vendor.toLowerCase().includes(q),
-  );
-}
+import { useApprovalQueue, useApprovalActive } from '@/hooks/useApprovals';
+import { mapRequestToApprovalItem } from '@/lib/mappers/request';
+import { filterBySearch, filterByTab } from './helpers';
 
 export const ApprovalsPage = () => {
   const [activeTab, setActiveTab] = useState<ApprovalFilterTab>('all');
   const [search, setSearch] = useState('');
 
-  const filteredRows = useMemo(() => {
-    const byTab = filterByTab(approvalQueueItems, activeTab);
-    return filterBySearch(byTab, search);
-  }, [activeTab, search]);
+  const { data: queueData, isLoading: queueLoading } = useApprovalQueue();
+  const { data: activeData, isLoading: activeLoading } = useApprovalActive();
 
-  const hasConflict = approvalQueueItems.some((i) => i.status === 'Conflict');
+  const allItems: ApprovalQueueItem[] = useMemo(() => {
+    if (queueData && activeData) {
+      const queueItems = queueData.map(mapRequestToApprovalItem);
+      const activeItems = activeData.map(mapRequestToApprovalItem);
+      // Deduplicate by id
+      const seen = new Set<string>();
+      return [...queueItems, ...activeItems].filter((i) => {
+        if (seen.has(i.id)) return false;
+        seen.add(i.id);
+        return true;
+      });
+    }
+    return approvalQueueItems;
+  }, [queueData, activeData]);
+
+  const filteredRows = useMemo(() => {
+    const byTab = filterByTab(allItems, activeTab);
+    return filterBySearch(byTab, search);
+  }, [allItems, activeTab, search]);
+
+  const hasConflict = allItems.some((i) => i.status === 'Conflict');
+  const isLoading = queueLoading || activeLoading;
 
   return (
     <div className="space-y-5">
@@ -60,9 +53,22 @@ export const ApprovalsPage = () => {
         onSearchChange={setSearch}
       />
 
-      {hasConflict ? <ConflictDetectedBanner message={conflictDetectedMessage} /> : null}
+      {hasConflict ? (
+        <ConflictDetectedBanner message={conflictDetectedMessage} />
+      ) : null}
 
-      <ApprovalsQueueTable rows={filteredRows} />
+      {isLoading ? (
+        <div className="space-y-3">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="h-16 animate-pulse rounded-lg bg-manager-border"
+            />
+          ))}
+        </div>
+      ) : (
+        <ApprovalsQueueTable rows={filteredRows} />
+      )}
     </div>
   );
 };
