@@ -1,0 +1,619 @@
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
+import { BreezeWayService } from '../breezeway/breezeway.service';
+import { PusherService } from '../pusher/pusher.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import {
+  CreateRequestDto,
+  ConfirmRequestDto,
+  DeclineRequestDto,
+} from './dto/create-request.dto';
+import {
+  BREEZEWAY_TEAM_MAP,
+  EXPERIENCE_LEAD_TIMES,
+} from '../breezeway/breezeway.config';
+import { getErrorMessage } from '../../commons/utils/error.util';
+import { PrismaService } from '../../prisma/prisma.service';
+
+@Injectable()
+export class RequestsService {
+  private readonly logger = new Logger(RequestsService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    private breezeWayService: BreezeWayService,
+    private pusherService: PusherService,
+    private notificationsService: NotificationsService,
+  ) {}
+
+  // ─── Submit request ───────────────────────────────────────────────────────
+
+  async create(
+    bookingId: string,
+    dto: CreateRequestDto,
+    requestedBy: { email: string; name: string; tier: string },
+  ) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { primaryGuest: true },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const catalogItem = await this.prisma.catalogItem.findUnique({
+      where: { id: dto.catalogItemId },
+    });
+    if (!catalogItem) throw new NotFoundException('Experience not found');
+    if (!catalogItem.isActive) {
+      throw new BadRequestException('Experience is not available');
+    }
+
+    // Check for duplicate active request
+    const activeRequest = await this.prisma.experienceRequest.findFirst({
+      where: {
+        bookingId,
+        catalogItemId: dto.catalogItemId,
+        status: { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'READY'] },
+      },
+    });
+    if (activeRequest) {
+      throw new BadRequestException(
+        'An active request for this experience already exists',
+      );
+    }
+
+    // Superyacht model:
+    // Secondary guest requests require primary member approval before
+    // going to Rodrigo's queue
+    const isSecondary = requestedBy.tier === 'secondary';
+    const requiresPrimaryApproval = isSecondary && !catalogItem.isIncluded;
+
+    const request = await this.prisma.experienceRequest.create({
+      data: {
+        bookingId,
+        catalogItemId: dto.catalogItemId,
+        requestedByEmail: requestedBy.email,
+        requestedByName: requestedBy.name,
+        guestTier: isSecondary ? 'SECONDARY' : 'PRIMARY',
+        preferredDate: new Date(dto.preferredDate),
+        preferredTime: dto.preferredTime,
+        guestCount: dto.guestCount,
+        specialRequests: dto.specialRequests,
+        returnDate: dto.returnDate ? new Date(dto.returnDate) : undefined,
+        transportPreference: dto.transportPreference,
+        status: 'PENDING',
+        requiresPrimaryApproval,
+        primaryApproved: !requiresPrimaryApproval, // auto-approved if primary member
+      },
+      include: { catalogItem: true },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'EXPERIENCE_REQUESTED',
+        entityType: 'ExperienceRequest',
+        entityId: request.id,
+        performedBy: requestedBy.email,
+        performedByRole: requestedBy.tier,
+        bookingId,
+        metadata: {
+          catalogItemName: catalogItem.name,
+          requiresPrimaryApproval,
+        } as any,
+      },
+    });
+
+    if (requiresPrimaryApproval) {
+      // Notify PRIMARY MEMBER to approve first — not Rodrigo
+      await this.notificationsService.send({
+        bookingId,
+        recipientEmail: booking.primaryGuest.email,
+        type: 'REQUEST_CONFIRMED',
+        title: 'Guest upgrade request',
+        body: `${requestedBy.name} has requested ${catalogItem.name} — tap to approve or decline`,
+        deepLink: `/requests/${request.id}/approve`,
+      });
+
+      // Pusher to primary member's PWA
+      await this.pusherService.trigger(
+        `private-booking-${bookingId}`,
+        'secondary_request_pending',
+        {
+          requestId: request.id,
+          guestName: requestedBy.name,
+          experienceName: catalogItem.name,
+          preferredDate: dto.preferredDate,
+          preferredTime: dto.preferredTime,
+          guestCount: dto.guestCount,
+        },
+      );
+    } else {
+      // Primary member request or included service — goes straight to Rodrigo
+      await this.pusherService.trigger(
+        `private-em-${bookingId}`,
+        'new_request',
+        {
+          requestId: request.id,
+          guestName: requestedBy.name,
+          experienceName: catalogItem.name,
+          preferredDate: dto.preferredDate,
+        },
+      );
+    }
+
+    return request;
+  }
+
+  // ─── Primary member approves a secondary guest upgrade request ────────────
+
+  async primaryApprove(
+    requestId: string,
+    approvedBy: string,
+    bookingId: string,
+  ) {
+    const request = await this.findOne(requestId);
+
+    // Validate: only the primary member of this booking can approve
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { primaryGuest: true },
+    });
+
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    if (booking.primaryGuest.email !== approvedBy) {
+      throw new ForbiddenException(
+        'Only the primary member can approve upgrade requests',
+      );
+    }
+
+    if (!request.requiresPrimaryApproval) {
+      throw new BadRequestException(
+        'This request does not require primary member approval',
+      );
+    }
+
+    if (request.primaryApproved) {
+      throw new BadRequestException(
+        'Request already approved by primary member',
+      );
+    }
+
+    const updated = await this.prisma.experienceRequest.update({
+      where: { id: requestId },
+      data: {
+        primaryApproved: true,
+        primaryApprovedAt: new Date(),
+        primaryApprovedBy: approvedBy,
+      },
+      include: { catalogItem: true },
+    });
+
+    // Now notify Rodrigo — the request enters his queue
+    await this.pusherService.trigger(`private-em-${bookingId}`, 'new_request', {
+      requestId,
+      guestName: request.requestedByName,
+      experienceName: request.catalogItem.name,
+      note: 'Approved by primary member',
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'EXPERIENCE_CONFIRMED',
+        entityType: 'ExperienceRequest',
+        entityId: requestId,
+        performedBy: approvedBy,
+        performedByRole: 'primary_member',
+        bookingId,
+        metadata: { action: 'primary_approved' } as any,
+      },
+    });
+
+    this.logger.log(
+      `Request ${requestId} approved by primary member ${approvedBy}`,
+    );
+    return updated;
+  }
+
+  // ─── Primary member declines a secondary guest upgrade request ────────────
+
+  async primaryDecline(
+    requestId: string,
+    declinedBy: string,
+    bookingId: string,
+    reason?: string,
+  ) {
+    const request = await this.findOne(requestId);
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { primaryGuest: true },
+    });
+
+    if (booking?.primaryGuest.email !== declinedBy) {
+      throw new ForbiddenException(
+        'Only the primary member can decline upgrade requests',
+      );
+    }
+
+    const updated = await this.prisma.experienceRequest.update({
+      where: { id: requestId },
+      data: {
+        status: 'CANCELLED',
+        statusUpdatedAt: new Date(),
+        declineReason: reason || 'Declined by primary member',
+      },
+    });
+
+    // Notify secondary guest
+    await this.notificationsService.send({
+      bookingId,
+      recipientEmail: request.requestedByEmail,
+      type: 'REQUEST_CANCELLED',
+      title: 'Request update',
+      body: `Your request for ${request.catalogItem.name} was not approved`,
+      deepLink: `/status/${requestId}`,
+    });
+
+    await this.pusherService.trigger(
+      `private-booking-${bookingId}`,
+      'experience.status_changed',
+      { requestId, status: 'CANCELLED' },
+    );
+
+    return updated;
+  }
+
+  // ─── Get pending requests that need primary member approval ───────────────
+
+  async getPendingPrimaryApproval(bookingId: string) {
+    return this.prisma.experienceRequest.findMany({
+      where: {
+        bookingId,
+        requiresPrimaryApproval: true,
+        primaryApproved: false,
+        status: 'PENDING',
+      },
+      include: {
+        catalogItem: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  // ─── All other methods remain the same as before ──────────────────────────
+
+  async findByBooking(bookingId: string, filter?: 'active' | 'all' | 'today') {
+    const now = new Date();
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+    const where: any = { bookingId };
+
+    if (filter === 'active') {
+      where.status = { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'READY'] };
+    } else if (filter === 'today') {
+      where.preferredDate = { gte: todayStart, lt: todayEnd };
+    }
+
+    const requests = await this.prisma.experienceRequest.findMany({
+      where,
+      include: {
+        catalogItem: {
+          include: {
+            vendor: {
+              select: { name: true, role: true, photoUrl: true },
+            },
+          },
+        },
+      },
+    });
+
+    const statusOrder: Record<string, number> = {
+      READY: 0,
+      IN_PROGRESS: 1,
+      CONFIRMED: 2,
+      PENDING: 3,
+      COMPLETED: 4,
+      CANCELLED: 5,
+    };
+
+    return requests.sort(
+      (a: { status: string | number }, b: { status: string | number }) =>
+        (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99),
+    );
+  }
+
+  async findOne(id: string) {
+    const request = await this.prisma.experienceRequest.findUnique({
+      where: { id },
+      include: {
+        catalogItem: { include: { vendor: true } },
+        folioItem: true,
+        vendorRating: true,
+      },
+    });
+    if (!request) throw new NotFoundException(`Request ${id} not found`);
+    return request;
+  }
+
+  async getQueue() {
+    // Only show requests that have been primary-approved (or don't need it)
+    return this.prisma.experienceRequest.findMany({
+      where: {
+        status: 'PENDING',
+        primaryApproved: true,
+      },
+      include: {
+        catalogItem: { include: { vendor: true } },
+        booking: { include: { primaryGuest: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async getActive() {
+    return this.prisma.experienceRequest.findMany({
+      where: { status: { in: ['CONFIRMED', 'IN_PROGRESS', 'READY'] } },
+      include: {
+        catalogItem: true,
+        booking: { include: { primaryGuest: true } },
+      },
+      orderBy: { preferredDate: 'asc' },
+    });
+  }
+
+  async approve(id: string, dto: ConfirmRequestDto, approvedBy: string) {
+    const request = await this.findOne(id);
+
+    if (request.status !== 'PENDING') {
+      throw new BadRequestException('Only pending requests can be approved');
+    }
+
+    if (request.requiresPrimaryApproval && !request.primaryApproved) {
+      throw new BadRequestException(
+        'This request requires primary member approval first',
+      );
+    }
+
+    const updated = await this.prisma.experienceRequest.update({
+      where: { id },
+      data: {
+        status: 'CONFIRMED',
+        statusUpdatedAt: new Date(),
+        confirmedDate: dto.confirmedDate
+          ? new Date(dto.confirmedDate)
+          : request.preferredDate,
+        confirmedTime: dto.confirmedTime || request.preferredTime,
+        emNotes: dto.emNotes,
+      },
+      include: {
+        catalogItem: true,
+        booking: { include: { primaryGuest: true } },
+      },
+    });
+
+    await this.createBreezeWayTask(updated);
+
+    await this.notificationsService.send({
+      bookingId: request.bookingId,
+      recipientEmail: request.requestedByEmail,
+      type: 'REQUEST_CONFIRMED',
+      title: 'Experience confirmed',
+      body: `${request.catalogItem.name} confirmed for ${updated.confirmedTime}`,
+      deepLink: `/status/${id}`,
+    });
+
+    await this.pusherService.trigger(
+      `private-booking-${request.bookingId}`,
+      'experience.status_changed',
+      { requestId: id, status: 'CONFIRMED' },
+    );
+
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'EXPERIENCE_CONFIRMED',
+        entityType: 'ExperienceRequest',
+        entityId: id,
+        performedBy: approvedBy,
+        performedByRole: 'estate_manager',
+        bookingId: request.bookingId,
+      },
+    });
+
+    return updated;
+  }
+
+  async decline(id: string, dto: DeclineRequestDto, declinedBy: string) {
+    const request = await this.findOne(id);
+
+    const updated = await this.prisma.experienceRequest.update({
+      where: { id },
+      data: {
+        status: 'CANCELLED',
+        statusUpdatedAt: new Date(),
+        declineReason: dto.declineReason,
+      },
+    });
+
+    await this.notificationsService.send({
+      bookingId: request.bookingId,
+      recipientEmail: request.requestedByEmail,
+      type: 'REQUEST_CANCELLED',
+      title: 'Request update',
+      body:
+        dto.declineReason || `Unable to confirm ${request.catalogItem.name}`,
+      deepLink: `/status/${id}`,
+    });
+
+    await this.pusherService.trigger(
+      `private-booking-${request.bookingId}`,
+      'experience.status_changed',
+      { requestId: id, status: 'CANCELLED' },
+    );
+
+    return updated;
+  }
+
+  async confirmCost(
+    id: string,
+    data: { confirmedCost: number; emNotes?: string },
+    confirmedBy: string,
+  ) {
+    const request = await this.findOne(id);
+
+    await this.prisma.experienceRequest.update({
+      where: { id },
+      data: { confirmedCost: data.confirmedCost, emNotes: data.emNotes },
+    });
+
+    const folio = await this.prisma.folioItem.create({
+      data: {
+        bookingId: request.bookingId,
+        type: 'EXPERIENCE',
+        description: request.catalogItem.name,
+        amount: data.confirmedCost,
+        quantity: 1,
+        attributedToEmail: request.requestedByEmail,
+        attributedToName: request.requestedByName,
+        loggedBy: confirmedBy,
+        loggedAt: new Date(),
+        editableUntil: new Date(Date.now() + 30 * 60 * 1000),
+        experienceRequest: {
+          connect: { id },
+        },
+      },
+    });
+
+    await this.prisma.experienceRequest.update({
+      where: { id },
+      data: { folioItemId: folio.id },
+    });
+
+    await this.pusherService.trigger(
+      `private-booking-${request.bookingId}`,
+      'folio.updated',
+      {
+        newItem: {
+          description: request.catalogItem.name,
+          amount: data.confirmedCost,
+          type: 'EXPERIENCE',
+        },
+      },
+    );
+
+    // Notify PRIMARY member only — secondary guests never see cost
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: request.bookingId },
+      include: { primaryGuest: true },
+    });
+
+    if (booking) {
+      await this.notificationsService.send({
+        bookingId: request.bookingId,
+        recipientEmail: booking.primaryGuest.email,
+        type: 'CHARGE_ADDED',
+        title: 'Charge added to folio',
+        body: `${request.catalogItem.name} — $${data.confirmedCost}`,
+        deepLink: '/folio',
+      });
+    }
+
+    return { success: true };
+  }
+
+  async markReady(id: string, photoUrl?: string, staffName?: string) {
+    const request = await this.findOne(id);
+
+    const updated = await this.prisma.experienceRequest.update({
+      where: { id },
+      data: {
+        status: 'READY',
+        statusUpdatedAt: new Date(),
+        setupPhotoUrl: photoUrl,
+        setupCompletedAt: new Date(),
+        staffMemberName: staffName,
+      },
+      include: { catalogItem: true },
+    });
+
+    await this.notificationsService.send({
+      bookingId: request.bookingId,
+      recipientEmail: request.requestedByEmail,
+      type: 'EXPERIENCE_READY',
+      title: `${request.catalogItem.name} is ready`,
+      body: 'Your experience is ready — head over now.',
+      deepLink: `/status/${id}`,
+    });
+
+    await this.pusherService.trigger(
+      `private-booking-${request.bookingId}`,
+      'experience.ready',
+      { requestId: id, experienceName: request.catalogItem.name, photoUrl },
+    );
+
+    return updated;
+  }
+
+  async markCompleted(id: string) {
+    return this.prisma.experienceRequest.update({
+      where: { id },
+      data: { status: 'COMPLETED', statusUpdatedAt: new Date() },
+    });
+  }
+
+  async findByBreezeWayTaskId(taskId: string) {
+    return this.prisma.experienceRequest.findUnique({
+      where: { breezeWayTaskId: taskId },
+      include: { catalogItem: true },
+    });
+  }
+
+  private async createBreezeWayTask(request: any) {
+    const category = request.catalogItem.category;
+    const teamId =
+      request.catalogItem.breezeWayTeamId ||
+      BREEZEWAY_TEAM_MAP[category] ||
+      BREEZEWAY_TEAM_MAP['WELLNESS'];
+
+    const leadTime =
+      request.catalogItem.setupLeadTimeMinutes ||
+      EXPERIENCE_LEAD_TIMES[category] ||
+      60;
+
+    const dueDate = new Date(request.confirmedDate);
+    dueDate.setMinutes(dueDate.getMinutes() - leadTime);
+
+    try {
+      const task = await this.breezeWayService.createTask({
+        title: `${request.catalogItem.name} — Setup`,
+        description: `Guest: ${request.requestedByName}\nTime: ${request.confirmedTime}\nGuests: ${request.guestCount}\nNotes: ${request.specialRequests || 'None'}`,
+        propertyId: process.env.BREEZEWAY_PROPERTY_ID || '',
+        teamId,
+        dueDate: dueDate.toISOString(),
+        requirePhoto: true,
+        templateId: request.catalogItem.breezeWayTemplateId,
+        metadata: { requestId: request.id, bookingId: request.bookingId },
+      });
+
+      await this.prisma.experienceRequest.update({
+        where: { id: request.id },
+        data: {
+          breezeWayTaskId: task.id,
+          breezeWayTaskCreatedAt: new Date(),
+          status: 'IN_PROGRESS',
+        },
+      });
+    } catch (error) {
+      this.logger.error(`Breezeway task failed: ${getErrorMessage(error)}`);
+    }
+  }
+}
