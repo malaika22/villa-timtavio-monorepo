@@ -21,6 +21,7 @@ export const API = {
     toggleActive: (id: string) => `/api/v1/catalog/${id}/toggle-active`,
     menuById: (id: string) => `/api/v1/catalog/menus/${id}`,
     recommendationById: (id: string) => `/api/v1/catalog/recommendations/${id}`,
+    importCsv: '/api/v1/catalog/import/csv',
   },
   requests: {
     create: (bookingId: string) => `/api/v1/requests/bookings/${bookingId}`,
@@ -75,6 +76,14 @@ export const API = {
     decline: (id: string) => `/api/v1/inquiries/${id}/decline`,
   },
   manifest: {
-    linkOpen: '/api/v1/manifest/link-open',
+    byBooking: (bookingId: string) => `/api/v1/manifest/${bookingId}`,
+    addGuest: (bookingId: string) => `/api/v1/manifest/${bookingId}/guests`,
+    updateGuest: (bookingId: string, guestId: string) => `/api/v1/manifest/${bookingId}/guests/${guestId}`,
+    removeGuest: (bookingId: string, guestId: string) => `/api/v1/manifest/${bookingId}/guests/${guestId}`,
+    submit: (bookingId: string) => `/api/v1/manifest/${bookingId}/submit`,
+    approve: (bookingId: string) => `/api/v1/manifest/${bookingId}/approve`,
+    chefsBrief: (bookingId: string) => `/api/v1/manifest/${bookingId}/chefs-brief`,
+    resendLink: (bookingId: string, guestId: string) => `/api/v1/manifest/${bookingId}/guests/${guestId}/resend-link`,
+    linkOpened: '/api/v1/manifest/link-opened',
   },
 } as const;

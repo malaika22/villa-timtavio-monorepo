@@ -88,5 +88,34 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
 
     delete: <T>(path: string, init?: RequestInit) =>
       request<T>(path, { ...init, method: 'DELETE' }),
+
+    postFormData: async <T>(path: string, formData: FormData, init?: RequestInit): Promise<T> => {
+      const url = `${baseUrl.replace(/\/$/, '')}${path.startsWith('/') ? path : `/${path}`}`;
+      const headers: Record<string, string> = {};
+
+      if (getAccessToken) {
+        const token = await getAccessToken();
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(url, {
+        ...init,
+        method: 'POST',
+        body: formData,
+        headers,
+      });
+
+      if (res.status === 401) {
+        onUnauthorized?.();
+        throw new ApiError(401, 'Unauthorized');
+      }
+
+      if (!res.ok) {
+        throw new ApiError(res.status, await parseErrorMessage(res));
+      }
+
+      if (res.status === 204) return null as T;
+      return res.json() as Promise<T>;
+    },
   };
 }

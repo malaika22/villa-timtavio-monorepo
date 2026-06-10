@@ -21,4 +21,5 @@ export interface ApiClient {
   post: <T>(path: string, body?: unknown, init?: RequestInit) => Promise<T>;
   patch: <T>(path: string, body?: unknown, init?: RequestInit) => Promise<T>;
   delete: <T>(path: string, init?: RequestInit) => Promise<T>;
+  postFormData: <T>(path: string, formData: FormData, init?: RequestInit) => Promise<T>;
 }
