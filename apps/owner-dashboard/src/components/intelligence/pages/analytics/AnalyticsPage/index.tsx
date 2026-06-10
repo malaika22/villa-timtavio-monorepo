@@ -4,9 +4,11 @@ import { EstateOccupancyChart } from '@/components/intelligence/pages/analytics/
 import { GuestDemographicsSection } from '@/components/intelligence/pages/analytics/GuestDemographicsSection';
 import { RevenueByVillaCard } from '@/components/intelligence/pages/analytics/RevenueByVillaCard';
 import { analyticsMetrics } from '@/lib/mock-data';
+import { MockDataBanner } from '@/components/intelligence/ui/MockDataBanner';
 
 export const AnalyticsPage = () => (
   <div className="space-y-6">
+    <MockDataBanner />
     <MetricCardGrid metrics={analyticsMetrics} />
 
     <AnalyticsMonthlyRevenueChart />

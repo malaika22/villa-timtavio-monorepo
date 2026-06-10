@@ -1,9 +1,11 @@
+'use client';
 import { Star } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
 import { vendorRoiRows } from '@/lib/mock-data';
 import type { VendorRoiRow } from '@/types';
+import { useVendorsAsRoiRows } from '@/hooks/useVendors';
 
 const COLUMNS = [
   'Vendor',
@@ -48,7 +50,11 @@ const StatusBadge = ({ status }: { status: VendorRoiRow['status'] }) => (
   </span>
 );
 
-export const VendorRoiAnalysisTable = () => (
+export const VendorRoiAnalysisTable = () => {
+  const { data: apiRows } = useVendorsAsRoiRows();
+  const rows: VendorRoiRow[] = apiRows ?? vendorRoiRows;
+
+  return (
   <section>
     <h3 className="mb-3 font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">
       Vendor ROI Analysis — YTD 2026
@@ -72,7 +78,7 @@ export const VendorRoiAnalysisTable = () => (
             </tr>
           </thead>
           <tbody>
-            {vendorRoiRows.map((row, i) => (
+            {rows.map((row, i) => (
               <tr
                 key={row.id}
                 className={cn(
@@ -129,4 +135,5 @@ export const VendorRoiAnalysisTable = () => (
       </div>
     </IntelCard>
   </section>
-);
+  );
+};

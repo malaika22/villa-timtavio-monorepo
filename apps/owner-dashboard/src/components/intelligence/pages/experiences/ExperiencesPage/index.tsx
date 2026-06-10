@@ -3,9 +3,11 @@ import { DemandInsightsPanel } from '@/components/intelligence/pages/experiences
 import { ExperienceDemandTrendChart } from '@/components/intelligence/pages/experiences/ExperienceDemandTrendChart';
 import { ExperiencePerformanceTable } from '@/components/intelligence/pages/experiences/ExperiencePerformanceTable';
 import { experienceIntelligenceMetrics } from '@/lib/mock-data';
+import { MockDataBanner } from '@/components/intelligence/ui/MockDataBanner';
 
 export const ExperiencesPage = () => (
   <div className="space-y-6">
+    <MockDataBanner message="Revenue and trend data requires analytics API — showing sample data. Booking counts are live." />
     <MetricCardGrid metrics={experienceIntelligenceMetrics} />
 
     <ExperienceDemandTrendChart />
