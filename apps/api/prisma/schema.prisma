@@ -426,6 +426,10 @@ model ExperienceRequest {
 
   folioItem             FolioItem?    @relation("RequestFolioItem", fields: [folioItemId], references: [id])
   vendorRating          VendorRating?
+primaryApproved       Boolean   @default(false)
+primaryApprovedAt     DateTime?
+primaryApprovedBy     String?   // email of primary member who approved
+requiresPrimaryApproval Boolean @default(false)
 
   @@index([bookingId])
   @@index([status])
@@ -633,3 +637,47 @@ model SystemAlert {
   @@index([severity])
   @@index([isDismissed])
 }
+
+// INQUERIES
+
+enum InquiryStatus {
+  NEW
+  APPROVED
+  DECLINED
+  CONVERTED
+}
+
+enum PurposeOfStay {
+  CORPORATE_RETREAT
+  FAMILY
+  WEDDING
+  CONTENT_PRODUCTION
+  OTHER
+}
+
+model Inquiry {
+  id                    String        @id @default(cuid())
+  firstName             String
+  lastName              String
+  email                 String
+  phone                 String?
+  preferredFrom         DateTime?
+  preferredTo           DateTime?
+  guestCount            Int?
+  purposeOfStay         PurposeOfStay?
+  socialHandle          String?
+  source                String?
+  message               String?       @db.Text
+  status                InquiryStatus @default(NEW)
+  reviewedBy            String?
+  reviewedAt            DateTime?
+  declineReason         String?
+  convertedToBookingId  String?
+  notes                 String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([status])
+  @@index([email])
+}
+
