@@ -20,6 +20,7 @@ import { PusherModule } from './modules/pusher/pusher.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { InquiriesModule } from './modules/inqueries/inquiries.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -50,6 +51,8 @@ import { InquiriesModule } from './modules/inqueries/inquiries.module';
     NotificationsModule,
     WebhooksModule,
     InquiriesModule,
+    AnalyticsModule,
+    ManifestModule,
   ],
 })
 export class AppModule {}
