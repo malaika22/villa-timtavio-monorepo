@@ -1,12 +1,17 @@
+import type { CatalogCategory } from './catalog';
+
 export type VendorStatus = 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
 
 export interface Vendor {
   id: string;
   name: string;
-  contactName?: string | null;
-  contactEmail?: string | null;
-  contactPhone?: string | null;
-  serviceDescription?: string | null;
+  category: CatalogCategory;
+  role: string;
+  bio?: string | null;
+  photoUrl?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  notes?: string | null;
   status: VendorStatus;
   averageRating?: number | null;
   totalBookings: number;
@@ -38,12 +43,17 @@ export interface VendorDetail extends Vendor {
 
 export interface CreateVendorDto {
   name: string;
-  contactName?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  serviceDescription?: string;
+  category: CatalogCategory;
+  role: string;
+  bio?: string;
+  photoUrl?: string;
+  email?: string;
+  phone?: string;
+  notes?: string;
   status?: VendorStatus;
 }
+
+export interface UpdateVendorDto extends Partial<CreateVendorDto> {}
 
 export interface UpdateVendorStatusDto {
   status: VendorStatus;

@@ -38,6 +38,7 @@ export interface BookingSummaryForGuest {
   status: BookingStatus;
   manifestStatus: ManifestStatus;
   totalGuests: number;
+  primaryRoomNumber?: number | null;
 }
 
 export interface GuestWithBookings extends GuestSummary {

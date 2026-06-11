@@ -2,6 +2,7 @@ import type { CatalogItem } from './catalog';
 
 export type RequestStatus =
   | 'PENDING'
+  | 'CONFLICT'
   | 'CONFIRMED'
   | 'IN_PROGRESS'
   | 'READY'
@@ -62,4 +63,24 @@ export interface ConfirmCostDto {
 
 export interface DeclineRequestDto {
   declineReason?: string;
+}
+
+export interface EmRequestGuest {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+export interface EmRequestBooking {
+  id: string;
+  primaryRoomNumber?: number | null;
+  primaryGuest?: EmRequestGuest | null;
+}
+
+export interface EmExperienceRequest extends ExperienceRequest {
+  booking?: EmRequestBooking;
+  catalogItem?: ExperienceRequest['catalogItem'] & {
+    vendor?: { id: string; name: string; role?: string | null };
+  };
 }

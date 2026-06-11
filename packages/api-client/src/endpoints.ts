@@ -10,6 +10,10 @@ export const API = {
     byNumber: (number: string) => `/api/v1/rooms/${number}`,
     toggleActive: (number: string) => `/api/v1/rooms/${number}/toggle-active`,
   },
+  experienceCategories: {
+    list: '/api/v1/experience-categories',
+    byId: (id: string) => `/api/v1/experience-categories/${id}`,
+  },
   catalog: {
     list: '/api/v1/catalog',
     included: '/api/v1/catalog/included',
@@ -33,11 +37,13 @@ export const API = {
     byId: (id: string) => `/api/v1/requests/${id}`,
     emQueue: '/api/v1/requests/em/queue',
     emActive: '/api/v1/requests/em/active',
+    emToday: '/api/v1/requests/em/today',
     approve: (id: string) => `/api/v1/requests/${id}/approve`,
     decline: (id: string) => `/api/v1/requests/${id}/decline`,
     confirmCost: (id: string) => `/api/v1/requests/${id}/confirm-cost`,
   },
   folio: {
+    dailyRevenue: '/api/v1/folio/daily-revenue',
     byBooking: (bookingId: string) => `/api/v1/folio/${bookingId}`,
     charges: (bookingId: string) => `/api/v1/folio/${bookingId}/charges`,
     chargeById: (itemId: string) => `/api/v1/folio/charges/${itemId}`,
@@ -74,6 +80,19 @@ export const API = {
     byId: (id: string) => `/api/v1/inquiries/${id}`,
     approve: (id: string) => `/api/v1/inquiries/${id}/approve`,
     decline: (id: string) => `/api/v1/inquiries/${id}/decline`,
+  },
+  system: {
+    lodgifySyncStatus: '/api/v1/system/lodgify-sync-status',
+    alerts: '/api/v1/system-alerts',
+  },
+  dashboard: {
+    kpis: '/api/v1/dashboard/kpis',
+    alertBanner: '/api/v1/dashboard/alert-banner',
+    scheduleToday: '/api/v1/dashboard/schedule/today',
+    export: '/api/v1/dashboard/export',
+  },
+  pusher: {
+    authEm: '/api/v1/pusher/auth-em',
   },
   manifest: {
     byBooking: (bookingId: string) => `/api/v1/manifest/${bookingId}`,

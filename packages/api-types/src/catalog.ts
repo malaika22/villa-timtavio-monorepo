@@ -14,10 +14,18 @@ export type MenuCategory =
   | 'SNACKS'
   | 'BEVERAGES';
 
+export interface ExperienceCategorySummary {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface CatalogItem {
   id: string;
   name: string;
   category: CatalogCategory;
+  experienceCategoryId?: string | null;
+  experienceCategory?: ExperienceCategorySummary | null;
   description: string;
   shortDescription?: string | null;
   isIncluded: boolean;
@@ -26,6 +34,7 @@ export interface CatalogItem {
   durationLabel?: string | null;
   photoUrls: string[];
   primaryPhotoUrl?: string | null;
+  basePrice?: number | null;
   isMultiDay: boolean;
   multiDayDuration?: number | null;
   availableTimeSlots: string[];
@@ -89,6 +98,8 @@ export interface CreateCatalogItemDto {
   maxGuestCount?: number;
   setupLeadTimeMinutes?: number;
   vendorId?: string;
+  experienceCategoryId?: string;
+  basePrice?: number;
   sortOrder?: number;
 }
 

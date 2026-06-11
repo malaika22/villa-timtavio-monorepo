@@ -1,5 +1,6 @@
 export type * from './bookings';
 export type * from './catalog';
+export type * from './experience-categories';
 export type * from './crm';
 export type * from './folio';
 export type * from './guests';
@@ -8,3 +9,5 @@ export type * from './requests';
 export type * from './rooms';
 export type * from './vendors';
 export type * from './manifest';
+export type * from './system';
+export type * from './dashboard';
