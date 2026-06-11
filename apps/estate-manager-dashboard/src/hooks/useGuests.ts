@@ -8,6 +8,13 @@ import {
 } from '@/lib/mappers/guest';
 import type { UpdateGuestDnaDto, GuestProfile } from '@repo/api-types';
 
+export function useCurrentGuestsRaw() {
+  return useQuery({
+    queryKey: ['guests', 'current'],
+    queryFn: guestsApi.getCurrent,
+  });
+}
+
 export function useCurrentGuests() {
   return useQuery({
     queryKey: ['guests', 'current'],
