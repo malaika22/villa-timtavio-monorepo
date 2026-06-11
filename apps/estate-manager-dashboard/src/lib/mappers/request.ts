@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns';
 
 const STATUS_MAP: Record<RequestStatus, ApprovalQueueStatus> = {
   PENDING: 'Pending',
+  CONFLICT: 'Conflict',
   CONFIRMED: 'Confirmed',
   IN_PROGRESS: 'In Progress',
   READY: 'In Progress',

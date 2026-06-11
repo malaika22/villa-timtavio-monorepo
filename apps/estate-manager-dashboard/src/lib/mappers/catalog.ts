@@ -21,6 +21,14 @@ const CATEGORY_LABEL: Record<CatalogCategory, string> = {
   PRIVATE: 'Private',
 };
 
+const SLUG_TO_UI_CATEGORY: Record<string, ContentExperienceCategory> = {
+  dining: 'dining',
+  water: 'water',
+  wellness: 'wellness',
+  wine: 'wine',
+  culture: 'culture',
+};
+
 const IMAGE_TONE_MAP: Record<
   ContentExperienceCategory,
   ContentExperience['imageTone']
@@ -32,21 +40,42 @@ const IMAGE_TONE_MAP: Record<
   culture: 'culture',
 };
 
+function resolveUiCategory(item: CatalogItem): ContentExperienceCategory {
+  const slug = item.experienceCategory?.slug;
+  if (slug && SLUG_TO_UI_CATEGORY[slug]) {
+    return SLUG_TO_UI_CATEGORY[slug]!;
+  }
+  return CATEGORY_MAP[item.category] ?? 'culture';
+}
+
 export function mapCatalogItemToContentExperience(
   item: CatalogItem,
 ): ContentExperience {
-  const category = CATEGORY_MAP[item.category] ?? 'culture';
+  const category = resolveUiCategory(item);
+  const categoryLabel =
+    item.experienceCategory?.name ??
+    CATEGORY_LABEL[item.category] ??
+    item.category;
+
   return {
     id: item.id,
     name: item.name,
     category,
-    categoryLabel: CATEGORY_LABEL[item.category] ?? item.category,
+    categoryLabel,
+    categorySlug: item.experienceCategory?.slug,
+    experienceCategoryId: item.experienceCategoryId,
+    description: item.description,
     pricing: item.isIncluded ? 'included' : 'chargeable',
     active: item.isActive,
-    capacity: item.maxGuestCount ? `${item.maxGuestCount} guests` : '—',
+    capacity: item.maxGuestCount ? `Up to ${item.maxGuestCount} pax` : '—',
     duration:
       item.durationLabel ??
       (item.durationMinutes ? `${item.durationMinutes} min` : '—'),
+    durationMinutes: item.durationMinutes,
+    basePrice: item.basePrice != null ? Number(item.basePrice) : null,
+    vendorId: item.vendorId,
+    primaryPhotoUrl: item.primaryPhotoUrl,
+    maxGuestCount: item.maxGuestCount,
     imageTone: item.isActive ? IMAGE_TONE_MAP[category] : 'inactive',
   };
 }
