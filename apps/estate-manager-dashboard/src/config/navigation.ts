@@ -4,6 +4,7 @@ import {
   BookMarked,
   Calendar,
   CheckSquare,
+  Inbox,
   LayoutDashboard,
   LayoutGrid,
   Truck,
@@ -28,9 +29,14 @@ export const managerNavSections: ManagerNavSection[] = [
     label: 'Operations',
     items: [
       { title: 'Dashboard', href: '/', icon: LayoutDashboard },
-      { title: 'Approvals', href: '/approvals', icon: CheckSquare, countBadge: 3 },
+      {
+        title: 'Approvals',
+        href: '/approvals',
+        icon: CheckSquare,
+      },
       { title: 'Bookings + Manifest', href: '/bookings', icon: BookMarked },
       { title: 'Guests', href: '/guests', icon: Users },
+      { title: 'Inquiries', href: '/inquiries', icon: Inbox },
       { title: 'Vendors', href: '/vendors', icon: Truck },
       { title: 'Calendar', href: '/calendar', icon: Calendar },
       { title: 'Reports', href: '/reports', icon: BarChart3 },
@@ -66,7 +72,7 @@ export type PageMeta = {
 export const pageMeta: Record<string, PageMeta> = {
   '/': {
     title: 'Operations Overview',
-    subtitle: 'Friday, March 27, 2026',
+    subtitle: '',
     showExport: true,
     showNotifications: true,
   },
@@ -88,6 +94,16 @@ export const pageMeta: Record<string, PageMeta> = {
     showAddGuest: true,
     showNotifications: true,
     fullBleed: true,
+  },
+  '/inquiries': {
+    title: 'Inquiries',
+    subtitle: 'Review and action new property inquiries',
+    showNotifications: true,
+  },
+  '/inquiries/[id]': {
+    title: 'Inquiry Detail',
+    subtitle: 'Review inquiry and make a decision',
+    showNotifications: false,
   },
   '/vendors': {
     title: 'Vendors',
