@@ -14,13 +14,21 @@ const TABS: { value: ContentCatalogTab; label: string }[] = [
 type Props = {
   activeTab: ContentCatalogTab;
   onTabChange: (tab: ContentCatalogTab) => void;
+  experienceCount?: number;
 };
 
-export const ContentCatalogTabs = ({ activeTab, onTabChange }: Props) => (
+export const ContentCatalogTabs = ({
+  activeTab,
+  onTabChange,
+  experienceCount,
+}: Props) => (
   <nav className="flex flex-wrap gap-8 border-b border-[#ebe6df]">
     {TABS.map((tab) => {
       const isActive = activeTab === tab.value;
-      const count = contentCatalogTabCounts[tab.value];
+      const count =
+        tab.value === 'experiences' && experienceCount != null
+          ? experienceCount
+          : contentCatalogTabCounts[tab.value];
       return (
         <button
           key={tab.value}
@@ -28,10 +36,12 @@ export const ContentCatalogTabs = ({ activeTab, onTabChange }: Props) => (
           onClick={() => onTabChange(tab.value)}
           className={cn(
             'font-inter relative pb-3 text-sm font-medium transition-colors',
-            isActive ? 'text-manager-accent' : 'text-manager-text-muted hover:text-manager-text',
+            isActive
+              ? 'text-manager-accent'
+              : 'text-manager-text-muted hover:text-manager-text',
           )}
         >
-          {tab.label} {count}
+          {tab.label} ({count})
           {isActive ? (
             <span className="absolute right-0 bottom-0 left-0 h-0.5 bg-manager-accent" />
           ) : null}

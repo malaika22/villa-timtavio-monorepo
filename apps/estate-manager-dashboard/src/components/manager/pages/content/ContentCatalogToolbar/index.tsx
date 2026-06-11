@@ -1,13 +1,12 @@
 'use client';
 
-import { Search } from 'lucide-react';
+import { Search, Settings2 } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
-import { Input } from '@repo/ui';
+import { Button, Input } from '@repo/ui';
 
-import { contentExperienceFilters } from '@/lib/content-catalog-mock-data';
-import type { ContentExperienceCategory } from '@/types';
+import type { ExperienceCategory } from '@repo/api-types';
 
-type FilterValue = 'all' | ContentExperienceCategory;
+type FilterValue = 'all' | string;
 
 type Props = {
   search: string;
@@ -15,6 +14,8 @@ type Props = {
   activeFilter: FilterValue;
   onFilterChange: (filter: FilterValue) => void;
   summary: string;
+  categories: ExperienceCategory[];
+  onManageCategories: () => void;
 };
 
 export const ContentCatalogToolbar = ({
@@ -23,6 +24,8 @@ export const ContentCatalogToolbar = ({
   activeFilter,
   onFilterChange,
   summary,
+  categories,
+  onManageCategories,
 }: Props) => (
   <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -37,24 +40,48 @@ export const ContentCatalogToolbar = ({
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5">
-        {contentExperienceFilters.map((filter) => {
-          const isActive = activeFilter === filter.value;
-          return (
-            <button
-              key={filter.value}
-              type="button"
-              onClick={() => onFilterChange(filter.value)}
-              className={cn(
-                'font-inter rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-manager-accent text-white'
-                  : 'border border-[#e5e0d8] bg-white text-manager-text-muted hover:text-manager-text',
-              )}
-            >
-              {filter.label}
-            </button>
-          );
-        })}
+        <button
+          type="button"
+          onClick={() => onFilterChange('all')}
+          className={cn(
+            'font-inter rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
+            activeFilter === 'all'
+              ? 'bg-manager-accent text-white'
+              : 'border border-[#e5e0d8] bg-white text-manager-text-muted hover:text-manager-text',
+          )}
+        >
+          All
+        </button>
+        {categories
+          .filter((category) => category.isActive)
+          .map((category) => {
+            const isActive = activeFilter === category.id;
+            return (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => onFilterChange(category.id)}
+                className={cn(
+                  'font-inter rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-manager-accent text-white'
+                    : 'border border-[#e5e0d8] bg-white text-manager-text-muted hover:text-manager-text',
+                )}
+              >
+                {category.name}
+              </button>
+            );
+          })}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1 rounded-full px-3"
+          onClick={onManageCategories}
+        >
+          <Settings2 className="size-3.5" />
+          Manage
+        </Button>
       </div>
     </div>
 

@@ -1,40 +1,48 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Upload, CheckCircle, AlertCircle } from 'lucide-react';
 
 import { AddExperienceCard } from '@/components/manager/pages/content/AddExperienceCard';
+import { CategoryManageDialog } from '@/components/manager/pages/content/CategoryManageDialog';
 import { ContentCatalogTabs } from '@/components/manager/pages/content/ContentCatalogTabs';
 import { ContentCatalogToolbar } from '@/components/manager/pages/content/ContentCatalogToolbar';
 import { ContentInfoBanner } from '@/components/manager/pages/content/ContentInfoBanner';
 import { ExperienceCard } from '@/components/manager/pages/content/ExperienceCard';
+import { ExperienceFormDialog } from '@/components/manager/pages/content/ExperienceFormDialog';
 import { contentExperiences } from '@/lib/content-catalog-mock-data';
-import type { ContentCatalogTab, ContentExperienceCategory } from '@/types';
+import {
+  registerOpenExperienceForm,
+  unregisterOpenExperienceForm,
+} from '@/lib/content-catalog-actions';
+import type { ContentCatalogTab, ContentExperience } from '@/types';
 import {
   useCatalogAdmin,
+  useDeleteCatalogItem,
   useToggleCatalogItem,
   useImportCatalogCsv,
 } from '@/hooks/useCatalogAdmin';
+import { useExperienceCategories } from '@/hooks/useExperienceCategories';
 import { mapCatalogItemToContentExperience } from '@/lib/mappers/catalog';
 
-type FilterValue = 'all' | ContentExperienceCategory;
+type FilterValue = 'all' | string;
 
 function filterExperiences(
-  items: typeof contentExperiences,
+  items: ContentExperience[],
   filter: FilterValue,
   query: string,
 ) {
   let result = items;
   if (filter !== 'all') {
-    result = result.filter((e) => e.category === filter);
+    result = result.filter((item) => item.experienceCategoryId === filter);
   }
   const q = query.trim().toLowerCase();
   if (!q) return result;
   return result.filter(
-    (e) =>
-      e.name.toLowerCase().includes(q) ||
-      e.categoryLabel.toLowerCase().includes(q) ||
-      e.pricing.includes(q),
+    (item) =>
+      item.name.toLowerCase().includes(q) ||
+      item.categoryLabel.toLowerCase().includes(q) ||
+      item.pricing.includes(q),
   );
 }
 
@@ -42,11 +50,34 @@ export const ContentCatalogPage = () => {
   const [activeTab, setActiveTab] = useState<ContentCatalogTab>('experiences');
   const [activeFilter, setActiveFilter] = useState<FilterValue>('all');
   const [search, setSearch] = useState('');
+  const [experienceFormOpen, setExperienceFormOpen] = useState(false);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [editingExperience, setEditingExperience] =
+    useState<ContentExperience | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: catalogData, isLoading } = useCatalogAdmin();
+  const { data: categories = [] } = useExperienceCategories();
   const toggleActive = useToggleCatalogItem();
+  const deleteItem = useDeleteCatalogItem();
   const importCsv = useImportCatalogCsv();
+
+  const openExperienceForm = useCallback((experienceId?: string) => {
+    if (experienceId) {
+      const match = (catalogData ?? [])
+        .map(mapCatalogItemToContentExperience)
+        .find((item) => item.id === experienceId);
+      setEditingExperience(match ?? null);
+    } else {
+      setEditingExperience(null);
+    }
+    setExperienceFormOpen(true);
+  }, [catalogData]);
+
+  useEffect(() => {
+    registerOpenExperienceForm(openExperienceForm);
+    return () => unregisterOpenExperienceForm();
+  }, [openExperienceForm]);
 
   const allExperiences = useMemo(() => {
     if (catalogData) return catalogData.map(mapCatalogItemToContentExperience);
@@ -58,7 +89,7 @@ export const ContentCatalogPage = () => {
     [allExperiences, activeFilter, search],
   );
 
-  const activeCount = allExperiences.filter((e) => e.active).length;
+  const activeCount = allExperiences.filter((item) => item.active).length;
 
   const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -67,15 +98,23 @@ export const ContentCatalogPage = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const handleDelete = async (experience: ContentExperience) => {
+    if (!window.confirm(`Delete "${experience.name}" from the catalog?`)) return;
+    await deleteItem.mutateAsync(experience.id);
+  };
+
   return (
     <div className="font-inter space-y-6">
-      <ContentCatalogTabs activeTab={activeTab} onTabChange={setActiveTab} />
+      <ContentCatalogTabs
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        experienceCount={allExperiences.length}
+      />
 
       {activeTab === 'experiences' ? (
         <div className="space-y-6">
           <ContentInfoBanner />
 
-          {/* CSV import status */}
           {importCsv.isSuccess && importCsv.data && (
             <div className="flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-2.5 text-sm text-green-800">
               <CheckCircle className="size-4 shrink-0" />
@@ -99,6 +138,8 @@ export const ContentCatalogPage = () => {
                 activeFilter={activeFilter}
                 onFilterChange={setActiveFilter}
                 summary={`${allExperiences.length} experiences · ${activeCount} active`}
+                categories={categories}
+                onManageCategories={() => setCategoryDialogOpen(true)}
               />
             </div>
             <div>
@@ -137,9 +178,11 @@ export const ContentCatalogPage = () => {
                   key={experience.id}
                   experience={experience}
                   onToggle={() => toggleActive.mutate(experience.id)}
+                  onEdit={() => openExperienceForm(experience.id)}
+                  onDelete={() => void handleDelete(experience)}
                 />
               ))}
-              <AddExperienceCard />
+              <AddExperienceCard onClick={() => openExperienceForm()} />
             </div>
           )}
         </div>
@@ -153,6 +196,17 @@ export const ContentCatalogPage = () => {
           </p>
         </div>
       )}
+
+      <ExperienceFormDialog
+        open={experienceFormOpen}
+        onOpenChange={setExperienceFormOpen}
+        experience={editingExperience}
+      />
+
+      <CategoryManageDialog
+        open={categoryDialogOpen}
+        onOpenChange={setCategoryDialogOpen}
+      />
     </div>
   );
 };

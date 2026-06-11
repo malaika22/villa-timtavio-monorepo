@@ -1,3 +1,5 @@
+import { BookingStatus } from '@repo/api-types';
+
 export type GuestStayStatus = 'Settled' | 'Departing' | 'Arriving';
 
 export type GuestListStatus = GuestStayStatus | 'Departed';
@@ -80,12 +82,14 @@ export type ApprovalQueueItem = {
 
 export type CurrentGuest = {
   id: string;
+  bookingId: string;
   name: string;
   initials: string;
   partySize: number;
   villa: string;
   checkout: string;
   status: GuestStayStatus;
+  bookingStatus: BookingStatus;
 };
 
 export type ScheduleItem = {
@@ -104,6 +108,7 @@ export type PendingApproval = {
   initials: string;
   villa: string;
   experience: string;
+  vendor: string;
   requestedTime: string;
   submitted: string;
   status: ApprovalStatus;
@@ -243,9 +248,17 @@ export type ContentExperience = {
   name: string;
   category: ContentExperienceCategory;
   categoryLabel: string;
+  categorySlug?: string;
+  experienceCategoryId?: string | null;
+  description?: string;
   pricing: ContentPricingType;
   active: boolean;
   capacity: string;
   duration: string;
+  durationMinutes?: number | null;
+  basePrice?: number | null;
+  vendorId?: string | null;
+  primaryPhotoUrl?: string | null;
+  maxGuestCount?: number | null;
   imageTone?: 'dining' | 'water' | 'wellness' | 'wine' | 'culture' | 'inactive';
 };

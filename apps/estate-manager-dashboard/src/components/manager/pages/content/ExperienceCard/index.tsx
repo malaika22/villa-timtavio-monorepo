@@ -12,13 +12,20 @@ import type { ContentExperience } from '@/types';
 type Props = {
   experience: ContentExperience;
   onToggle?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
 };
 
 function useCategoryPill(experience: ContentExperience) {
   return !experience.active;
 }
 
-export const ExperienceCard = ({ experience, onToggle }: Props) => {
+export const ExperienceCard = ({
+  experience,
+  onToggle,
+  onEdit,
+  onDelete,
+}: Props) => {
   const tone = experience.imageTone ?? experience.category;
   const gradient = experienceImageTones[tone] ?? experienceImageTones.dining;
   const categoryPill = useCategoryPill(experience);
@@ -28,26 +35,36 @@ export const ExperienceCard = ({ experience, onToggle }: Props) => {
     <article className="flex flex-col overflow-hidden rounded-xl border border-[#e8e4de] bg-white shadow-[0_1px_3px_rgba(26,22,20,0.06)]">
       <div
         className={cn(
-          'relative flex h-[148px] flex-col justify-between bg-gradient-to-br p-4',
-          gradient,
+          'relative flex h-[148px] flex-col justify-between overflow-hidden bg-gradient-to-br p-4',
+          !experience.primaryPhotoUrl && gradient,
         )}
       >
-        <div className="flex justify-end">
-          <ExperienceToggle
-            active={experience.active}
-            onChange={onToggle ? () => onToggle() : undefined}
+        {experience.primaryPhotoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={experience.primaryPhotoUrl}
+            alt=""
+            className="absolute inset-0 size-full object-cover"
           />
+        ) : null}
+        <div className="relative z-10 flex flex-1 flex-col justify-between">
+          <div className="flex justify-end">
+            <ExperienceToggle
+              active={experience.active}
+              onChange={onToggle ? () => onToggle() : undefined}
+            />
+          </div>
+          <span
+            className={cn(
+              'font-inter w-fit text-[10px] font-medium tracking-[0.14em] uppercase',
+              categoryPill || experience.primaryPhotoUrl
+                ? 'rounded-full bg-black/30 px-2.5 py-1 text-white/95 backdrop-blur-[2px]'
+                : 'text-white/80',
+            )}
+          >
+            {experience.categoryLabel}
+          </span>
         </div>
-        <span
-          className={cn(
-            'font-inter w-fit text-[10px] font-medium tracking-[0.14em] uppercase',
-            categoryPill
-              ? 'rounded-full bg-black/30 px-2.5 py-1 text-white/95 backdrop-blur-[2px]'
-              : 'text-white/80',
-          )}
-        >
-          {experience.categoryLabel}
-        </span>
       </div>
 
       <div className="flex flex-1 flex-col p-5">
@@ -85,7 +102,11 @@ export const ExperienceCard = ({ experience, onToggle }: Props) => {
 
         <div className="mt-auto flex items-center justify-between gap-3 pt-5">
           <ContentStatusPill type={experience.pricing} muted={muted} />
-          <ExperienceCardActions muted={muted} />
+          <ExperienceCardActions
+            muted={muted}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
         </div>
       </div>
     </article>
