@@ -5,5 +5,5 @@ export const emBookingsApi = {
   approveManifest: (bookingId: string) =>
     api.post<CurrentBooking>(API.bookings.approveManifest(bookingId)),
   updateStatus: (bookingId: string, dto: UpdateBookingStatusDto) =>
-    api.post<CurrentBooking>(API.bookings.status(bookingId), dto),
+    api.patch<CurrentBooking>(API.bookings.status(bookingId), dto),
 };

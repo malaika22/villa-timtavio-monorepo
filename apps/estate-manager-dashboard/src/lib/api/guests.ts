@@ -1,13 +1,14 @@
 import type {
   GuestProfile,
   GuestSummary,
+  GuestWithBookings,
   UpdateGuestDnaDto,
 } from '@repo/api-types';
 
 import { API, api } from '@/lib/api';
 
 export const guestsApi = {
-  getCurrent: () => api.get<GuestSummary[]>(API.guests.current),
+  getCurrent: () => api.get<GuestWithBookings[]>(API.guests.current),
 
   getPast: (search?: string) => {
     const query = search ? `?search=${encodeURIComponent(search)}` : '';

@@ -1,5 +1,6 @@
 import { api, API } from '@/lib/api';
 import type {
+  EmExperienceRequest,
   ExperienceRequest,
   ConfirmRequestDto,
   ConfirmCostDto,
@@ -7,13 +8,14 @@ import type {
 } from '@repo/api-types';
 
 export const emRequestsApi = {
-  queue: () => api.get<ExperienceRequest[]>(API.requests.emQueue),
-  active: () => api.get<ExperienceRequest[]>(API.requests.emActive),
+  queue: () => api.get<EmExperienceRequest[]>(API.requests.emQueue),
+  active: () => api.get<EmExperienceRequest[]>(API.requests.emActive),
+  today: () => api.get<EmExperienceRequest[]>(API.requests.emToday),
   byId: (id: string) => api.get<ExperienceRequest>(API.requests.byId(id)),
   approve: (id: string, dto: ConfirmRequestDto) =>
-    api.post<ExperienceRequest>(API.requests.approve(id), dto),
+    api.patch<ExperienceRequest>(API.requests.approve(id), dto),
   decline: (id: string, dto: DeclineRequestDto) =>
-    api.post<ExperienceRequest>(API.requests.decline(id), dto),
+    api.patch<ExperienceRequest>(API.requests.decline(id), dto),
   confirmCost: (id: string, dto: ConfirmCostDto) =>
-    api.post<ExperienceRequest>(API.requests.confirmCost(id), dto),
+    api.patch<ExperienceRequest>(API.requests.confirmCost(id), dto),
 };

@@ -1,5 +1,6 @@
 import { api, API } from '@/lib/api';
 import type {
+  DailyRevenue,
   FolioResponse,
   CreateFolioItemDto,
   UpdateFolioItemDto,
@@ -7,6 +8,8 @@ import type {
 } from '@repo/api-types';
 
 export const emFolioApi = {
+  dailyRevenue: () => api.get<DailyRevenue>(API.folio.dailyRevenue),
+
   byBooking: (bookingId: string) =>
     api.get<FolioResponse>(API.folio.byBooking(bookingId)),
   addCharge: (bookingId: string, dto: CreateFolioItemDto) =>
