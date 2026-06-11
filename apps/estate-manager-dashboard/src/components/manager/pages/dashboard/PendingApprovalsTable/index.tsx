@@ -5,14 +5,21 @@ import type { DataTableColumn } from '@repo/dashboard-ui';
 import { cn } from '@repo/ui/lib/utils';
 
 import { SectionLinkHeader } from '@/components/manager/ui/SectionLinkHeader';
+import { SectionEmptyState } from '@/components/manager/ui/SectionEmptyState';
 import { GuestAvatar } from '@/components/manager/ui/GuestAvatar';
 import type { PendingApproval } from '@/types';
 
-const ApprovalStatusPill = ({ status }: { status: PendingApproval['status'] }) => (
+const ApprovalStatusPill = ({
+  status,
+}: {
+  status: PendingApproval['status'];
+}) => (
   <span
     className={cn(
       'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium',
-      status === 'Conflict' ? 'bg-manager-danger-bg text-[#c53030]' : 'bg-manager-warning-bg text-[#b45309]',
+      status === 'Conflict'
+        ? 'bg-manager-danger-bg text-[#c53030]'
+        : 'bg-manager-warning-bg text-[#b45309]',
     )}
   >
     <span
@@ -49,17 +56,28 @@ export const PendingApprovalsTable = ({
     {
       key: 'experience',
       header: 'Experience',
-      cell: (row) => <span className="text-manager-text">{row.experience}</span>,
+      cell: (row) => (
+        <div>
+          <p className="text-manager-text">{row.experience}</p>
+          <p className="text-sm text-manager-text-muted">{row.vendor}</p>
+        </div>
+      ),
     },
     {
       key: 'time',
       header: 'Requested Time',
-      cell: (row) => <span className="text-sm text-manager-text-muted">{row.requestedTime}</span>,
+      cell: (row) => (
+        <span className="text-sm text-manager-text-muted">
+          {row.requestedTime}
+        </span>
+      ),
     },
     {
       key: 'submitted',
       header: 'Submitted',
-      cell: (row) => <span className="text-sm text-manager-text-muted">{row.submitted}</span>,
+      cell: (row) => (
+        <span className="text-sm text-manager-text-muted">{row.submitted}</span>
+      ),
     },
     {
       key: 'status',
@@ -81,7 +99,7 @@ export const PendingApprovalsTable = ({
               : 'border-manager-border bg-manager-card text-manager-text shadow-none hover:bg-manager-main',
           )}
         >
-          <Link href="/approvals">Review</Link>
+          <Link href={`/approvals?request=${row.id}`}>Review</Link>
         </Button>
       ),
     },
@@ -90,9 +108,25 @@ export const PendingApprovalsTable = ({
   return (
     <div>
       {showSectionHeader ? (
-        <SectionLinkHeader title="Pending Approvals" href="/approvals" linkLabel="Review all →" />
+        <SectionLinkHeader
+          title="Pending Approvals"
+          href="/approvals"
+          linkLabel="Review all →"
+        />
       ) : null}
-      <DataTable columns={columns} rows={approvals} variant="manager" striped={false} />
+      {approvals.length === 0 ? (
+        <SectionEmptyState
+          message="No pending approvals"
+          description="Experience requests awaiting estate manager review will appear here."
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={approvals}
+          variant="manager"
+          striped={false}
+        />
+      )}
     </div>
   );
 };

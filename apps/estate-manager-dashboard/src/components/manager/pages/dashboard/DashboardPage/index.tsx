@@ -1,27 +1,82 @@
-import { MetricCardGrid } from '@repo/dashboard-ui';
+'use client';
 
+import { MetricCardGrid } from '@repo/dashboard-ui';
 import { OperationsAlertBanner } from '@/components/manager/alerts/OperationsAlertBanner';
 import { CurrentGuestsTable } from '@/components/manager/pages/dashboard/CurrentGuestsTable';
 import { PendingApprovalsTable } from '@/components/manager/pages/dashboard/PendingApprovalsTable';
 import { TodaySchedulePanel } from '@/components/manager/pages/dashboard/TodaySchedulePanel';
-import {
-  currentGuests,
-  dashboardMetrics,
-  operationsAlertMessage,
-  pendingApprovals,
-  todaySchedule,
-} from '@/lib/mock-data';
+import { useDashboard } from '@/hooks/useDashboard';
+import { mapApprovalItemToPending } from '@/lib/mappers/dashboard';
+import { format } from 'date-fns';
+import { buildMetrics } from './helpers';
 
-export const DashboardPage = () => (
-  <div className="space-y-5">
-    <OperationsAlertBanner message={operationsAlertMessage} />
-    <MetricCardGrid metrics={dashboardMetrics} variant="manager" columns={4} />
+export const DashboardPage = () => {
+  const {
+    guests,
+    kpis,
+    alertBanner,
+    pendingApprovals,
+    todaySchedule,
+    isLoading,
+    error,
+  } = useDashboard();
 
-    <section className="grid gap-5 xl:grid-cols-2">
-      <CurrentGuestsTable guests={currentGuests} />
-      <TodaySchedulePanel items={todaySchedule} />
-    </section>
+  const metrics = buildMetrics(kpis);
+  const pendingTableRows = pendingApprovals
+    .slice(0, 5)
+    .map(mapApprovalItemToPending);
 
-    <PendingApprovalsTable approvals={pendingApprovals} />
-  </div>
-);
+  return (
+    <div className="space-y-5">
+      {alertBanner?.message ? (
+        <OperationsAlertBanner
+          message={alertBanner.message}
+          reviewHref={alertBanner.reviewHref}
+        />
+      ) : null}
+
+      {isLoading ? (
+        <div className="grid grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="h-24 animate-pulse rounded-xl bg-manager-border"
+            />
+          ))}
+        </div>
+      ) : (
+        <MetricCardGrid metrics={metrics} variant="manager" columns={4} />
+      )}
+
+      <section className="grid gap-5 xl:grid-cols-2">
+        {isLoading ? (
+          <>
+            <div className="h-64 animate-pulse rounded-xl bg-manager-border" />
+            <div className="h-64 animate-pulse rounded-xl bg-manager-border" />
+          </>
+        ) : (
+          <>
+            <CurrentGuestsTable guests={guests} />
+            <TodaySchedulePanel items={todaySchedule} />
+          </>
+        )}
+      </section>
+
+      {isLoading ? (
+        <div className="h-48 animate-pulse rounded-xl bg-manager-border" />
+      ) : (
+        <PendingApprovalsTable approvals={pendingTableRows} />
+      )}
+
+      {error && (
+        <p className="text-sm text-red-500">
+          Failed to load dashboard data. Please refresh to try again.
+        </p>
+      )}
+    </div>
+  );
+};
+
+export function getDashboardSubtitle() {
+  return format(new Date(), 'EEEE, MMMM d, yyyy');
+}

@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 
 import { GuestDetailPanel } from '@/components/manager/pages/guests/GuestDetailPanel';
 import { GuestListPanel } from '@/components/manager/pages/guests/GuestListPanel';
@@ -20,10 +21,18 @@ function filterGuests(items: GuestListItem[], query: string) {
 }
 
 export const GuestsPage = () => {
-  const [selectedId, setSelectedId] = useState('jm');
+  const searchParams = useSearchParams();
+  const guestFromUrl = searchParams.get('guest');
+  const [selectedId, setSelectedId] = useState<string | null>(guestFromUrl);
   const [search, setSearch] = useState('');
 
   const { current: apiCurrent, past: apiPast } = useGuests(search);
+
+  useEffect(() => {
+    if (guestFromUrl) {
+      setSelectedId(guestFromUrl);
+    }
+  }, [guestFromUrl]);
 
   const current = useMemo(
     () => filterGuests(apiCurrent, search),
@@ -38,6 +47,7 @@ export const GuestsPage = () => {
   const selectedItem =
     allItems.find((g) => g.id === selectedId) ??
     current[0] ??
+    apiCurrent[0] ??
     guestListCurrent[0]!;
 
   const profileQuery = useGuestProfile(selectedItem.id);
@@ -49,7 +59,7 @@ export const GuestsPage = () => {
       <GuestListPanel
         current={current}
         past={past}
-        selectedId={selectedId}
+        selectedId={selectedItem.id}
         onSelect={setSelectedId}
         search={search}
         onSearchChange={setSearch}
