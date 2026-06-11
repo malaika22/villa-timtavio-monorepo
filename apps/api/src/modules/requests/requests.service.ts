@@ -17,6 +17,7 @@ import {
   BREEZEWAY_TEAM_MAP,
   EXPERIENCE_LEAD_TIMES,
 } from '../breezeway/breezeway.config';
+import { derivePrimaryRoomNumber } from '../../common/booking-room.util';
 import { getErrorMessage } from '../../commons/utils/error.util';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -133,16 +134,18 @@ export class RequestsService {
       );
     } else {
       // Primary member request or included service — goes straight to Rodrigo
+      const emPayload = {
+        requestId: request.id,
+        guestName: requestedBy.name,
+        experienceName: catalogItem.name,
+        preferredDate: dto.preferredDate,
+      };
       await this.pusherService.trigger(
         `private-em-${bookingId}`,
         'new_request',
-        {
-          requestId: request.id,
-          guestName: requestedBy.name,
-          experienceName: catalogItem.name,
-          preferredDate: dto.preferredDate,
-        },
+        emPayload,
       );
+      await this.pusherService.triggerEmDashboard('new_request', emPayload);
     }
 
     return request;
@@ -194,12 +197,18 @@ export class RequestsService {
     });
 
     // Now notify Rodrigo — the request enters his queue
-    await this.pusherService.trigger(`private-em-${bookingId}`, 'new_request', {
+    const emPayload = {
       requestId,
       guestName: request.requestedByName,
       experienceName: request.catalogItem.name,
       note: 'Approved by primary member',
-    });
+    };
+    await this.pusherService.trigger(
+      `private-em-${bookingId}`,
+      'new_request',
+      emPayload,
+    );
+    await this.pusherService.triggerEmDashboard('new_request', emPayload);
 
     await this.prisma.auditLog.create({
       data: {
@@ -346,18 +355,37 @@ export class RequestsService {
   }
 
   async getQueue() {
-    // Only show requests that have been primary-approved (or don't need it)
-    return this.prisma.experienceRequest.findMany({
+    const requests = await this.prisma.experienceRequest.findMany({
       where: {
-        status: 'PENDING',
+        status: { in: ['PENDING', 'CONFLICT'] },
         primaryApproved: true,
       },
       include: {
         catalogItem: { include: { vendor: true } },
-        booking: { include: { primaryGuest: true } },
+        booking: {
+          include: {
+            primaryGuest: true,
+            manifestGuests: {
+              select: { email: true, roomNumber: true },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'asc' },
     });
+
+    return requests.map((request) => ({
+      ...request,
+      booking: request.booking
+        ? {
+            ...request.booking,
+            primaryRoomNumber: derivePrimaryRoomNumber(
+              request.booking.manifestGuests,
+              request.booking.primaryGuest.email,
+            ),
+          }
+        : request.booking,
+    }));
   }
 
   async getActive() {
@@ -368,6 +396,34 @@ export class RequestsService {
         booking: { include: { primaryGuest: true } },
       },
       orderBy: { preferredDate: 'asc' },
+    });
+  }
+
+  async getTodaySchedule() {
+    const now = new Date();
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+    return this.prisma.experienceRequest.findMany({
+      where: {
+        status: { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'READY'] },
+        OR: [
+          { confirmedDate: { gte: todayStart, lt: todayEnd } },
+          {
+            confirmedDate: null,
+            preferredDate: { gte: todayStart, lt: todayEnd },
+          },
+        ],
+      },
+      include: {
+        catalogItem: { include: { vendor: true } },
+        booking: { include: { primaryGuest: true } },
+      },
+      orderBy: [{ preferredTime: 'asc' }, { createdAt: 'asc' }],
     });
   }
 

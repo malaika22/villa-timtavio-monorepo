@@ -54,7 +54,7 @@ export class CatalogService {
   async findAll(category?: CatalogCategory) {
     return this.prisma.catalogItem.findMany({
       where: { ...(category && { category }) },
-      include: { vendor: true },
+      include: { vendor: true, experienceCategory: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
   }
@@ -64,6 +64,7 @@ export class CatalogService {
       where: { id },
       include: {
         vendor: true,
+        experienceCategory: true,
         experienceRequests: {
           select: {
             id: true,
@@ -110,7 +111,7 @@ export class CatalogService {
   async create(dto: CreateCatalogItemDto, createdBy: string) {
     const item = await this.prisma.catalogItem.create({
       data: { ...dto, createdBy },
-      include: { vendor: true },
+      include: { vendor: true, experienceCategory: true },
     });
 
     await this.prisma.auditLog.create({

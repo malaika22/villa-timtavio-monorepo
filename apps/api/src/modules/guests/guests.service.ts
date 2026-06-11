@@ -7,6 +7,8 @@ import {
 } from '../bookings/booking-status.constants';
 import { BookingStatus } from '@prisma/client';
 
+import { derivePrimaryRoomNumber } from '../../common/booking-room.util';
+
 @Injectable()
 export class GuestsService {
   private readonly logger = new Logger(GuestsService.name);
@@ -64,6 +66,9 @@ export class GuestsService {
             ],
           },
           include: {
+            manifestGuests: {
+              select: { email: true, roomNumber: true },
+            },
             experienceRequests: {
               where: {
                 status: {
@@ -77,7 +82,18 @@ export class GuestsService {
           orderBy: { checkIn: 'desc' },
         },
       },
-    });
+    }).then((guests) =>
+      guests.map((guest) => ({
+        ...guest,
+        primaryBookings: guest.primaryBookings.map((booking) => ({
+          ...booking,
+          primaryRoomNumber: derivePrimaryRoomNumber(
+            booking.manifestGuests,
+            guest.email,
+          ),
+        })),
+      })),
+    );
   }
 
   async findUpcoming() {

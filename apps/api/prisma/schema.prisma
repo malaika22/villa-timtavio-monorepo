@@ -40,6 +40,7 @@ enum RoomType {
 
 enum RequestStatus {
   PENDING
+  CONFLICT
   CONFIRMED
   IN_PROGRESS
   READY
@@ -268,6 +269,26 @@ model Room {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// EXPERIENCE CATEGORY (EM-managed filter groups)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ExperienceCategory {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  catalogItems CatalogItem[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CATALOG ITEM
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -275,6 +296,8 @@ model CatalogItem {
   id                      String          @id @default(cuid())
   name                    String
   category                CatalogCategory
+  experienceCategoryId    String?
+  experienceCategory      ExperienceCategory? @relation(fields: [experienceCategoryId], references: [id])
   description             String          @db.Text
   shortDescription        String?
   isIncluded              Boolean         @default(false)
@@ -283,6 +306,7 @@ model CatalogItem {
   durationLabel           String?
   photoUrls               String[]        @default([])
   primaryPhotoUrl         String?
+  basePrice               Decimal?        @db.Decimal(10, 2)
   isMultiDay              Boolean         @default(false)
   multiDayDuration        Int?
   availableTimeSlots      String[]        @default([])
@@ -300,6 +324,7 @@ model CatalogItem {
   experienceRequests      ExperienceRequest[]
 
   @@index([category])
+  @@index([experienceCategoryId])
   @@index([isActive])
   @@index([isIncluded])
 }
@@ -681,3 +706,28 @@ model Inquiry {
   @@index([email])
 }
 
+
+model ScheduleItem {
+  id          String    @id @default(cuid())
+  title       String
+  time        DateTime
+  location    String?
+  guestName   String?
+  bookingId   String?
+  type        ScheduleItemType @default(OTHER)
+  notes       String?
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([time])
+}
+
+enum ScheduleItemType {
+  TRANSPORT
+  SECURITY
+  HOUSEKEEPING
+  MAINTENANCE
+  STAFF_BRIEFING
+  OTHER
+}

@@ -21,6 +21,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { InquiriesModule } from './modules/inqueries/inquiries.module';
 import { AnalyticsModule } from './analytics/analytics.module';
+import { SystemModule } from './modules/system/system.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { ExperienceCategoriesModule } from './modules/experience-categories/experience-categories.module';
 
 @Module({
   imports: [
@@ -52,6 +55,9 @@ import { AnalyticsModule } from './analytics/analytics.module';
     WebhooksModule,
     InquiriesModule,
     AnalyticsModule,
+    SystemModule,
+    DashboardModule,
+    ExperienceCategoriesModule,
     ManifestModule,
   ],
 })

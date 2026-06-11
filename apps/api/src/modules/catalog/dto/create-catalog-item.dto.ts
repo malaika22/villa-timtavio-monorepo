@@ -73,6 +73,14 @@ export class CreateCatalogItemDto {
 
   @IsOptional()
   @IsString()
+  experienceCategoryId?: string;
+
+  @IsOptional()
+  @IsNumber()
+  basePrice?: number;
+
+  @IsOptional()
+  @IsString()
   breezeWayTeamId?: string;
 
   @IsOptional()

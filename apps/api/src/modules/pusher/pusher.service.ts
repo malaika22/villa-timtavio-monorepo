@@ -25,4 +25,8 @@ export class PusherService {
       user_id: socketId,
     });
   }
+
+  async triggerEmDashboard(event: string, data: Record<string, unknown>) {
+    return this.trigger('private-em-dashboard', event, data);
+  }
 }

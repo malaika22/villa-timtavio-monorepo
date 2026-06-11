@@ -1,6 +1,9 @@
 import { Controller, Get, Post, Patch, Param, Body } from '@nestjs/common';
-import { VendorsService } from './vendors.service';
+
 import { Roles } from '../auth/decorators/roles.decorator';
+import { CreateVendorDto } from './dto/create-vendor.dto';
+import { UpdateVendorDto } from './dto/update-vendor.dto';
+import { VendorsService } from './vendors.service';
 
 @Controller('api/v1/vendors')
 export class VendorsController {
@@ -20,13 +23,13 @@ export class VendorsController {
 
   @Post()
   @Roles('estate_manager')
-  create(@Body() data: any) {
+  create(@Body() data: CreateVendorDto) {
     return this.vendorsService.create(data);
   }
 
   @Patch(':id')
-  @Roles('estate_manager')
-  update(@Param('id') id: string, @Body() data: any) {
+  @Roles('estate_manager', 'owner')
+  update(@Param('id') id: string, @Body() data: UpdateVendorDto) {
     return this.vendorsService.update(id, data);
   }
 

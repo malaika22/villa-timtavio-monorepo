@@ -22,6 +22,7 @@ async function bootstrap() {
       process.env.DASHBOARD_URL,
       'http://localhost:3000',
       'http://localhost:3001',
+      'http://localhost:3002',
     ],
     credentials: true,
   });

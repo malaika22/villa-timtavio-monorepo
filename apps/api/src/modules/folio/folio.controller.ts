@@ -8,6 +8,12 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 export class FolioController {
   constructor(private folioService: FolioService) {}
 
+  @Get('daily-revenue')
+  @Roles('estate_manager', 'owner')
+  getDailyRevenue() {
+    return this.folioService.getDailyRevenue();
+  }
+
   @Get(':bookingId')
   getForBooking(@Param('bookingId') bookingId: string) {
     return this.folioService.getForBooking(bookingId);

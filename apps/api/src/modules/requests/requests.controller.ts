@@ -93,6 +93,12 @@ export class RequestsController {
     return this.requestsService.getActive();
   }
 
+  @Get('em/today')
+  @Roles('estate_manager')
+  getTodaySchedule() {
+    return this.requestsService.getTodaySchedule();
+  }
+
   @Patch(':id/approve')
   @Roles('estate_manager')
   approve(

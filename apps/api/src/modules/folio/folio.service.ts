@@ -213,4 +213,27 @@ export class FolioService {
 
     return { success: true, grandTotal: summary.grandTotal };
   }
+
+  async getDailyRevenue() {
+    const now = new Date();
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
+
+    const result = await this.prisma.folioItem.aggregate({
+      where: {
+        loggedAt: { gte: todayStart, lt: todayEnd },
+      },
+      _sum: { amount: true },
+    });
+
+    return {
+      total: Number(result._sum.amount ?? 0),
+      currency: 'USD',
+      date: todayStart.toISOString(),
+    };
+  }
 }
