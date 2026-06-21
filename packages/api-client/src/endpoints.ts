@@ -80,6 +80,16 @@ export const API = {
     byId: (id: string) => `/api/v1/inquiries/${id}`,
     approve: (id: string) => `/api/v1/inquiries/${id}/approve`,
     decline: (id: string) => `/api/v1/inquiries/${id}/decline`,
+    lookbookSent: (id: string) => `/api/v1/inquiries/${id}/lookbook-sent`,
+    paymentLinkSent: (id: string) => `/api/v1/inquiries/${id}/payment-link-sent`,
+    delete: (id: string) => `/api/v1/inquiries/${id}`,
+  },
+  magicLink: {
+    send: (bookingId: string) => `/api/v1/magic-link/send/${bookingId}`,
+    resend: (manifestGuestId: string) =>
+      `/api/v1/magic-link/resend/${manifestGuestId}`,
+    sendAllSecondary: (bookingId: string) =>
+      `/api/v1/magic-link/send-all-secondary/${bookingId}`,
   },
   system: {
     lodgifySyncStatus: '/api/v1/system/lodgify-sync-status',

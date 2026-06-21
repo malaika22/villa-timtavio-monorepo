@@ -1,4 +1,11 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+// apps/api/src/inquiries/inquiries.service.ts
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
+import { PusherService } from '../pusher/pusher.service';
 import {
   CreateInquiryDto,
   ReviewInquiryDto,
@@ -6,19 +13,21 @@ import {
 } from './dto/create-inquiry.dto';
 import { Resend } from 'resend';
 import { PrismaService } from '../../prisma/prisma.service';
-import { getErrorMessage, toError } from '../../commons/utils/error.util';
+import { getErrorMessage } from '../../commons/utils/error.util';
 
 @Injectable()
 export class InquiriesService {
   private readonly logger = new Logger(InquiriesService.name);
   private resend = new Resend(process.env.RESEND_API_KEY);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private pusherService: PusherService,
+  ) {}
 
   // ─── Public: Submit inquiry from teaser website ───────────────────────────
 
   async submit(dto: CreateInquiryDto) {
-    console.log('HIT INQUIRIES POST');
     const inquiry = await this.prisma.inquiry.create({
       data: {
         firstName: dto.firstName,
@@ -41,10 +50,10 @@ export class InquiriesService {
     // Send holding email to visitor
     await this.sendHoldingEmail(dto.email, dto.firstName);
 
-    // Send alert to Rodrigo
-    await this.sendInternalAlert(inquiry);
+    // Send internal alert email to Rodrigo
+    await this.sendInternalAlertEmail(inquiry);
 
-    // Create system alert in dashboard
+    // System alert in dashboard
     await this.prisma.systemAlert.create({
       data: {
         severity: 'WARNING',
@@ -56,11 +65,24 @@ export class InquiriesService {
       },
     });
 
-    this.logger.log(`New inquiry from ${dto.email}`);
+    // Real-time push to Rodrigo's dashboard
+    await this.pusherService.newInquiryToEm({
+      inquiryId: inquiry.id,
+      guestName: `${dto.firstName} ${dto.lastName}`,
+      guestCount: dto.guestCount || 0,
+      purposeOfStay: dto.purposeOfStay || 'Not specified',
+      preferredDates:
+        dto.preferredFrom && dto.preferredTo
+          ? `${new Date(dto.preferredFrom).toLocaleDateString()} — ${new Date(dto.preferredTo).toLocaleDateString()}`
+          : 'Dates not specified',
+    });
+
+    this.logger.log(`New inquiry from ${dto.email} — ${dto.purposeOfStay}`);
+
     return { success: true, message: 'Inquiry received' };
   }
 
-  // ─── EM: Get all inquiries ────────────────────────────────────────────────
+  // ─── EM: find all inquiries ───────────────────────────────────────────────
 
   async findAll(status?: string) {
     return this.prisma.inquiry.findMany({
@@ -70,15 +92,45 @@ export class InquiriesService {
   }
 
   async findOne(id: string) {
-    const inquiry = await this.prisma.inquiry.findUnique({ where: { id } });
-    if (!inquiry) throw new NotFoundException(`Inquiry ${id} not found`);
-    return inquiry;
+    const inquiry = await this.prisma.inquiry.findUnique({
+      where: { id },
+    });
+
+    if (!inquiry) {
+      throw new NotFoundException(`Inquiry ${id} not found`);
+    }
+
+    // If inquiry is converted, fetch the linked booking separately
+    let linkedBooking = null;
+    if (inquiry.convertedToBookingId) {
+      linkedBooking = await this.prisma.booking.findUnique({
+        where: { id: inquiry.convertedToBookingId },
+        include: {
+          primaryGuest: {
+            select: {
+              firstName: true,
+              lastName: true,
+              email: true,
+              auth0Id: true,
+            },
+          },
+        },
+      });
+    }
+
+    return { ...inquiry, linkedBooking };
   }
 
   // ─── EM: Approve inquiry (passes vibe check) ──────────────────────────────
 
   async approve(id: string, dto: ReviewInquiryDto, reviewedBy: string) {
     const inquiry = await this.findOne(id);
+
+    if (inquiry.status !== 'NEW') {
+      throw new BadRequestException(
+        `Inquiry is already ${inquiry.status.toLowerCase()}`,
+      );
+    }
 
     const updated = await this.prisma.inquiry.update({
       where: { id },
@@ -92,7 +144,11 @@ export class InquiriesService {
 
     // Dismiss the system alert
     await this.prisma.systemAlert.updateMany({
-      where: { entityType: 'Inquiry', entityId: id, isDismissed: false },
+      where: {
+        entityType: 'Inquiry',
+        entityId: id,
+        isDismissed: false,
+      },
       data: {
         isDismissed: true,
         dismissedBy: reviewedBy,
@@ -120,6 +176,12 @@ export class InquiriesService {
   async decline(id: string, dto: DeclineInquiryDto, reviewedBy: string) {
     const inquiry = await this.findOne(id);
 
+    if (inquiry.status === 'CONVERTED') {
+      throw new BadRequestException(
+        'Cannot decline an inquiry that has been converted to a booking',
+      );
+    }
+
     const updated = await this.prisma.inquiry.update({
       where: { id },
       data: {
@@ -134,7 +196,11 @@ export class InquiriesService {
     await this.sendDeclineEmail(inquiry.email, inquiry.firstName);
 
     await this.prisma.systemAlert.updateMany({
-      where: { entityType: 'Inquiry', entityId: id, isDismissed: false },
+      where: {
+        entityType: 'Inquiry',
+        entityId: id,
+        isDismissed: false,
+      },
       data: {
         isDismissed: true,
         dismissedBy: reviewedBy,
@@ -145,13 +211,87 @@ export class InquiriesService {
     return updated;
   }
 
-  // ─── Link inquiry to booking after Lodgify sync ───────────────────────────
+  // ─── EM: mark lookbook sent (after Rodrigo manually emails it) ───────────
+
+  async markLookbookSent(id: string, markedBy: string) {
+    await this.findOne(id);
+
+    return this.prisma.inquiry.update({
+      where: { id },
+      data: {
+        lookbookSentAt: new Date(),
+        lookbookSentBy: markedBy,
+      },
+    });
+  }
+
+  // ─── EM: mark payment link sent (logs the Stripe link for reference) ──────
+
+  async markPaymentLinkSent(
+    id: string,
+    stripePaymentLink: string,
+    markedBy: string,
+  ) {
+    await this.findOne(id);
+
+    return this.prisma.inquiry.update({
+      where: { id },
+      data: {
+        paymentLinkSentAt: new Date(),
+        paymentLinkSentBy: markedBy,
+        stripePaymentLink,
+      },
+    });
+  }
+
+  // ─── EM: delete inquiry ───────────────────────────────────────────────────
+
+  async remove(id: string, deletedBy: string) {
+    const inquiry = await this.findOne(id);
+
+    if (inquiry.status === 'CONVERTED') {
+      throw new BadRequestException(
+        'Cannot delete an inquiry that has been converted to a booking',
+      );
+    }
+
+    await this.prisma.systemAlert.updateMany({
+      where: {
+        entityType: 'Inquiry',
+        entityId: id,
+        isDismissed: false,
+      },
+      data: {
+        isDismissed: true,
+        dismissedBy: deletedBy,
+        dismissedAt: new Date(),
+      },
+    });
+
+    await this.prisma.inquiry.delete({ where: { id } });
+
+    this.logger.log(`Inquiry ${id} deleted by ${deletedBy}`);
+
+    return { success: true };
+  }
+
+  // ─── Link inquiry to booking after Lodgify webhook fires ─────────────────
 
   async linkToBooking(email: string, bookingId: string) {
-    await this.prisma.inquiry.updateMany({
-      where: { email, status: 'APPROVED' },
-      data: { status: 'CONVERTED', convertedToBookingId: bookingId },
+    const result = await this.prisma.inquiry.updateMany({
+      where: {
+        email: { equals: email, mode: 'insensitive' },
+        status: 'APPROVED',
+      },
+      data: {
+        status: 'CONVERTED',
+        convertedToBookingId: bookingId,
+      },
     });
+
+    if (result.count > 0) {
+      this.logger.log(`Inquiry converted to booking ${bookingId} for ${email}`);
+    }
   }
 
   // ─── Email helpers ────────────────────────────────────────────────────────
@@ -163,62 +303,179 @@ export class InquiriesService {
         to: email,
         subject: 'Your inquiry has been received — Villa TimTavio',
         html: `
-          <div style="font-family: Georgia, serif; max-width: 520px; margin: 0 auto; color: #1A1A18;">
-            <p style="font-size: 18px;">Dear ${firstName},</p>
-            <p style="font-size: 15px; line-height: 1.7; color: #5F5E5A;">
+          <div style="font-family: Georgia, serif; max-width: 520px; 
+                      margin: 0 auto; color: #1A1A18; padding: 40px 0;">
+            <p style="font-size: 13px; font-weight: 500; 
+                      letter-spacing: 0.18em; text-transform: uppercase; 
+                      color: #888780; margin-bottom: 32px;">
+              VILLA TIMTAVIO
+            </p>
+            <p style="font-size: 18px; font-weight: 300; 
+                      margin-bottom: 24px;">
+              Dear ${firstName},
+            </p>
+            <p style="font-size: 15px; line-height: 1.8; 
+                      color: #5F5E5A; margin-bottom: 16px;">
               Your inquiry has been received by our Estate Management team.
             </p>
-            <p style="font-size: 15px; line-height: 1.7; color: #5F5E5A;">
-              Due to the exclusive nature of Villa TimTavio, all requests are 
-              subject to a private review. We will contact you shortly.
+            <p style="font-size: 15px; line-height: 1.8; color: #5F5E5A;">
+              Due to the exclusive nature of Villa TimTavio, all requests 
+              are subject to a private review. We will be in touch shortly.
             </p>
-            <p style="font-size: 14px; color: #8A8880; margin-top: 32px;">
-              Villa TimTavio<br>Puerto Escondido, Oaxaca
-            </p>
+            <div style="margin-top: 48px; padding-top: 24px; 
+                        border-top: 1px solid #E8E6E0;">
+              <p style="font-size: 13px; color: #B4B2A9; font-style: italic;">
+                Villa TimTavio · Puerto Escondido, Oaxaca
+              </p>
+            </div>
           </div>
         `,
       });
     } catch (error) {
       this.logger.warn(
-        `Failed to send holding email to ${email}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Failed to send holding email to ${email}: ${getErrorMessage(error)}`,
       );
     }
   }
 
-  private async sendInternalAlert(inquiry: any) {
+  private async sendInternalAlertEmail(inquiry: any) {
+    if (!process.env.RODRIGO_EMAIL) return;
+
     try {
-      const emails = process.env.TO_EMAILS?.split(',') || [];
+      const dates =
+        inquiry.preferredFrom && inquiry.preferredTo
+          ? `${new Date(inquiry.preferredFrom).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} — ${new Date(inquiry.preferredTo).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+          : 'Not specified';
+
       await this.resend.emails.send({
-        from: `Villa TimTavio <${process.env.EMAIL_FROM}>`,
-        to: emails,
-        subject: `New Inquiry — ${inquiry.firstName} ${inquiry.lastName}`,
+        from: `Villa TimTavio System <${process.env.EMAIL_FROM}>`,
+        to: (process.env.TO_EMAILS ?? process.env.RODRIGO_EMAIL ?? '')
+          .split(',')
+          .map((email) => email.trim())
+          .filter(Boolean),
+        subject: `New inquiry — ${inquiry.firstName} ${inquiry.lastName} · ${inquiry.guestCount || '?'} guests`,
         html: `
-          <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
-            <h2>New inquiry received</h2>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr><td style="padding: 8px; color: #888;">Name</td>
-                  <td style="padding: 8px;">${inquiry.firstName} ${inquiry.lastName}</td></tr>
-              <tr><td style="padding: 8px; color: #888;">Email</td>
-                  <td style="padding: 8px;">${inquiry.email}</td></tr>
-              <tr><td style="padding: 8px; color: #888;">Phone</td>
-                  <td style="padding: 8px;">${inquiry.phone || 'Not provided'}</td></tr>
-              <tr><td style="padding: 8px; color: #888;">Guests</td>
-                  <td style="padding: 8px;">${inquiry.guestCount || 'Not specified'}</td></tr>
-              <tr><td style="padding: 8px; color: #888;">Dates</td>
-                  <td style="padding: 8px;">${inquiry.preferredFrom ? new Date(inquiry.preferredFrom).toLocaleDateString() : 'TBD'} — ${inquiry.preferredTo ? new Date(inquiry.preferredTo).toLocaleDateString() : 'TBD'}</td></tr>
-              <tr><td style="padding: 8px; color: #888;">Purpose</td>
-                  <td style="padding: 8px;">${inquiry.purposeOfStay || 'Not specified'}</td></tr>
-              <tr><td style="padding: 8px; color: #888;">Social</td>
-                  <td style="padding: 8px;">${inquiry.socialHandle || 'Not provided'}</td></tr>
-              <tr><td style="padding: 8px; color: #888;">Message</td>
-                  <td style="padding: 8px;">${inquiry.message || 'None'}</td></tr>
-            </table>
-            <a href="${process.env.DASHBOARD_URL}/inquiries/${inquiry.id}"
-               style="display: inline-block; margin-top: 20px; padding: 12px 24px;
-                      background: #1A1A18; color: white; text-decoration: none;
-                      border-radius: 6px; font-size: 13px;">
-              Review in Dashboard
-            </a>
+          <div style="font-family: sans-serif; max-width: 560px; 
+                      margin: 0 auto; color: #1A1A18;">
+            <div style="background: #1A1A18; padding: 24px 28px; 
+                        border-radius: 8px 8px 0 0;">
+              <p style="font-size: 11px; font-weight: 500; 
+                        letter-spacing: 0.18em; color: rgba(255,255,255,0.5); 
+                        margin: 0 0 4px;">VILLA TIMTAVIO</p>
+              <p style="font-size: 18px; color: white; margin: 0; 
+                        font-family: Georgia, serif;">
+                New inquiry received
+              </p>
+            </div>
+            <div style="background: #F8F7F4; padding: 28px; 
+                        border-radius: 0 0 8px 8px; 
+                        border: 1px solid #E8E6E0; border-top: none;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #E8E6E0; 
+                              font-size: 12px; color: #888780; width: 140px; 
+                              font-weight: 500; letter-spacing: 0.06em; 
+                              text-transform: uppercase;">
+                    Name
+                  </td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #E8E6E0; 
+                              font-size: 14px; color: #1A1A18;">
+                    ${inquiry.firstName} ${inquiry.lastName}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #E8E6E0; 
+                              font-size: 12px; color: #888780; font-weight: 500; 
+                              letter-spacing: 0.06em; text-transform: uppercase;">
+                    Email
+                  </td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #E8E6E0; 
+                              font-size: 14px; color: #1A1A18;">
+                    ${inquiry.email}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #E8E6E0; 
+                              font-size: 12px; color: #888780; font-weight: 500; 
+                              letter-spacing: 0.06em; text-transform: uppercase;">
+                    Phone
+                  </td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #E8E6E0; 
+                              font-size: 14px; color: #1A1A18;">
+                    ${inquiry.phone || 'Not provided'}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #E8E6E0; 
+                              font-size: 12px; color: #888780; font-weight: 500; 
+                              letter-spacing: 0.06em; text-transform: uppercase;">
+                    Dates
+                  </td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #E8E6E0; 
+                              font-size: 14px; color: #1A1A18;">
+                    ${dates}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #E8E6E0; 
+                              font-size: 12px; color: #888780; font-weight: 500; 
+                              letter-spacing: 0.06em; text-transform: uppercase;">
+                    Guests
+                  </td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #E8E6E0; 
+                              font-size: 14px; color: #1A1A18;">
+                    ${inquiry.guestCount || 'Not specified'}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #E8E6E0; 
+                              font-size: 12px; color: #888780; font-weight: 500; 
+                              letter-spacing: 0.06em; text-transform: uppercase;">
+                    Purpose
+                  </td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #E8E6E0; 
+                              font-size: 14px; color: #1A1A18;">
+                    ${inquiry.purposeOfStay || 'Not specified'}
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #E8E6E0; 
+                              font-size: 12px; color: #888780; font-weight: 500; 
+                              letter-spacing: 0.06em; text-transform: uppercase;">
+                    Social
+                  </td>
+                  <td style="padding: 10px 0; border-bottom: 1px solid #E8E6E0; 
+                              font-size: 14px;">
+                    ${
+                      inquiry.socialHandle
+                        ? `<a href="${inquiry.socialHandle.startsWith('http') ? inquiry.socialHandle : 'https://' + inquiry.socialHandle}" 
+                               style="color: #1A1A18;">${inquiry.socialHandle}</a>`
+                        : 'Not provided'
+                    }
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 10px 0; font-size: 12px; color: #888780; 
+                              font-weight: 500; letter-spacing: 0.06em; 
+                              text-transform: uppercase; vertical-align: top;">
+                    Message
+                  </td>
+                  <td style="padding: 10px 0; font-size: 14px; color: #1A1A18; 
+                              line-height: 1.6;">
+                    ${inquiry.message || 'No message provided'}
+                  </td>
+                </tr>
+              </table>
+
+              <a href="${process.env.DASHBOARD_URL}/inquiries/${inquiry.id}"
+                 style="display: inline-block; margin-top: 28px; 
+                        padding: 14px 28px; background: #1A1A18; color: white; 
+                        text-decoration: none; border-radius: 7px; 
+                        font-size: 12px; font-weight: 600; 
+                        letter-spacing: 0.12em; text-transform: uppercase;">
+                Review in Dashboard →
+              </a>
+            </div>
           </div>
         `,
       });
@@ -236,18 +493,30 @@ export class InquiriesService {
         to: email,
         subject: 'Villa TimTavio — Regarding Your Inquiry',
         html: `
-          <div style="font-family: Georgia, serif; max-width: 520px; margin: 0 auto; color: #1A1A18;">
-            <p style="font-size: 18px;">Dear ${firstName},</p>
-            <p style="font-size: 15px; line-height: 1.7; color: #5F5E5A;">
+          <div style="font-family: Georgia, serif; max-width: 520px; 
+                      margin: 0 auto; color: #1A1A18; padding: 40px 0;">
+            <p style="font-size: 13px; font-weight: 500; 
+                      letter-spacing: 0.18em; text-transform: uppercase; 
+                      color: #888780; margin-bottom: 32px;">
+              VILLA TIMTAVIO
+            </p>
+            <p style="font-size: 18px; font-weight: 300; margin-bottom: 24px;">
+              Dear ${firstName},
+            </p>
+            <p style="font-size: 15px; line-height: 1.8; 
+                      color: #5F5E5A; margin-bottom: 16px;">
               Thank you for your interest in Villa TimTavio.
             </p>
-            <p style="font-size: 15px; line-height: 1.7; color: #5F5E5A;">
+            <p style="font-size: 15px; line-height: 1.8; color: #5F5E5A;">
               At this time we are unable to accommodate your request. 
               We appreciate your understanding.
             </p>
-            <p style="font-size: 14px; color: #8A8880; margin-top: 32px;">
-              Villa TimTavio<br>Puerto Escondido, Oaxaca
-            </p>
+            <div style="margin-top: 48px; padding-top: 24px; 
+                        border-top: 1px solid #E8E6E0;">
+              <p style="font-size: 13px; color: #B4B2A9; font-style: italic;">
+                Villa TimTavio · Puerto Escondido, Oaxaca
+              </p>
+            </div>
           </div>
         `,
       });

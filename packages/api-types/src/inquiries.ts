@@ -26,8 +26,32 @@ export interface Inquiry {
   declineReason?: string | null;
   convertedToBookingId?: string | null;
   notes?: string | null;
+  lookbookSentAt?: string | null;
+  lookbookSentBy?: string | null;
+  paymentLinkSentAt?: string | null;
+  paymentLinkSentBy?: string | null;
+  stripePaymentLink?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface InquiryLinkedBooking {
+  id: string;
+  lodgifyId: string;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  totalGuests: number;
+  status: string;
+  primaryGuest: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
+export interface InquiryDetail extends Inquiry {
+  linkedBooking?: InquiryLinkedBooking | null;
 }
 
 export interface CreateInquiryDto {
@@ -50,4 +74,14 @@ export interface ReviewInquiryDto {
 
 export interface DeclineInquiryDto {
   declineReason?: string;
+}
+
+export interface MarkPaymentLinkSentDto {
+  stripePaymentLink?: string;
+}
+
+export interface SendMagicLinkResponse {
+  success: boolean;
+  sentTo: string;
+  message: string;
 }
