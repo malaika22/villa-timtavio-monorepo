@@ -2,10 +2,10 @@
 
 import { ManagerShell } from '@/components/manager/layout/ManagerShell';
 import { TokenInitializer } from '@/components/manager/TokenInitializer';
-import { useEmRealtime } from '@/hooks/useEmRealtime';
+import { useEmPusher } from '@/hooks/use-em-pusher';
 
 function DashboardRealtime({ children }: { children: React.ReactNode }) {
-  useEmRealtime();
+  useEmPusher();
   return children;
 }
 

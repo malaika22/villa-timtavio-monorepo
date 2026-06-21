@@ -26,6 +26,18 @@ export const config = {
     process.env.AUTH0_BASE_URL ??
     process.env.NEXT_PUBLIC_APP_URL ??
     'http://localhost:3002',
+  apiUrl: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001',
   publicProfileRoute:
     process.env.NEXT_PUBLIC_PROFILE_ROUTE ?? '/api/auth/profile',
+  pusher: {
+    appId: process.env.NEXT_PUBLIC_PUSHER_APP_ID,
+    key: process.env.NEXT_PUBLIC_PUSHER_KEY,
+    secret: process.env.NEXT_PUBLIC_PUSHER_SECRET,
+    cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
+  },
+  lodgify: {
+    newBookingUrl:
+      process.env.NEXT_PUBLIC_LODGIFY_NEW_BOOKING_URL ??
+      'https://app.lodgify.com/bookings/new',
+  },
 };

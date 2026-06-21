@@ -5,6 +5,7 @@ import { cn } from '@repo/ui/lib/utils';
 
 import { managerNavSections } from '@/config/navigation';
 import { useApprovalQueueCount } from '@/hooks/useDashboard';
+import { useNewInquiriesCount } from '@/hooks/useInquiries';
 
 type Props = {
   pathname: string;
@@ -15,6 +16,7 @@ type Props = {
 /** Shared sidebar / mobile nav links with section labels */
 export const ManagerNavLinks = ({ pathname, onNavigate, className }: Props) => {
   const { data: approvalCount = 0 } = useApprovalQueueCount();
+  const { data: newInquiriesCount = 0 } = useNewInquiriesCount();
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -51,6 +53,10 @@ export const ManagerNavLinks = ({ pathname, onNavigate, className }: Props) => {
                     {item.href === '/approvals' && approvalCount > 0 ? (
                       <span className="flex size-5 items-center justify-center rounded-full bg-[#c45c3e] text-[10px] font-semibold text-white">
                         {approvalCount}
+                      </span>
+                    ) : item.href === '/inquiries' && newInquiriesCount > 0 ? (
+                      <span className="flex size-5 items-center justify-center rounded-full bg-[#c45c3e] text-[10px] font-semibold text-white">
+                        {newInquiriesCount}
                       </span>
                     ) : item.countBadge != null ? (
                       <span className="flex size-5 items-center justify-center rounded-full bg-[#c45c3e] text-[10px] font-semibold text-white">
