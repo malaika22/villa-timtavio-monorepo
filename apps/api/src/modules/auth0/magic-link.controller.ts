@@ -2,12 +2,14 @@ import {
   Controller,
   Post,
   Param,
+  Body,
   BadRequestException,
 } from '@nestjs/common';
 import { MagicLinkService } from './magic-link.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Roles } from '../auth/decorators/roles.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 
 @Controller('api/v1/magic-link')
 export class MagicLinkController {
@@ -76,6 +78,17 @@ export class MagicLinkController {
       sentTo: booking.primaryGuest.email,
       message: `Magic link sent to ${booking.primaryGuest.firstName} ${booking.primaryGuest.lastName}`,
     };
+  }
+
+  // ─── Verify OTP + issue JWT (called by PWA callback page) ───────────────
+
+  @Post('verify')
+  @Public()
+  async verifyOtp(@Body() body: { otp: string; email: string }) {
+    if (!body.otp || !body.email) {
+      throw new BadRequestException('otp and email are required');
+    }
+    return this.magicLinkService.verifyOtpAndIssueToken(body.otp, body.email);
   }
 
   // ─── Resend magic link to a specific secondary guest ─────────────────────

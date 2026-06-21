@@ -1,9 +1,9 @@
-// apps/api/src/auth/jwt.strategy.ts
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { passportJwtSecret } from 'jwks-rsa';
+import { JwksClient } from 'jwks-rsa';
 import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
 import { AUTH0_NAMESPACE } from './constants';
 import { PrismaService } from '../../prisma/prisma.service';
 
@@ -36,35 +36,53 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private prisma: PrismaService,
   ) {
     super({
-      secretOrKeyProvider: passportJwtSecret({
-        cache: true,
-        rateLimit: true,
-        jwksRequestsPerMinute: 5,
-        jwksUri: `https://${config.get('AUTH0_DOMAIN')}/.well-known/jwks.json`,
-      }),
+      secretOrKeyProvider: async (request: any, rawToken: string, done: any) => {
+        try {
+          const decoded = jwt.decode(rawToken, { complete: true }) as any;
+          if (!decoded) return done(new Error('Invalid token'));
+
+          if (decoded.header.alg === 'HS256') {
+            return done(null, config.get('JWT_SECRET'));
+          }
+
+          // RS256 — fetch key from Auth0 JWKS
+          const jwks = new JwksClient({
+            cache: true,
+            rateLimit: true,
+            jwksRequestsPerMinute: 5,
+            jwksUri: `https://${config.get('AUTH0_DOMAIN')}/.well-known/jwks.json`,
+          });
+          const key = await jwks.getSigningKey(decoded.header.kid);
+          return done(null, key.getPublicKey());
+        } catch (err) {
+          return done(err);
+        }
+      },
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       audience: config.get('AUTH0_AUDIENCE'),
-      issuer: `https://${config.get('AUTH0_DOMAIN')}/`,
-      algorithms: ['RS256'],
+      algorithms: ['RS256', 'HS256'],
     });
   }
 
   async validate(payload: JwtPayload): Promise<AuthUser> {
+    const isAuth0Token = payload.iss === `https://${this.config.get('AUTH0_DOMAIN')}/`;
+    const isOurToken = payload.iss === 'villa-timtavio';
+
+    if (!isAuth0Token && !isOurToken) {
+      throw new UnauthorizedException('Invalid token issuer');
+    }
+
     const roles: string[] =
       (payload[`${AUTH0_NAMESPACE}/roles`] as string[]) || [];
     const bookingId: string | null =
       (payload[`${AUTH0_NAMESPACE}/bookingId`] as string | null) || null;
     const guestTier: 'primary' | 'secondary' | null =
-      (payload[`${AUTH0_NAMESPACE}/guestTier`] as
-        | 'primary'
-        | 'secondary'
-        | null) || null;
+      (payload[`${AUTH0_NAMESPACE}/guestTier`] as 'primary' | 'secondary' | null) || null;
 
     if (!roles.length) {
       throw new UnauthorizedException('No roles assigned to this user');
     }
 
-    // For guest roles — validate the booking is still active
     const isGuestRole =
       roles.includes('primary_member') || roles.includes('secondary_guest');
 
@@ -74,22 +92,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         select: { status: true, checkOut: true },
       });
 
-      if (!booking) {
-        throw new UnauthorizedException('Booking not found');
-      }
-
-      if (booking.status === 'CANCELLED') {
+      if (!booking) throw new UnauthorizedException('Booking not found');
+      if (booking.status === 'CANCELLED')
         throw new UnauthorizedException('Booking has been cancelled');
-      }
 
-      // Check 24h post-checkout expiry
       if (booking.status === 'CHECKED_OUT') {
-        const expiresAt = new Date(
-          booking.checkOut.getTime() + 24 * 60 * 60 * 1000,
-        );
-        if (new Date() > expiresAt) {
+        const expiresAt = new Date(booking.checkOut.getTime() + 24 * 60 * 60 * 1000);
+        if (new Date() > expiresAt)
           throw new UnauthorizedException('Your stay access has expired');
-        }
       }
     }
 

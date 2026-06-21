@@ -99,6 +99,21 @@ export class Auth0ManagementService {
     }
   }
 
+  // ─── Get full Auth0 user object by email ──────────────────────────────────
+
+  async getUserByEmail(email: string): Promise<any | null> {
+    try {
+      const headers = await this.authHeaders();
+      const response = await this.client.get(
+        `/users-by-email?email=${encodeURIComponent(email)}`,
+        { headers },
+      );
+      return response.data.length > 0 ? response.data[0] : null;
+    } catch {
+      return null;
+    }
+  }
+
   // ─── Find or Create User ─────────────────────────────────────────────────────
 
   async findOrCreateUser(payload: CreateOrUpdateUserPayload): Promise<string> {

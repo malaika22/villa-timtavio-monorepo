@@ -6,19 +6,24 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { JwtService } from '@nestjs/jwt';
+import { Resend } from 'resend';
+import * as crypto from 'crypto';
 import { Auth0ManagementService } from './auth0-management.service';
-import axios from 'axios';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SendMagicLinkPayload } from './types';
+import { AUTH0_NAMESPACE } from '../auth/constants';
 
 @Injectable()
 export class MagicLinkService {
   private readonly logger = new Logger(MagicLinkService.name);
+  private readonly resend = new Resend(process.env.RESEND_API_KEY);
 
   constructor(
     private config: ConfigService,
     private prisma: PrismaService,
     private auth0Mgmt: Auth0ManagementService,
+    private jwtService: JwtService,
     @InjectQueue('magic-links') private magicLinkQueue: Queue,
   ) {}
 
@@ -29,7 +34,6 @@ export class MagicLinkService {
       `Sending magic link to ${payload.email} for booking ${payload.bookingId}`,
     );
 
-    // Add to queue — do not block the calling request
     await this.magicLinkQueue.add('send', payload, {
       attempts: 3,
       backoff: { type: 'exponential', delay: 5000 },
@@ -37,11 +41,11 @@ export class MagicLinkService {
     });
   }
 
-  // ─── Process Magic Link Job (runs in background) ──────────────────────────────
+  // ─── Process Magic Link Job ───────────────────────────────────────────────────
 
   async processMagicLink(payload: SendMagicLinkPayload): Promise<void> {
     try {
-      // Step 1: Find or create Auth0 user
+      // Step 1: Find or create Auth0 user (user management only)
       const auth0UserId = await this.auth0Mgmt.findOrCreateUser({
         email: payload.email,
         firstName: payload.firstName,
@@ -51,36 +55,47 @@ export class MagicLinkService {
         guestTier: payload.guestTier,
       });
 
-      // Step 2 — Send passwordless magic link via Auth0
-      const state = Buffer.from(
-        JSON.stringify({
-          bookingId: payload.bookingId,
-          tier: payload.guestTier,
-        }),
-      ).toString('base64');
+      // Step 2: Generate OTP + store in DB
+      const otp = crypto.randomInt(100000, 999999).toString();
+      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-      await axios.post(
-        `https://${this.config.get('AUTH0_DOMAIN')}/passwordless/start`,
-        {
-          client_id: this.config.get('AUTH0_REGULAR_CLIENT_ID'),
-          client_secret: this.config.get('AUTH0_REGULAR_CLIENT_SECRET'),
-          connection: 'email',
+      await this.prisma.magicToken.create({
+        data: {
           email: payload.email,
-          send: 'link',
-          authParams: {
-            redirect_uri: `${this.config.get('PWA_URL')}/auth/callback`,
-            scope: 'openid profile email',
-            audience: this.config.get('AUTH0_AUDIENCE'),
-            response_type: 'code',
-            // Pass booking context through state parameter
-            state,
-          },
+          otp,
+          bookingId: payload.bookingId,
+          guestTier: payload.guestTier,
+          expiresAt,
         },
-        { headers: { 'Content-Type': 'application/json' } },
-      );
+      });
+
+      // Step 3: Send magic link email via Resend
+      const magicLinkUrl = `${this.config.get('PWA_URL')}/auth/callback?otp=${otp}&email=${encodeURIComponent(payload.email)}`;
+
+      await this.resend.emails.send({
+        from: this.config.get('EMAIL_FROM') || 'reservations@villatimtavio.com',
+        to: payload.email,
+        subject: 'Your Villa Timtavio access link',
+        html: `
+          <div style="font-family:Georgia,serif;max-width:560px;margin:0 auto;padding:40px 24px;color:#1A1A18;">
+            <p style="font-size:18px;margin-bottom:8px;">Welcome, ${payload.firstName}.</p>
+            <p style="font-size:15px;color:#555;line-height:1.7;margin-bottom:32px;">
+              Click below to access your stay at Villa Timtavio. This link expires in 10 minutes.
+            </p>
+            <a href="${magicLinkUrl}"
+               style="display:inline-block;padding:14px 32px;background:#1A1A18;color:#fff;text-decoration:none;font-family:sans-serif;font-size:13px;letter-spacing:0.08em;border-radius:6px;">
+              ACCESS YOUR STAY
+            </a>
+            <p style="margin-top:40px;font-size:12px;color:#999;font-family:sans-serif;">
+              If you did not request this link, please disregard this email.
+            </p>
+          </div>
+        `,
+      });
+
       this.logger.log(`Magic link sent to ${payload.email}`);
 
-      // Step 3 — Update database records
+      // Step 4: Update database records
       if (payload.guestTier === 'secondary') {
         await this.prisma.manifestGuest.updateMany({
           where: { bookingId: payload.bookingId, email: payload.email },
@@ -91,7 +106,6 @@ export class MagicLinkService {
           },
         });
       } else {
-        // Update primary guest Auth0 ID
         const booking = await this.prisma.booking.findUnique({
           where: { id: payload.bookingId },
           include: { primaryGuest: true },
@@ -104,7 +118,7 @@ export class MagicLinkService {
         }
       }
 
-      // Step 4 — Audit log
+      // Step 5: Audit log
       await this.prisma.auditLog.create({
         data: {
           action: 'MAGIC_LINK_SENT',
@@ -113,10 +127,7 @@ export class MagicLinkService {
           performedBy: 'system',
           performedByRole: 'system',
           bookingId: payload.bookingId,
-          metadata: {
-            email: payload.email,
-            tier: payload.guestTier,
-          } as any,
+          metadata: { email: payload.email, tier: payload.guestTier } as any,
         },
       });
     } catch (error) {
@@ -127,7 +138,51 @@ export class MagicLinkService {
     }
   }
 
-  // ─── Revoke Access (called at checkout + 24h) ────────────────────────────────
+  // ─── Verify OTP + Issue JWT ───────────────────────────────────────────────────
+
+  async verifyOtpAndIssueToken(
+    otp: string,
+    email: string,
+  ): Promise<{ access_token: string; expires_in: number }> {
+    const record = await this.prisma.magicToken.findFirst({
+      where: { otp, email, used: false, expiresAt: { gt: new Date() } },
+    });
+
+    if (!record) {
+      throw new InternalServerErrorException('Invalid or expired magic link');
+    }
+
+    // Mark as used immediately (one-time use)
+    await this.prisma.magicToken.update({
+      where: { id: record.id },
+      data: { used: true },
+    });
+
+    const auth0User = await this.auth0Mgmt.getUserByEmail(email);
+    const role =
+      record.guestTier === 'primary' ? 'primary_member' : 'secondary_guest';
+
+    const expiresIn = 86400; // 24h
+    const payload = {
+      sub: auth0User?.user_id || email,
+      email,
+      given_name: auth0User?.given_name || '',
+      iss: 'villa-timtavio',
+      aud: this.config.get('AUTH0_AUDIENCE'),
+      [`${AUTH0_NAMESPACE}/roles`]: [role],
+      [`${AUTH0_NAMESPACE}/bookingId`]: record.bookingId,
+      [`${AUTH0_NAMESPACE}/guestTier`]: record.guestTier,
+    };
+
+    const access_token = this.jwtService.sign(payload, {
+      expiresIn,
+      algorithm: 'HS256',
+    });
+
+    return { access_token, expires_in: expiresIn };
+  }
+
+  // ─── Revoke Access ────────────────────────────────────────────────────────────
 
   async revokeBookingAccess(bookingId: string): Promise<void> {
     this.logger.log(`Revoking access for booking ${bookingId}`);
@@ -143,11 +198,7 @@ export class MagicLinkService {
     if (!booking) return;
 
     const auth0Ids: string[] = [];
-
-    if (booking.primaryGuest.auth0Id) {
-      auth0Ids.push(booking.primaryGuest.auth0Id);
-    }
-
+    if (booking.primaryGuest.auth0Id) auth0Ids.push(booking.primaryGuest.auth0Id);
     for (const guest of booking.manifestGuests) {
       if (guest.auth0UserId) auth0Ids.push(guest.auth0UserId);
     }
@@ -155,6 +206,12 @@ export class MagicLinkService {
     await Promise.allSettled(
       auth0Ids.map((id) => this.auth0Mgmt.revokeUserSessions(id)),
     );
+
+    // Invalidate all unused magic tokens for this booking
+    await this.prisma.magicToken.updateMany({
+      where: { bookingId, used: false },
+      data: { used: true },
+    });
 
     await this.prisma.auditLog.create({
       data: {
@@ -168,12 +225,10 @@ export class MagicLinkService {
       },
     });
 
-    this.logger.log(
-      `Revoked ${auth0Ids.length} sessions for booking ${bookingId}`,
-    );
+    this.logger.log(`Revoked ${auth0Ids.length} sessions for booking ${bookingId}`);
   }
 
-  // ─── Resend Magic Link (EM action from dashboard) ────────────────────────────
+  // ─── Resend Magic Link ────────────────────────────────────────────────────────
 
   async resendToManifestGuest(manifestGuestId: string): Promise<void> {
     const guest = await this.prisma.manifestGuest.findUnique({
