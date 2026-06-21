@@ -3,18 +3,18 @@
 import { cn } from '@repo/ui/lib/utils';
 import { Check } from 'lucide-react';
 import Link from 'next/link';
+import { useManifest } from '@/hooks/useManifest';
 
-const MOCK = {
-  guestsAdded: 8,
-  nextSteps: [
-    'Team reviews your guest list and room assignments',
-    'Dietary and allergy notes shared with culinary team',
-    'Each guest receives a personalised magic link before arrival',
-  ],
-};
+const NEXT_STEPS = [
+  'Team reviews your guest list and room assignments',
+  'Dietary and allergy notes shared with culinary team',
+  'Each guest receives a personalised magic link before arrival',
+];
 
 export const GuestManifestSubmitted = () => {
-  const { guestsAdded, nextSteps } = MOCK;
+  const { data: manifest } = useManifest();
+  const guestsAdded = manifest?.addedGuests ?? 0;
+  const nextSteps = NEXT_STEPS;
 
   return (
     <div className="flex flex-col min-h-[calc(100dvh-104px)]">
@@ -88,7 +88,7 @@ export const GuestManifestSubmitted = () => {
           Back to Home
         </Link>
         <Link
-          href="/guest-manifest"
+          href="/manifest"
           className={cn(
             'flex items-center justify-center w-full rounded-[12px] border border-[#E3E0DA] bg-white py-4',
             'text-[10px] font-semibold uppercase tracking-[2.5px] text-[#2B2824]',

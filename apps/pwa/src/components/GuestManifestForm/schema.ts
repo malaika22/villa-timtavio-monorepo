@@ -21,7 +21,8 @@ export const DIETARY_VALUES = [
 ] as const;
 
 export type RelationshipValue = (typeof RELATIONSHIP_VALUES)[number];
-export type DietaryValue = (typeof DIETARY_VALUES)[number];
+// string alias — allows API-returned values beyond the static list
+export type DietaryValue = string;
 
 /** RHF + zodResolver: step-2-only rules run when `__step` is 2 */
 export const guestManifestSchema = z
@@ -38,7 +39,7 @@ export const guestManifestSchema = z
     }),
     dateOfBirth: z.string().optional(),
     roomId: z.string(),
-    dietaryRestrictions: z.array(z.enum(DIETARY_VALUES)),
+    dietaryRestrictions: z.array(z.string()),
     dietaryOtherDetails: z.string().optional(),
     foodAllergies: z.string().optional(),
     beveragePreferences: z.string().optional(),

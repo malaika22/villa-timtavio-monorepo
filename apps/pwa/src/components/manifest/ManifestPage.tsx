@@ -1,0 +1,517 @@
+'use client';
+
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useRouter } from 'next/navigation';
+import { Plus, ArrowLeft, Pencil } from 'lucide-react';
+import { Button } from '@repo/ui/components/button';
+import { Progress } from '@repo/ui/components/progress';
+import { cn } from '@repo/ui/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  useManifest,
+  useAddManifestGuest,
+  useUpdateManifestGuest,
+  useSubmitManifest,
+} from '@/hooks/useManifest';
+import { useRoomAvailability } from '@/hooks/useRoomAvailability';
+import { useAuth } from '@/hooks/useAuth';
+import { GuestManifestForm } from '@/components/GuestManifestForm';
+import type { GuestManifestFormValues } from '@/components/GuestManifestForm';
+import { GuestAddedSheet } from './GuestAddedSheet';
+import { RoomCard } from './RoomCard';
+import type {
+  CreateManifestGuestDto,
+  ManifestGuest,
+  RoomWithAvailability,
+} from '@repo/api-types';
+import type {
+  DietaryValue,
+  RelationshipValue,
+} from '@/components/GuestManifestForm/schema';
+
+// ─── DTO helpers ──────────────────────────────────────────────────────────────
+
+function mapFormToDto(data: GuestManifestFormValues): CreateManifestGuestDto {
+  const parts = data.fullName.trim().split(/\s+/);
+  return {
+    firstName: parts[0] ?? '',
+    lastName: (parts.slice(1).join(' ') || parts[0]) ?? '',
+    email: data.email,
+    phone: data.phone || undefined,
+    dateOfBirth: data.dateOfBirth || undefined,
+    relationship: data.relationship,
+    roomNumber: data.roomId ? parseInt(data.roomId, 10) : undefined,
+    dietaryRestrictions: data.dietaryRestrictions,
+    allergies: data.foodAllergies || undefined,
+    beveragePreferences: data.beveragePreferences || undefined,
+    specialNotes: data.specialNotes || undefined,
+  };
+}
+
+function mapGuestToFormValues(guest: ManifestGuest): GuestManifestFormValues {
+  return {
+    __step: 1,
+    fullName: `${guest.firstName} ${guest.lastName}`.trim(),
+    email: guest.email,
+    phone: guest.phone ?? '',
+    relationship: (guest.relationship as RelationshipValue) ?? 'family',
+    dateOfBirth: guest.dateOfBirth ?? '',
+    roomId: guest.roomNumber?.toString() ?? '',
+    dietaryRestrictions: (guest.dietaryRestrictions ?? []) as DietaryValue[],
+    dietaryOtherDetails: '',
+    foodAllergies: guest.allergies ?? '',
+    beveragePreferences: guest.beveragePreferences ?? '',
+    specialNotes: guest.specialNotes ?? '',
+  };
+}
+
+// ─── Status chip meta ─────────────────────────────────────────────────────────
+
+const STATUS_META: Record<
+  string,
+  { label: string; dot: string; ring: string; text: string }
+> = {
+  INCOMPLETE: {
+    label: 'Not started',
+    dot: 'bg-[#9A9288]',
+    ring: 'border-[#9A9288]/30 bg-[#9A9288]/10',
+    text: 'text-[#797168]',
+  },
+  IN_PROGRESS: {
+    label: 'In progress',
+    dot: 'bg-[#C7A046]',
+    ring: 'border-[#C7A046]/30 bg-[#C7A046]/10',
+    text: 'text-[#8B6914]',
+  },
+  SUBMITTED: {
+    label: 'Submitted',
+    dot: 'bg-[#3A5E48]',
+    ring: 'border-[#3A5E48]/30 bg-[#3A5E48]/10',
+    text: 'text-[#3A5E48]',
+  },
+  APPROVED: {
+    label: 'Approved',
+    dot: 'bg-[#1A6B3C]',
+    ring: 'border-[#1A6B3C]/30 bg-[#1A6B3C]/10',
+    text: 'text-[#1A6B3C]',
+  },
+};
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+export const ManifestPage = () => {
+  const router = useRouter();
+  const { bookingId } = useAuth();
+  const queryClient = useQueryClient();
+
+  const { data: manifest, isLoading: manifestLoading } = useManifest();
+  const { data: rooms, isLoading: roomsLoading } = useRoomAvailability();
+  const addGuest = useAddManifestGuest();
+  const updateGuest = useUpdateManifestGuest();
+  const submitManifest = useSubmitManifest();
+
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingGuest, setEditingGuest] = useState<ManifestGuest | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [addedGuestName, setAddedGuestName] = useState('');
+  const [showAddedSheet, setShowAddedSheet] = useState(false);
+
+  const isLoading = manifestLoading || roomsLoading;
+  const status = manifest?.manifestStatus ?? 'INCOMPLETE';
+  const isLocked = status === 'SUBMITTED' || status === 'APPROVED';
+  const meta = STATUS_META[status] ?? STATUS_META.INCOMPLETE!;
+
+  const addedGuests = manifest?.addedGuests ?? 0;
+  const totalGuests = manifest?.totalGuests ?? 0;
+  const pct =
+    totalGuests > 0
+      ? Math.min(100, Math.round((addedGuests / totalGuests) * 100))
+      : 0;
+
+  const canSubmit = addedGuests > 0 && !isLocked;
+
+  const openAddForm = () => {
+    setEditingGuest(null);
+    setIsAddOpen(true);
+  };
+
+  const openEditForm = (guest: ManifestGuest) => {
+    setEditingGuest(guest);
+    setIsAddOpen(true);
+  };
+
+  const handleSave = async (data: GuestManifestFormValues) => {
+    const dto = mapFormToDto(data);
+
+    if (editingGuest) {
+      await updateGuest.mutateAsync({ guestId: editingGuest.id, dto });
+      setEditingGuest(null);
+      setIsAddOpen(false);
+    } else {
+      await addGuest.mutateAsync(dto);
+      void queryClient.invalidateQueries({
+        queryKey: ['rooms', 'availability', bookingId],
+      });
+      setAddedGuestName(dto.firstName);
+      setIsAddOpen(false);
+      setShowAddedSheet(true);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!canSubmit || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await submitManifest.mutateAsync();
+      router.push('/guest-submitted');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col pb-36">
+      {/* ─── Header ─────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between mb-5">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1.5 text-[9px] font-medium uppercase tracking-[2px] text-[#797168]"
+        >
+          <ArrowLeft className="size-3.5" aria-hidden />
+          Back
+        </button>
+        <h1 className="font-cormorant italic text-[22px] text-[#2B2824]">
+          Guest Manifest
+        </h1>
+        <motion.div
+          layout
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[8.5px] font-semibold uppercase tracking-[1px]',
+            meta.ring,
+            meta.text,
+          )}
+        >
+          <span className={cn('size-[4px] shrink-0 rounded-full', meta.dot)} />
+          {meta.label}
+        </motion.div>
+      </div>
+
+      {/* ─── Stats row ──────────────────────────────────────────── */}
+      <div className="mb-5 space-y-2.5">
+        <div className="flex items-baseline justify-between">
+          <span className="text-[8px] uppercase tracking-[3px] text-[#797168]">
+            Guests added
+          </span>
+          <motion.span
+            key={addedGuests}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+            className="font-cormorant text-[22px] italic text-[#2B2824] leading-none"
+          >
+            {addedGuests}
+            <span className="text-[#B0AAA0] text-[16px]"> / {totalGuests}</span>
+          </motion.span>
+        </div>
+        <Progress value={pct} className="h-[3px] rounded-full bg-[#E3E0DA]" />
+      </div>
+
+      {/* ─── Room overview ──────────────────────────────────────── */}
+      <p className="text-[8px] uppercase tracking-[2.5px] text-[#9A9288] mb-3">
+        Room overview
+      </p>
+
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-[140px] rounded-[14px] bg-[#E8E5E0] animate-pulse"
+            />
+          ))}
+        </div>
+      ) : (
+        <motion.div
+          className="grid grid-cols-2 gap-3"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            visible: {
+              transition: { staggerChildren: 0.08, delayChildren: 0.05 },
+            },
+          }}
+        >
+          {(rooms ?? []).map((room) => (
+            <RoomCard key={room.number} room={room} locked={isLocked} />
+          ))}
+        </motion.div>
+      )}
+
+      {/* ─── Guest list ─────────────────────────────────────────── */}
+      {(manifest?.guests?.length ?? 0) > 0 && (
+        <div className="mt-6">
+          <p className="text-[8px] uppercase tracking-[2.5px] text-[#9A9288] mb-3">
+            Guest details
+          </p>
+          <motion.div
+            className="flex flex-col gap-2"
+            initial="hidden"
+            animate="visible"
+            variants={{
+              visible: {
+                transition: { staggerChildren: 0.06, delayChildren: 0.1 },
+              },
+            }}
+          >
+            {manifest!.guests.map((guest) => (
+              <GuestDetailCard
+                key={guest.id}
+                guest={guest}
+                rooms={rooms ?? []}
+                onEdit={isLocked ? undefined : () => openEditForm(guest)}
+              />
+            ))}
+          </motion.div>
+        </div>
+      )}
+
+      {/* ─── Allergy reminder ───────────────────────────────────── */}
+      {!isLocked && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mt-5 flex items-start gap-2 rounded-[12px] border border-[#E8B4A8] bg-[#FEF6F4] px-3.5 py-3"
+        >
+          <span className="size-1.5 rounded-full bg-[#B42318] shrink-0 mt-1" />
+          <p className="text-[10px] leading-snug text-[#9A3A30]">
+            <span className="font-semibold">
+              Allergy information is medically critical.
+            </span>{' '}
+            Include severity and emergency medications when adding guests.
+          </p>
+        </motion.div>
+      )}
+
+      {/* ─── Sticky bottom bar ──────────────────────────────────── */}
+      <div className="fixed bottom-0 left-0 right-0 z-20 px-4 pb-8 pt-4 bg-gradient-to-t from-[#F0EDE6] via-[#F0EDE6]/95 to-transparent">
+        <AnimatePresence>
+          {canSubmit && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              className="mb-2"
+            >
+              <Button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="w-full h-12 rounded-[12px] bg-[#1A3040] text-white text-[10px] font-semibold uppercase tracking-[2px] hover:bg-[#0F1F2E] disabled:opacity-60"
+              >
+                {isSubmitting ? 'Submitting…' : 'Submit guest list'}
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {!isLocked && (
+          <Button
+            onClick={openAddForm}
+            variant="outline"
+            className="w-full h-12 rounded-[12px] border-[#0F1F2E] bg-white text-[#0F1F2E] text-[10px] font-semibold uppercase tracking-[2px] hover:bg-[#F5F3F0] gap-2"
+          >
+            <Plus className="size-4" aria-hidden />
+            Add guest
+          </Button>
+        )}
+
+        {isLocked && (
+          <div className="text-center text-[9px] uppercase tracking-[2px] text-[#797168]">
+            Guest list{' '}
+            {status === 'APPROVED' ? 'approved' : 'submitted for review'}
+          </div>
+        )}
+      </div>
+
+      {/* ─── Add / edit drawer ──────────────────────────────────── */}
+      <GuestManifestForm
+        open={isAddOpen}
+        onClose={() => {
+          setIsAddOpen(false);
+          setEditingGuest(null);
+        }}
+        onCancel={() => {
+          setIsAddOpen(false);
+          setEditingGuest(null);
+        }}
+        onSave={handleSave}
+        onRemoveGuest={
+          editingGuest
+            ? () => {
+                setIsAddOpen(false);
+                setEditingGuest(null);
+              }
+            : undefined
+        }
+        rooms={rooms}
+        guestId={editingGuest?.id}
+        initialValues={
+          editingGuest ? mapGuestToFormValues(editingGuest) : undefined
+        }
+        submitLabel={editingGuest ? 'Save changes' : 'Save guest'}
+        bookingId={bookingId ?? undefined}
+      />
+
+      {/* ─── Post-save completion sheet ─────────────────────────── */}
+      <GuestAddedSheet
+        open={showAddedSheet}
+        onClose={() => setShowAddedSheet(false)}
+        guestFirstName={addedGuestName}
+        addedGuests={addedGuests}
+        totalGuests={totalGuests}
+        onAddAnother={() => {
+          setShowAddedSheet(false);
+          setTimeout(() => openAddForm(), 150);
+        }}
+        onViewManifest={() => setShowAddedSheet(false)}
+      />
+    </div>
+  );
+};
+
+// ─── GuestDetailCard ──────────────────────────────────────────────────────────
+
+function GuestDetailCard({
+  guest,
+  rooms,
+  onEdit,
+}: {
+  guest: ManifestGuest;
+  rooms: RoomWithAvailability[];
+  onEdit?: () => void;
+}) {
+  const roomName = guest.roomNumber
+    ? (rooms.find((r) => r.number === guest.roomNumber)?.name ??
+      `Room ${guest.roomNumber}`)
+    : null;
+
+  const dietaryTags = (guest.dietaryRestrictions ?? []).map((d) => ({
+    label: d.replace(/_/g, ' '),
+    color: 'text-[#3A5E48]',
+    bg: 'bg-[#EEF5F0]',
+    border: 'border-[#3A5E48]/25',
+  }));
+
+  const allergyTag = guest.allergies
+    ? [
+        {
+          label: guest.allergies,
+          color: 'text-[#B42318]',
+          bg: 'bg-[#FEF6F4]',
+          border: 'border-[#B42318]/25',
+        },
+      ]
+    : [];
+
+  const tags = [...dietaryTags, ...allergyTag];
+
+  return (
+    <motion.div
+      layout
+      variants={{
+        hidden: { opacity: 0, y: 10 },
+        visible: {
+          opacity: 1,
+          y: 0,
+          transition: { duration: 0.3, ease: 'easeOut' },
+        },
+      }}
+      className="rounded-[14px] border border-[#E3E0DA] bg-white px-4 py-3.5 flex flex-col gap-2.5 shadow-[0_1px_3px_rgba(15,31,46,0.05)]"
+    >
+      {/* Name row */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-center size-[30px] rounded-full bg-[#0F1F2E] text-[10px] font-bold text-white shrink-0">
+            {`${guest.firstName[0] ?? ''}${guest.lastName[0] ?? ''}`.toUpperCase()}
+          </div>
+          <div>
+            <p className="text-[13px] font-medium text-[#2B2824] leading-none">
+              {guest.firstName} {guest.lastName}
+            </p>
+            {guest.relationship && (
+              <p className="text-[9px] uppercase tracking-[1.5px] text-[#9A9288] mt-0.5">
+                {guest.relationship}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {roomName && (
+            <span className="text-[8.5px] font-medium text-[#2B2824] bg-[#F0EDE6] border border-[#E3E0DA] rounded-full px-2.5 py-1 leading-none">
+              {roomName}
+            </span>
+          )}
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              aria-label={`Edit ${guest.firstName}`}
+              className="flex items-center justify-center size-7 rounded-full border border-[#E3E0DA] bg-white text-[#797168] hover:bg-[#F5F3F0] transition-colors"
+            >
+              <Pencil className="size-3" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Contact */}
+      {(guest.email || guest.phone) && (
+        <div className="flex flex-col gap-0.5">
+          {guest.email && (
+            <p className="text-[10px] text-[#797168] truncate">{guest.email}</p>
+          )}
+          {guest.phone && (
+            <p className="text-[10px] text-[#797168]">{guest.phone}</p>
+          )}
+        </div>
+      )}
+
+      {/* Tags */}
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {tags.map((t, i) => (
+            <span
+              key={i}
+              className={cn(
+                'rounded-full border px-2.5 py-0.5 text-[8.5px] font-medium capitalize',
+                t.bg,
+                t.border,
+                t.color,
+              )}
+            >
+              {t.label}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Beverage / notes */}
+      {(guest.beveragePreferences || guest.specialNotes) && (
+        <div className="flex flex-col gap-1 border-t border-[#F0EDE6] pt-2">
+          {guest.beveragePreferences && (
+            <p className="text-[9.5px] text-[#797168]">
+              <span className="font-medium text-[#2B2824]">Beverages: </span>
+              {guest.beveragePreferences}
+            </p>
+          )}
+          {guest.specialNotes && (
+            <p className="text-[9.5px] text-[#797168]">
+              <span className="font-medium text-[#2B2824]">Notes: </span>
+              {guest.specialNotes}
+            </p>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+}

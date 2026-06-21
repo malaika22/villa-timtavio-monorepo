@@ -6,12 +6,11 @@ import { Drawer, DrawerContent } from '@repo/ui/components/drawer';
 import { Input } from '@repo/ui/components/input';
 import { cn } from '@repo/ui/lib/utils';
 import { ArrowRight, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-
+import { useBookingStore } from '@/store/useBookingStore';
 import {
   DIETARY_VALUES,
-  type DietaryValue,
   type GuestManifestFormValues,
   guestManifestSchema,
   RELATIONSHIP_VALUES,
@@ -20,11 +19,14 @@ import {
 } from './schema';
 import {
   formatRoomSelectLabel,
-  formatRoomSummary,
   isRoomFull,
   ROOM_OPTIONS,
+  type RoomOption,
 } from './rooms';
 import { Textarea } from '@repo/ui/components/textarea';
+import type { RoomWithAvailability } from '@repo/api-types';
+import { useDraftGuest } from '@/hooks/useDraftGuest';
+import { useManifestOptions } from '@/hooks/useManifestOptions';
 
 const inputClass = 'text-[12px]';
 
@@ -42,7 +44,7 @@ const RELATIONSHIP_LABEL: Record<RelationshipValue, string> = {
   other: 'Other',
 };
 
-const DIETARY_LABEL: Record<DietaryValue, string> = {
+const DIETARY_LABEL: Record<string, string> = {
   vegetarian: 'Vegetarian',
   vegan: 'Vegan',
   gluten_free: 'Gluten-free',
@@ -66,6 +68,15 @@ type GuestManifestFormProps = {
   onCancel?: () => void;
   onSave?: (data: GuestManifestFormValues) => void | Promise<void>;
   onRemoveGuest?: () => void;
+  rooms?: RoomWithAvailability[];
+  /** If provided, form opens prefilled (edit mode) */
+  initialValues?: GuestManifestFormValues;
+  /** Set when editing an existing guest */
+  guestId?: string;
+  /** Button label override for step 2 submit */
+  submitLabel?: string;
+  /** Needed for draft autosave (add mode only) */
+  bookingId?: string;
 };
 
 export function GuestManifestForm({
@@ -74,10 +85,43 @@ export function GuestManifestForm({
   onRemoveGuest,
   open,
   onClose,
+  rooms: livRooms,
+  initialValues,
+  guestId,
+  submitLabel = 'Save guest',
+  bookingId,
 }: GuestManifestFormProps) {
+  const roomOptions: RoomOption[] = livRooms
+    ? livRooms.map((r) => ({
+        id: r.number.toString(),
+        name: `Room ${r.number}`,
+        suiteLabel: r.name,
+        filled: r.capacity - r.availableCapacity,
+        capacity: r.capacity,
+      }))
+    : ROOM_OPTIONS;
+
+  // Use the booking store as the authoritative source (populated by useCurrentBooking)
+  const storeBookingId = useBookingStore((s) => s.bookingId);
+  const resolvedBookingId = bookingId ?? storeBookingId ?? null;
+
+  // Draft (only in add mode, and only while the drawer is open)
+  const draftBookingId = open && !guestId ? resolvedBookingId : null;
+
+  const {
+    query: draftQuery,
+    upsert: draftUpsert,
+    clear: draftClear,
+  } = useDraftGuest(draftBookingId);
+  const { data: manifestOptions } = useManifestOptions(open);
+
+  const dietaryOptions =
+    manifestOptions?.dietaryRestrictions ??
+    DIETARY_VALUES.map((v) => ({ value: v, label: DIETARY_LABEL[v] ?? v }));
+
   const [uiStep, setUiStep] = useState<1 | 2>(1);
 
-  const defaultValues = useMemo(
+  const BLANK: GuestManifestFormValues = useMemo(
     (): GuestManifestFormValues => ({
       __step: 1,
       fullName: '',
@@ -95,18 +139,73 @@ export function GuestManifestForm({
     [],
   );
 
+  const initialValuesRef = useRef(initialValues);
+  initialValuesRef.current = initialValues;
+
+  const draftDataRef = useRef(draftQuery.data);
+  draftDataRef.current = draftQuery.data;
+
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+
   const {
     control,
     register,
     handleSubmit,
     setValue,
     trigger,
+    reset,
     formState: { errors },
   } = useForm<GuestManifestFormValues>({
     resolver: zodResolver(guestManifestSchema),
-    defaultValues,
+    defaultValues: BLANK,
     mode: 'onTouched',
   });
+
+  // Watch all fields — useWatch re-renders this component on every field change
+  const allValues = useWatch({ control });
+
+  // Refs so timer callbacks always read the latest values
+  const draftUpsertRef = useRef(draftUpsert);
+  draftUpsertRef.current = draftUpsert;
+  const allValuesRef = useRef(allValues);
+  allValuesRef.current = allValues;
+
+  // Reset form whenever the drawer opens — prefill from draft (add) or initialValues (edit)
+  useEffect(() => {
+    if (!open) return;
+    if (initialValuesRef.current) {
+      reset(initialValuesRef.current);
+    } else if (
+      draftDataRef.current?.data &&
+      Object.keys(draftDataRef.current.data).length > 0
+    ) {
+      reset({
+        ...BLANK,
+        ...(draftDataRef.current.data as Partial<GuestManifestFormValues>),
+      });
+    } else {
+      reset(BLANK);
+    }
+    setUiStep(1);
+  }, [open, reset, BLANK]);
+
+  // Autosave: JSON.stringify gives reliable string comparison — fires whenever any field changes
+  const draftKey = open && !guestId && draftBookingId
+    ? JSON.stringify(allValues)
+    : null;
+
+  useEffect(() => {
+    if (!draftKey) return;
+    const timer = setTimeout(() => {
+      void draftUpsertRef.current.mutate({
+        data: allValuesRef.current as Record<string, unknown>,
+      });
+    }, 800);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftKey]);
 
   const fullName = useWatch({ control, name: 'fullName' }) ?? '';
   const dietaryRestrictions =
@@ -129,16 +228,17 @@ export function GuestManifestForm({
   const onSubmit = handleSubmit(async (data: GuestManifestFormValues) => {
     setValue('__step', 2);
     await onSave?.(data);
+    // Clear draft after successful save (add mode only)
+    if (!guestId && draftBookingId) {
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+      void draftClear.mutate(undefined);
+    }
   });
 
-  const toggleDietary = (
-    current: DietaryValue[],
-    value: DietaryValue,
-  ): DietaryValue[] =>
+  const toggleDietary = (current: string[], value: string): string[] =>
     current.includes(value)
       ? current.filter((v) => v !== value)
       : [...current, value];
-  console.log(open);
   return (
     <Drawer open={open} onOpenChange={onClose}>
       <DrawerContent className="min-h-screen">
@@ -158,7 +258,7 @@ export function GuestManifestForm({
             <>
               <header className="space-y-3">
                 <h1 className="font-cormorant text-[26px] font-medium italic leading-tight text-[#2B2824]">
-                  Add a guest
+                  {guestId ? 'Edit guest' : 'Add a guest'}
                 </h1>
                 <StepProgress current={1} />
                 <p className="text-[10px] uppercase tracking-[2.8px] text-[#797168]">
@@ -343,7 +443,7 @@ export function GuestManifestForm({
                   {...register('roomId')}
                 >
                   <option value="">Choose a room…</option>
-                  {ROOM_OPTIONS.map((room) => (
+                  {roomOptions.map((room) => (
                     <option
                       key={room.id}
                       value={room.id}
@@ -359,7 +459,13 @@ export function GuestManifestForm({
                   </p>
                 )}
                 <p className="mt-2 text-[9px] leading-relaxed tracking-wide text-[#9A9288]">
-                  {ROOM_OPTIONS.map((r) => formatRoomSummary(r)).join(' · ')}
+                  {roomOptions
+                    .map((r) =>
+                      isRoomFull(r)
+                        ? `Room ${r.id} · Full`
+                        : `Room ${r.id} · ${r.filled}/${r.capacity}`,
+                    )
+                    .join(' · ')}
                 </p>
               </section>
 
@@ -373,15 +479,19 @@ export function GuestManifestForm({
                   control={control}
                   render={({ field }) => (
                     <div className="flex flex-wrap gap-2">
-                      {DIETARY_VALUES.map((value) => {
-                        const active = field.value.includes(value);
+                      {dietaryOptions.map(({ value, label }) => {
+                        const active = (field.value as string[]).includes(
+                          value,
+                        );
                         return (
                           <Button
                             key={value}
                             type="button"
                             aria-pressed={active}
                             onClick={() =>
-                              field.onChange(toggleDietary(field.value, value))
+                              field.onChange(
+                                toggleDietary(field.value as string[], value),
+                              )
                             }
                             className={cn(
                               'rounded-full border px-2.5 py-1.5 text-[10px] font-medium transition-colors',
@@ -390,7 +500,7 @@ export function GuestManifestForm({
                                 : 'border-[#E3E0DA] bg-white text-[#5C534A] hover:border-[#C9C4BC]',
                             )}
                           >
-                            {DIETARY_LABEL[value]}
+                            {label}
                           </Button>
                         );
                       })}
@@ -485,7 +595,7 @@ export function GuestManifestForm({
                   type="submit"
                   className="h-11 w-full rounded-lg border border-[#0F1F2E] bg-[#0F1F2E] text-[13px] font-medium text-white hover:bg-[#1A3040] hover:text-white"
                 >
-                  Save guest
+                  {submitLabel}
                 </Button>
                 {onRemoveGuest && (
                   <Button

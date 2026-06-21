@@ -3,6 +3,9 @@ import type {
   ManifestResponse,
   CreateManifestGuestDto,
   UpdateManifestGuestDto,
+  ManifestDraftResponse,
+  ManifestOptionsResponse,
+  UpsertManifestDraftDto,
 } from '@repo/api-types';
 
 export const manifestApi = {
@@ -35,4 +38,15 @@ export const manifestApi = {
 
   markLinkOpened: (bookingId: string, email: string) =>
     api.post<void>(API.manifest.linkOpened, { bookingId, email }),
+
+  getOptions: () => api.get<ManifestOptionsResponse>(API.manifest.options),
+
+  getDraft: (bookingId: string) =>
+    api.get<ManifestDraftResponse | null>(API.manifest.draft(bookingId)),
+
+  upsertDraft: (bookingId: string, dto: UpsertManifestDraftDto) =>
+    api.put<ManifestDraftResponse>(API.manifest.draft(bookingId), dto),
+
+  deleteDraft: (bookingId: string) =>
+    api.delete<{ success: boolean }>(API.manifest.draft(bookingId)),
 };
