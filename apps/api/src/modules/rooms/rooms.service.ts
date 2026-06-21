@@ -42,7 +42,7 @@ export class RoomsService {
     return rooms.map((room) => ({
       ...room,
       assignedCount: room.manifestGuests.length,
-      availableSpots: room.capacity - room.manifestGuests.length,
+      availableCapacity: room.capacity - room.manifestGuests.length,
       isFull: room.manifestGuests.length >= room.capacity,
     }));
   }

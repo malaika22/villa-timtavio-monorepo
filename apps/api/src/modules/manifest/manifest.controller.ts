@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Patch,
   Delete,
   Param,
@@ -13,6 +14,7 @@ import {
 import { ManifestService } from './manifest.service';
 import { CreateManifestGuestDto } from './dto/create-manifest-guest.dto';
 import { UpdateManifestGuestDto } from './dto/update-manifest-guest.dto';
+import { UpsertManifestDraftDto } from './dto/upsert-manifest-draft.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
@@ -20,12 +22,45 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 export class ManifestController {
   constructor(private manifestService: ManifestService) {}
 
+  // ─── Get manifest form options (dietary, relationships) ──────────────────
+  // Must be declared BEFORE :bookingId to avoid param capture
+
+  @Get('options')
+  getOptions() {
+    return this.manifestService.getOptions();
+  }
+
   // ─── Guest PWA: Get full manifest ────────────────────────────────────────
   // Both primary member and estate manager can view
 
   @Get(':bookingId')
   getManifest(@Param('bookingId') bookingId: string, @CurrentUser() user: any) {
     return this.manifestService.getManifest(bookingId, user.email);
+  }
+
+  // ─── Draft endpoints ──────────────────────────────────────────────────────
+
+  @Get(':bookingId/draft')
+  @Roles('primary_member', 'estate_manager')
+  getDraft(@Param('bookingId') bookingId: string) {
+    return this.manifestService.getDraft(bookingId);
+  }
+
+  @Put(':bookingId/draft')
+  @HttpCode(HttpStatus.OK)
+  @Roles('primary_member')
+  upsertDraft(
+    @Param('bookingId') bookingId: string,
+    @Body() dto: UpsertManifestDraftDto,
+  ) {
+    return this.manifestService.upsertDraft(bookingId, dto);
+  }
+
+  @Delete(':bookingId/draft')
+  @HttpCode(HttpStatus.OK)
+  @Roles('primary_member')
+  deleteDraft(@Param('bookingId') bookingId: string) {
+    return this.manifestService.deleteDraft(bookingId);
   }
 
   // ─── Guest PWA: Add a guest ───────────────────────────────────────────────

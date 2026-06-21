@@ -9,6 +9,7 @@ import { MagicLinkService } from '../auth0/magic-link.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateManifestGuestDto } from './dto/create-manifest-guest.dto';
 import { UpdateManifestGuestDto } from './dto/update-manifest-guest.dto';
+import { UpsertManifestDraftDto } from './dto/upsert-manifest-draft.dto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PusherService } from '../pusher/pusher.service';
 
@@ -608,6 +609,76 @@ export class ManifestService {
     return { success: true };
   }
 
+  // ─── Get manifest form options ────────────────────────────────────────────
+
+  getOptions() {
+    return {
+      dietaryRestrictions: [
+        { value: 'vegetarian', label: 'Vegetarian' },
+        { value: 'vegan', label: 'Vegan' },
+        { value: 'gluten_free', label: 'Gluten-free' },
+        { value: 'halal', label: 'Halal' },
+        { value: 'kosher', label: 'Kosher' },
+        { value: 'no_shellfish', label: 'No shellfish' },
+        { value: 'no_nuts', label: 'No nuts' },
+        { value: 'no_dairy', label: 'No dairy' },
+        { value: 'other', label: 'Other' },
+      ],
+      relationships: [
+        { value: 'partner', label: 'Partner' },
+        { value: 'family', label: 'Family' },
+        { value: 'friend', label: 'Friend' },
+        { value: 'colleague', label: 'Colleague' },
+        { value: 'other', label: 'Other' },
+      ],
+    };
+  }
+
+  // ─── Get draft for a booking ──────────────────────────────────────────────
+
+  async getDraft(bookingId: string) {
+    const draft = await this.prisma.manifestDraft.findUnique({
+      where: { bookingId },
+    });
+    if (!draft) return null;
+    return {
+      bookingId: draft.bookingId,
+      data: draft.data as Record<string, unknown>,
+      guestId: draft.guestId,
+      updatedAt: draft.updatedAt.toISOString(),
+    };
+  }
+
+  // ─── Upsert draft for a booking ───────────────────────────────────────────
+
+  async upsertDraft(bookingId: string, dto: UpsertManifestDraftDto) {
+    const draft = await this.prisma.manifestDraft.upsert({
+      where: { bookingId },
+      update: {
+        data: dto.data as any,
+        guestId: dto.guestId ?? null,
+      },
+      create: {
+        bookingId,
+        data: dto.data as any,
+        guestId: dto.guestId ?? null,
+      },
+    });
+    return {
+      bookingId: draft.bookingId,
+      data: draft.data as Record<string, unknown>,
+      guestId: draft.guestId,
+      updatedAt: draft.updatedAt.toISOString(),
+    };
+  }
+
+  // ─── Delete draft for a booking ───────────────────────────────────────────
+
+  async deleteDraft(bookingId: string) {
+    await this.prisma.manifestDraft.deleteMany({ where: { bookingId } });
+    return { success: true };
+  }
+
   // ─── Private: Validate room capacity ─────────────────────────────────────
 
   private async validateRoomCapacity(
@@ -670,7 +741,7 @@ export class ManifestService {
       capacity: room.capacity,
       bedConfig: room.bedConfig,
       assignedCount: room.manifestGuests.length,
-      availableSpots: room.capacity - room.manifestGuests.length,
+      availableCapacity: room.capacity - room.manifestGuests.length,
       isFull: room.manifestGuests.length >= room.capacity,
       isEmpty: room.manifestGuests.length === 0,
       guests: room.manifestGuests,

@@ -58,7 +58,6 @@ import { ExperienceCategoriesModule } from './modules/experience-categories/expe
     SystemModule,
     DashboardModule,
     ExperienceCategoriesModule,
-    ManifestModule,
   ],
 })
 export class AppModule {}
