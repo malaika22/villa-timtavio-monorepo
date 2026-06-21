@@ -1,44 +1,17 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { format, parseISO } from 'date-fns';
-import { ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { Button } from '@repo/ui';
-import {
-  useInquiry,
-  useApproveInquiry,
-  useDeclineInquiry,
-} from '@/hooks/useInquiries';
-import type { InquiryStatus } from '@repo/api-types';
 
-const PURPOSE_LABEL: Record<string, string> = {
-  CORPORATE_RETREAT: 'Corporate Retreat',
-  FAMILY: 'Family',
-  WEDDING: 'Wedding',
-  CONTENT_PRODUCTION: 'Content Production',
-  OTHER: 'Other',
-};
-
-const STATUS_PILL: Record<InquiryStatus, { label: string; classes: string }> = {
-  NEW: {
-    label: 'New',
-    classes: 'bg-blue-50 text-blue-700 border border-blue-200',
-  },
-  APPROVED: {
-    label: 'Approved',
-    classes: 'bg-green-50 text-green-700 border border-green-200',
-  },
-  DECLINED: {
-    label: 'Declined',
-    classes: 'bg-red-50 text-red-600 border border-red-200',
-  },
-  CONVERTED: {
-    label: 'Converted',
-    classes: 'bg-purple-50 text-purple-700 border border-purple-200',
-  },
-};
+import { InquiryConvertedPanel } from '@/components/manager/pages/inquiries/InquiryConvertedPanel';
+import { InquiryDeleteButton } from '@/components/manager/pages/inquiries/InquiryDeleteButton';
+import { InquiryPostApprovalPanel } from '@/components/manager/pages/inquiries/InquiryPostApprovalPanel';
+import { InquiryVettingPanel } from '@/components/manager/pages/inquiries/InquiryVettingPanel';
+import { useInquiry } from '@/hooks/useInquiries';
+import { toLinkedInUrl } from '@/lib/inquiry-utils';
+import { PURPOSE_LABEL, STATUS_PILL } from '../InquiriesPage/constants';
 
 function formatDate(iso?: string | null) {
   if (!iso) return '—';
@@ -49,46 +22,39 @@ function formatDate(iso?: string | null) {
   }
 }
 
-function DetailRow({ label, value }: { label: string; value?: string | null }) {
+function DetailRow({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value?: string | null;
+  href?: string | null;
+}) {
   return (
     <div className="flex items-start justify-between gap-4 py-3">
       <span className="text-sm text-manager-text-muted">{label}</span>
-      <span className="text-right text-sm font-medium text-manager-text">
-        {value ?? '—'}
-      </span>
+      {href ? (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-right text-sm font-medium text-manager-accent hover:underline"
+        >
+          View LinkedIn →
+          <ExternalLink className="size-3.5" />
+        </a>
+      ) : (
+        <span className="text-right text-sm font-medium text-manager-text">
+          {value ?? '—'}
+        </span>
+      )}
     </div>
   );
 }
 
 export function InquiryDetailPage({ id }: { id: string }) {
-  const router = useRouter();
   const { data: inquiry, isLoading } = useInquiry(id);
-
-  const approveMutation = useApproveInquiry();
-  const declineMutation = useDeclineInquiry();
-
-  const [notes, setNotes] = useState('');
-  const [declineReason, setDeclineReason] = useState('');
-  const [showDeclineForm, setShowDeclineForm] = useState(false);
-
-  const isActioned =
-    inquiry?.status === 'APPROVED' ||
-    inquiry?.status === 'DECLINED' ||
-    inquiry?.status === 'CONVERTED';
-
-  function handleApprove() {
-    approveMutation.mutate(
-      { id, dto: { notes: notes.trim() || undefined } },
-      { onSuccess: () => router.push('/inquiries') },
-    );
-  }
-
-  function handleDecline() {
-    declineMutation.mutate(
-      { id, dto: { declineReason: declineReason.trim() || undefined } },
-      { onSuccess: () => router.push('/inquiries') },
-    );
-  }
 
   if (isLoading) {
     return (
@@ -114,22 +80,24 @@ export function InquiryDetailPage({ id }: { id: string }) {
   }
 
   const pill = STATUS_PILL[inquiry.status];
+  const linkedInUrl = toLinkedInUrl(inquiry.socialHandle);
+  const isPending = inquiry.status === 'NEW';
+  const isApproved = inquiry.status === 'APPROVED';
+  const isConverted = inquiry.status === 'CONVERTED';
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center gap-3">
-        <Button
-          asChild
-          variant="ghost"
-          size="sm"
-          className="-ml-2 text-manager-text-muted hover:text-manager-text"
-        >
-          <Link href="/inquiries">
-            <ArrowLeft className="mr-1 size-4" />
-            Inquiries
-          </Link>
-        </Button>
-      </div>
+      <Button
+        asChild
+        variant="ghost"
+        size="sm"
+        className="-ml-2 text-manager-text-muted hover:text-manager-text"
+      >
+        <Link href="/inquiries">
+          <ArrowLeft className="mr-1 size-4" />
+          Inquiries
+        </Link>
+      </Button>
 
       <div className="rounded-xl border border-manager-border bg-manager-card p-6">
         <div className="flex items-start justify-between gap-4">
@@ -140,9 +108,9 @@ export function InquiryDetailPage({ id }: { id: string }) {
             <p className="mt-0.5 text-sm text-manager-text-muted">
               {inquiry.email}
             </p>
-            {inquiry.phone && (
+            {inquiry.phone ? (
               <p className="text-sm text-manager-text-muted">{inquiry.phone}</p>
-            )}
+            ) : null}
           </div>
           <span
             className={`inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-medium ${pill.classes}`}
@@ -168,17 +136,20 @@ export function InquiryDetailPage({ id }: { id: string }) {
             label="Purpose of Stay"
             value={
               inquiry.purposeOfStay
-                ? (PURPOSE_LABEL[inquiry.purposeOfStay] ??
-                  inquiry.purposeOfStay)
+                ? (PURPOSE_LABEL[inquiry.purposeOfStay] ?? inquiry.purposeOfStay)
                 : undefined
             }
           />
           <DetailRow label="Source" value={inquiry.source} />
-          <DetailRow label="Social Handle" value={inquiry.socialHandle} />
+          <DetailRow
+            label="Social profile"
+            value={inquiry.socialHandle}
+            href={linkedInUrl}
+          />
           <DetailRow label="Received" value={formatDate(inquiry.createdAt)} />
         </div>
 
-        {inquiry.message && (
+        {inquiry.message ? (
           <div className="mt-4 rounded-lg bg-manager-main p-4">
             <p className="text-xs font-medium uppercase tracking-wider text-manager-text-muted">
               Message
@@ -187,117 +158,38 @@ export function InquiryDetailPage({ id }: { id: string }) {
               {inquiry.message}
             </p>
           </div>
-        )}
+        ) : null}
 
-        {inquiry.status === 'DECLINED' && inquiry.declineReason && (
+        {inquiry.status === 'DECLINED' && inquiry.declineReason ? (
           <div className="mt-4 rounded-lg border border-red-100 bg-red-50 p-4">
             <p className="text-xs font-medium uppercase tracking-wider text-red-500">
-              Decline Reason
+              Internal decline reason
             </p>
             <p className="mt-1 text-sm text-red-700">{inquiry.declineReason}</p>
           </div>
-        )}
+        ) : null}
 
-        {inquiry.status === 'APPROVED' && inquiry.notes && (
+        {inquiry.notes ? (
           <div className="mt-4 rounded-lg border border-green-100 bg-green-50 p-4">
             <p className="text-xs font-medium uppercase tracking-wider text-green-600">
-              Review Notes
+              Review notes
             </p>
             <p className="mt-1 text-sm text-green-800">{inquiry.notes}</p>
           </div>
-        )}
+        ) : null}
       </div>
 
-      {!isActioned && (
-        <div className="rounded-xl border border-manager-border bg-manager-card p-6 space-y-4">
-          <h2 className="text-sm font-semibold text-manager-text">Decision</h2>
+      {isPending ? <InquiryVettingPanel inquiryId={inquiry.id} /> : null}
+      {isApproved ? <InquiryPostApprovalPanel inquiry={inquiry} /> : null}
+      {isConverted ? <InquiryConvertedPanel inquiry={inquiry} /> : null}
 
-          {!showDeclineForm ? (
-            <>
-              <div>
-                <label
-                  htmlFor="approve-notes"
-                  className="block text-sm text-manager-text-muted mb-1.5"
-                >
-                  Notes (optional)
-                </label>
-                <textarea
-                  id="approve-notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                  placeholder="e.g. Vetted — Fortune 500 exec, legitimate corporate client"
-                  className="w-full resize-none rounded-lg border border-manager-border bg-manager-main px-3 py-2 text-sm text-manager-text placeholder:text-manager-text-muted/60 focus:outline-none focus:ring-2 focus:ring-manager-accent/30"
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  onClick={handleApprove}
-                  disabled={approveMutation.isPending}
-                  className="flex-1 bg-manager-accent text-white hover:opacity-90"
-                >
-                  <CheckCircle className="mr-2 size-4" />
-                  {approveMutation.isPending ? 'Approving…' : 'Approve inquiry'}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDeclineForm(true)}
-                  className="flex-1 border-manager-border text-manager-text hover:bg-manager-main"
-                >
-                  <XCircle className="mr-2 size-4 text-red-500" />
-                  Decline
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <label
-                  htmlFor="decline-reason"
-                  className="block text-sm text-manager-text-muted mb-1.5"
-                >
-                  Decline reason (optional)
-                </label>
-                <textarea
-                  id="decline-reason"
-                  value={declineReason}
-                  onChange={(e) => setDeclineReason(e.target.value)}
-                  rows={3}
-                  placeholder="e.g. Does not meet property criteria"
-                  className="w-full resize-none rounded-lg border border-manager-border bg-manager-main px-3 py-2 text-sm text-manager-text placeholder:text-manager-text-muted/60 focus:outline-none focus:ring-2 focus:ring-manager-accent/30"
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  onClick={handleDecline}
-                  disabled={declineMutation.isPending}
-                  variant="destructive"
-                  className="flex-1"
-                >
-                  <XCircle className="mr-2 size-4" />
-                  {declineMutation.isPending ? 'Declining…' : 'Confirm decline'}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDeclineForm(false)}
-                  className="flex-1 border-manager-border text-manager-text"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </>
-          )}
-
-          {(approveMutation.isError || declineMutation.isError) && (
-            <p className="text-sm text-red-500">
-              {(approveMutation.error ?? declineMutation.error)?.message ??
-                'An error occurred. Please try again.'}
-            </p>
-          )}
-        </div>
-      )}
+      <InquiryDeleteButton
+        inquiryId={inquiry.id}
+        guestName={`${inquiry.firstName} ${inquiry.lastName}`}
+        guestEmail={inquiry.email}
+        status={inquiry.status}
+        redirectOnSuccess
+      />
     </div>
   );
 }
