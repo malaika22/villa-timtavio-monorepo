@@ -1,8 +1,8 @@
 import { Global, Module } from '@nestjs/common';
-
-import { PusherController } from './pusher.controller';
 import { PusherService } from './pusher.service';
+import { PusherController } from './pusher.controller';
 
+// Global — PusherService available in every module without importing
 @Global()
 @Module({
   controllers: [PusherController],

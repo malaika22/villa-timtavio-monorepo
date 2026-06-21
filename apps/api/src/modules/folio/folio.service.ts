@@ -110,22 +110,7 @@ export class FolioService {
       },
     });
 
-    // Real-time update to guest PWA
     const total = Number(dto.amount) * (dto.quantity || 1);
-    await this.pusherService.trigger(
-      `private-booking-${bookingId}`,
-      'folio.updated',
-      {
-        newItem: {
-          id: item.id,
-          description: dto.description,
-          amount: dto.amount,
-          quantity: dto.quantity || 1,
-          total,
-          type: dto.type,
-        },
-      },
-    );
 
     await this.notificationsService.send({
       bookingId,
@@ -134,6 +119,17 @@ export class FolioService {
       title: 'New charge added',
       body: `$${total.toFixed(2)} — ${dto.description}`,
       deepLink: '/folio',
+    });
+
+    await this.pusherService.folioUpdated(bookingId, {
+      newItem: {
+        id: item.id,
+        description: dto.description,
+        amount: dto.amount,
+        quantity: dto.quantity || 1,
+        total: Number(dto.amount) * (dto.quantity || 1),
+        type: dto.type,
+      },
     });
 
     return item;
@@ -204,12 +200,10 @@ export class FolioService {
       },
     });
 
-    // Push final folio to guest
-    await this.pusherService.trigger(
-      `private-booking-${bookingId}`,
-      'booking.checked_out',
-      { grandTotal: summary.grandTotal },
-    );
+    await this.pusherService.bookingCheckedOut(bookingId, {
+      grandTotal: summary.grandTotal,
+      chargedAt: new Date().toISOString(),
+    });
 
     return { success: true, grandTotal: summary.grandTotal };
   }

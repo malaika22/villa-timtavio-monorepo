@@ -119,19 +119,14 @@ export class RequestsService {
         deepLink: `/requests/${request.id}/approve`,
       });
 
-      // Pusher to primary member's PWA
-      await this.pusherService.trigger(
-        `private-booking-${bookingId}`,
-        'secondary_request_pending',
-        {
-          requestId: request.id,
-          guestName: requestedBy.name,
-          experienceName: catalogItem.name,
-          preferredDate: dto.preferredDate,
-          preferredTime: dto.preferredTime,
-          guestCount: dto.guestCount,
-        },
-      );
+      await this.pusherService.secondaryRequestPending(bookingId, {
+        requestId: request.id,
+        guestName: requestedBy.name,
+        experienceName: catalogItem.name,
+        preferredDate: dto.preferredDate,
+        preferredTime: dto.preferredTime,
+        guestCount: dto.guestCount,
+      });
     } else {
       // Primary member request or included service — goes straight to Rodrigo
       const emPayload = {
@@ -140,12 +135,16 @@ export class RequestsService {
         experienceName: catalogItem.name,
         preferredDate: dto.preferredDate,
       };
-      await this.pusherService.trigger(
-        `private-em-${bookingId}`,
-        'new_request',
-        emPayload,
-      );
-      await this.pusherService.triggerEmDashboard('new_request', emPayload);
+      // When primary member request — notify EM:
+      await this.pusherService.newRequestToEm({
+        requestId: request.id,
+        guestName: requestedBy.name,
+        experienceName: catalogItem.name,
+        preferredDate: dto.preferredDate,
+        preferredTime: dto.preferredTime,
+        bookingId,
+        isPrimaryApproved: true,
+      });
     }
 
     return request;
@@ -197,18 +196,15 @@ export class RequestsService {
     });
 
     // Now notify Rodrigo — the request enters his queue
-    const emPayload = {
+    await this.pusherService.newRequestToEm({
       requestId,
       guestName: request.requestedByName,
       experienceName: request.catalogItem.name,
-      note: 'Approved by primary member',
-    };
-    await this.pusherService.trigger(
-      `private-em-${bookingId}`,
-      'new_request',
-      emPayload,
-    );
-    await this.pusherService.triggerEmDashboard('new_request', emPayload);
+      preferredDate: request.preferredDate.toISOString(),
+      preferredTime: request.preferredTime,
+      bookingId,
+      isPrimaryApproved: true,
+    });
 
     await this.prisma.auditLog.create({
       data: {
@@ -268,11 +264,10 @@ export class RequestsService {
       deepLink: `/status/${requestId}`,
     });
 
-    await this.pusherService.trigger(
-      `private-booking-${bookingId}`,
-      'experience.status_changed',
-      { requestId, status: 'CANCELLED' },
-    );
+    await this.pusherService.experienceStatusChanged(bookingId, {
+      requestId,
+      status: 'CANCELLED',
+    });
 
     return updated;
   }
@@ -468,11 +463,23 @@ export class RequestsService {
       deepLink: `/status/${id}`,
     });
 
-    await this.pusherService.trigger(
-      `private-booking-${request.bookingId}`,
-      'experience.status_changed',
-      { requestId: id, status: 'CONFIRMED' },
-    );
+    await this.pusherService.experienceStatusChanged(request.bookingId, {
+      requestId: id,
+      status: 'CONFIRMED',
+    });
+
+    // Notify EM that request is resolved:
+    const remainingCount = await this.prisma.experienceRequest.count({
+      where: {
+        status: { in: ['PENDING', 'CONFLICT'] },
+        primaryApproved: true,
+      },
+    });
+    await this.pusherService.requestResolvedToEm({
+      requestId: id,
+      action: 'approved',
+      remainingPendingCount: remainingCount,
+    });
 
     await this.prisma.auditLog.create({
       data: {
@@ -510,11 +517,10 @@ export class RequestsService {
       deepLink: `/status/${id}`,
     });
 
-    await this.pusherService.trigger(
-      `private-booking-${request.bookingId}`,
-      'experience.status_changed',
-      { requestId: id, status: 'CANCELLED' },
-    );
+    await this.pusherService.experienceStatusChanged(request.bookingId, {
+      requestId: id,
+      status: 'CANCELLED',
+    });
 
     return updated;
   }
@@ -554,17 +560,16 @@ export class RequestsService {
       data: { folioItemId: folio.id },
     });
 
-    await this.pusherService.trigger(
-      `private-booking-${request.bookingId}`,
-      'folio.updated',
-      {
-        newItem: {
-          description: request.catalogItem.name,
-          amount: data.confirmedCost,
-          type: 'EXPERIENCE',
-        },
+    await this.pusherService.folioUpdated(request.bookingId, {
+      newItem: {
+        id: folio.id,
+        description: request.catalogItem.name,
+        amount: Number(data.confirmedCost),
+        quantity: 1,
+        total: Number(data.confirmedCost),
+        type: 'EXPERIENCE',
       },
-    );
+    });
 
     // Notify PRIMARY member only — secondary guests never see cost
     const booking = await this.prisma.booking.findUnique({
@@ -610,11 +615,11 @@ export class RequestsService {
       deepLink: `/status/${id}`,
     });
 
-    await this.pusherService.trigger(
-      `private-booking-${request.bookingId}`,
-      'experience.ready',
-      { requestId: id, experienceName: request.catalogItem.name, photoUrl },
-    );
+    await this.pusherService.experienceReady(request.bookingId, {
+      requestId: id,
+      experienceName: request.catalogItem.name,
+      photoUrl,
+    });
 
     return updated;
   }

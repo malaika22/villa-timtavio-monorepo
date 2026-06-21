@@ -10,6 +10,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { CreateManifestGuestDto } from './dto/create-manifest-guest.dto';
 import { UpdateManifestGuestDto } from './dto/update-manifest-guest.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PusherService } from '../pusher/pusher.service';
 
 @Injectable()
 export class ManifestService {
@@ -19,6 +20,7 @@ export class ManifestService {
     private prisma: PrismaService,
     private magicLinkService: MagicLinkService,
     private notificationsService: NotificationsService,
+    private pusherService: PusherService,
   ) {}
 
   // ─── Get full manifest for a booking ─────────────────────────────────────
@@ -342,6 +344,12 @@ export class ManifestService {
           guestCount: booking.manifestGuests.length,
         } as any,
       },
+    });
+
+    await this.pusherService.manifestSubmittedToEm({
+      bookingId,
+      primaryGuestName: `${booking.primaryGuest.firstName} ${booking.primaryGuest.lastName}`,
+      guestCount: booking.manifestGuests.length,
     });
 
     this.logger.log(
