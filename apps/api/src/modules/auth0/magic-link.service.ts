@@ -62,8 +62,8 @@ export class MagicLinkService {
       await axios.post(
         `https://${this.config.get('AUTH0_DOMAIN')}/passwordless/start`,
         {
-          client_id: this.config.get('AUTH0_PWA_CLIENT_ID'),
-          client_secret: this.config.get('AUTH0_DASHBOARD_CLIENT_SECRET'),
+          client_id: this.config.get('AUTH0_REGULAR_CLIENT_ID'),
+          client_secret: this.config.get('AUTH0_REGULAR_CLIENT_SECRET'),
           connection: 'email',
           email: payload.email,
           send: 'link',

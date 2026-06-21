@@ -68,7 +68,8 @@ export class Auth0ManagementService {
   // ─── Get Auth0 Role ID by name ────────────────────────────────────────────
 
   private async getRoleId(roleName: string): Promise<string> {
-    const response = await this.client.get('/roles');
+    const headers = await this.authHeaders();
+    const response = await this.client.get('/roles', { headers });
     const role = response.data.find((r: any) => r.name === roleName);
 
     if (!role) {
@@ -84,8 +85,10 @@ export class Auth0ManagementService {
 
   async findUserByEmail(email: string): Promise<string | null> {
     try {
+      const headers = await this.authHeaders();
       const response = await this.client.get(
         `/users-by-email?email=${encodeURIComponent(email)}`,
+        { headers },
       );
       if (response.data.length > 0) {
         return response.data[0].user_id;
@@ -99,6 +102,8 @@ export class Auth0ManagementService {
   // ─── Find or Create User ─────────────────────────────────────────────────────
 
   async findOrCreateUser(payload: CreateOrUpdateUserPayload): Promise<string> {
+    const headers = await this.authHeaders();
+
     // Check if user already exists
     let userId = await this.findUserByEmail(payload.email);
 
@@ -106,34 +111,45 @@ export class Auth0ManagementService {
       this.logger.log(`Found existing Auth0 user: ${userId}`);
 
       // Update metadata to latest booking
-      await this.client.patch(`/users/${userId}`, {
-        app_metadata: {
-          bookingId: payload.bookingId,
-          guestTier: payload.guestTier,
+      await this.client.patch(
+        `/users/${userId}`,
+        {
+          app_metadata: {
+            bookingId: payload.bookingId,
+            guestTier: payload.guestTier,
+          },
         },
-      });
+        { headers },
+      );
     } else {
       // Create new user in passwordless email connection
-      const createResponse = await this.client.post('/users', {
-        email: payload.email,
-        email_verified: true,
-        connection: 'email',
-        given_name: payload.firstName,
-        family_name: payload.lastName,
-        app_metadata: {
-          bookingId: payload.bookingId,
-          guestTier: payload.guestTier,
+      const createResponse = await this.client.post(
+        '/users',
+        {
+          email: payload.email,
+          email_verified: true,
+          connection: 'email',
+          given_name: payload.firstName,
+          family_name: payload.lastName,
+          app_metadata: {
+            bookingId: payload.bookingId,
+            guestTier: payload.guestTier,
+          },
         },
-      });
+        { headers },
+      );
       userId = createResponse.data.user_id as string;
       this.logger.log(`Created Auth0 user: ${userId}`);
     }
 
     // Remove existing roles
     try {
-      const existingRoles = await this.client.get(`/users/${userId}/roles`);
+      const existingRoles = await this.client.get(`/users/${userId}/roles`, {
+        headers,
+      });
       if (existingRoles.data.length > 0) {
         await this.client.delete(`/users/${userId}/roles`, {
+          headers,
           data: { roles: existingRoles.data.map((r: any) => r.id) },
         });
       }
@@ -143,9 +159,11 @@ export class Auth0ManagementService {
 
     // Assign new role
     const roleId = await this.getRoleId(payload.role);
-    await this.client.post(`/users/${userId}/roles`, {
-      roles: [roleId],
-    });
+    await this.client.post(
+      `/users/${userId}/roles`,
+      { roles: [roleId] },
+      { headers },
+    );
 
     return userId;
   }
