@@ -2,6 +2,12 @@
 import { useBookingStore } from '@/store/useBookingStore';
 import { SkeletonText } from './SkeletonText';
 
+function formatBookingDate(dateStr: string | null): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+}
+
 export const HeroCard = () => {
   const { checkIn, checkOut, nights, totalGuests } = useBookingStore();
   const isLoading = !checkIn;
@@ -24,7 +30,7 @@ export const HeroCard = () => {
           {isLoading ? (
             <SkeletonText className="h-3 w-12" />
           ) : (
-            <div className="text-[#FFFFFFA6] text-[12px]">{checkIn}</div>
+            <div className="text-[#FFFFFFA6] text-[12px]">{formatBookingDate(checkIn)}</div>
           )}
         </div>
         <div className="w-[1px] bg-[#FFFFFF14] self-stretch" />
@@ -35,7 +41,7 @@ export const HeroCard = () => {
           {isLoading ? (
             <SkeletonText className="h-3 w-12" />
           ) : (
-            <div className="text-[#FFFFFFA6] text-[12px]">{checkOut}</div>
+            <div className="text-[#FFFFFFA6] text-[12px]">{formatBookingDate(checkOut)}</div>
           )}
         </div>
         <div className="w-[1px] bg-[#FFFFFF14] self-stretch" />

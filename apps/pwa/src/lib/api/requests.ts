@@ -5,8 +5,10 @@ import type {
 } from '@repo/api-types';
 
 export const requestsApi = {
-  byBooking: (bookingId: string) =>
-    api.get<ExperienceRequest[]>(API.requests.byBooking(bookingId)),
+  byBooking: (bookingId: string, filter?: 'today' | 'active' | 'all') =>
+    api.get<ExperienceRequest[]>(
+      `${API.requests.byBooking(bookingId)}${filter ? `?filter=${filter}` : ''}`,
+    ),
   byId: (id: string) => api.get<ExperienceRequest>(API.requests.byId(id)),
   pendingApproval: (bookingId: string) =>
     api.get<ExperienceRequest[]>(API.requests.pendingApproval(bookingId)),
