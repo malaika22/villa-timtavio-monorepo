@@ -13,6 +13,56 @@ export default function AuthCallback() {
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
 
+  const handleOtpExchange = async (otp: string, email: string) => {
+    try {
+      const res = await fetch('/api/auth/exchange-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ otp, email }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Token exchange failed');
+      }
+
+      const { access_token } = await res.json();
+
+      sessionStorage.setItem('access_token', access_token);
+
+      const payload = decodeJwt(access_token);
+      if (payload) {
+        setUser({
+          auth0Id: payload.sub,
+          email: payload.email || '',
+          firstName: payload.given_name || '',
+          roles: payload[`${getNamespaceUrl()}/roles`] || [],
+          bookingId: payload[`${getNamespaceUrl()}/bookingId`] || '',
+          guestTier: payload[`${getNamespaceUrl()}/guestTier`] || 'secondary',
+          accessToken: access_token,
+          tokenExpiry: payload.exp,
+        });
+
+        const bookingId = payload[`${getNamespaceUrl()}/bookingId`];
+        if (bookingId) {
+          fetch(`${API_URLS.manifestLinkOpen}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${access_token}`,
+            },
+            body: JSON.stringify({ bookingId, email: payload.email }),
+          }).catch(() => {});
+        }
+      }
+
+      router.replace('/welcome');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Something went wrong');
+      setStatus('error');
+    }
+  };
+
   const handleExchange = async (code: string) => {
     try {
       const res = await fetch('/api/auth/exchange', {
@@ -68,6 +118,8 @@ export default function AuthCallback() {
 
   useEffect(() => {
     const code = searchParams.get('code');
+    const otp = searchParams.get('otp');
+    const email = searchParams.get('email');
     const errorParam = searchParams.get('error');
     const errorDesc = searchParams.get('error_description');
 
@@ -75,6 +127,11 @@ export default function AuthCallback() {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setErrorMessage(errorDesc || 'Authentication failed');
       setStatus('error');
+      return;
+    }
+
+    if (otp && email) {
+      handleOtpExchange(otp, email);
       return;
     }
 
