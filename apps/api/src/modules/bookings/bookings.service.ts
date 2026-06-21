@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { MagicLinkService } from '../auth0/magic-link.service';
 import { BookingStatus } from '@prisma/client';
 import { InquiriesService } from '../inqueries/inquiries.service';
+import { PusherService } from '../pusher/pusher.service';
 
 @Injectable()
 export class BookingsService {
@@ -12,6 +13,7 @@ export class BookingsService {
     private prisma: PrismaService,
     private magicLinkService: MagicLinkService,
     private inquiriesService: InquiriesService,
+    private pusherService: PusherService,
   ) {}
 
   // ─── Get current booking for guest ───────────────────────────────────────────
@@ -52,6 +54,7 @@ export class BookingsService {
   ) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
+      include: { primaryGuest: true },
     });
     if (!booking) throw new NotFoundException('Booking not found');
 
@@ -73,6 +76,18 @@ export class BookingsService {
       },
     });
 
+    if (status === 'CHECKED_IN') {
+      await this.pusherService.bookingArrivedToEm({
+        bookingId,
+        guestName: `${booking.primaryGuest.firstName} ${booking.primaryGuest.lastName}`,
+        partySize: booking.totalGuests,
+      });
+    }
+
+    await this.pusherService.bookingStatusChanged(bookingId, {
+      status,
+    });
+
     return updated;
   }
 
@@ -84,7 +99,12 @@ export class BookingsService {
     });
 
     if (existing) {
-      return this.updateFromLodgify(lodgifyData);
+      const updated = await this.updateFromLodgify(lodgifyData);
+      const guestEmail = lodgifyData.guest?.email;
+      if (guestEmail) {
+        await this.inquiriesService.linkToBooking(guestEmail, existing.id);
+      }
+      return updated;
     }
 
     // Find or create primary guest
