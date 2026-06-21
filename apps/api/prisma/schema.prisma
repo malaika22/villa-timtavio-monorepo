@@ -681,7 +681,7 @@ enum PurposeOfStay {
 }
 
 model Inquiry {
-  id                    String        @id @default(cuid())
+  id                    String         @id @default(cuid())
   firstName             String
   lastName              String
   email                 String
@@ -692,20 +692,33 @@ model Inquiry {
   purposeOfStay         PurposeOfStay?
   socialHandle          String?
   source                String?
-  message               String?       @db.Text
-  status                InquiryStatus @default(NEW)
-  reviewedBy            String?
+  message               String?        @db.Text
+  status                InquiryStatus  @default(NEW)
+  notes                 String?        // Rodrigo's internal notes on approval
+
+  // Vetting tracking
+  reviewedBy            String?        // Auth0 ID of EM who reviewed
   reviewedAt            DateTime?
-  declineReason         String?
-  convertedToBookingId  String?
-  notes                 String?
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+
+  // Decline
+  declineReason         String?        // Internal only — never shown to visitor
+
+  // Post-approval tracking
+  lookbookSentAt        DateTime?      // When Rodrigo manually sent the Lookbook
+  lookbookSentBy        String?
+  paymentLinkSentAt     DateTime?      // When Rodrigo sent the Stripe link
+  paymentLinkSentBy     String?
+  stripePaymentLink     String?        // The actual Stripe payment link URL (logged for reference)
+
+  // Conversion
+  convertedToBookingId  String?        // Set when Lodgify webhook fires
+
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
 
   @@index([status])
   @@index([email])
 }
-
 
 model ScheduleItem {
   id          String    @id @default(cuid())
