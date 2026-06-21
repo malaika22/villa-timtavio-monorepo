@@ -1,11 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { Check, CheckCircle2, FileText } from 'lucide-react';
 import { Button } from '@repo/ui';
 
 import type { ManifestResponse } from '@repo/api-types';
 import { useApproveManifest, useChefsBrief } from '@/hooks/useManifest';
 import { STATUS_LABELS } from './constants';
+import { ManifestDetailSheet } from './ManifestDetailSheet';
 
 export const GuestManifestCard = ({
   bookingId,
@@ -14,6 +16,7 @@ export const GuestManifestCard = ({
   bookingId: string;
   manifest: ManifestResponse | null | undefined;
 }) => {
+  const [showDetail, setShowDetail] = useState(false);
   const approveManifest = useApproveManifest();
   const { data: chefsBrief } = useChefsBrief(
     manifest?.manifestStatus === 'APPROVED' ? bookingId : null,
@@ -32,6 +35,8 @@ export const GuestManifestCard = ({
   const handleApprove = () => {
     approveManifest.mutate(bookingId);
   };
+
+  const canReview = (manifest?.guests?.length ?? 0) > 0;
 
   return (
     <div
@@ -104,7 +109,11 @@ export const GuestManifestCard = ({
               {approveManifest.isPending ? 'Approving…' : 'Approve Manifest'}
             </Button>
           ) : (
-            <Button className="h-11 flex-[1] gap-2 rounded-lg border-0 bg-[#e8f1e9] text-sm font-medium text-[#4a7c59] shadow-none hover:bg-[#dce8de]">
+            <Button
+              className="h-11 flex-[1] gap-2 rounded-lg border-0 bg-[#e8f1e9] text-sm font-medium text-[#4a7c59] shadow-none hover:bg-[#dce8de] disabled:opacity-50"
+              onClick={() => setShowDetail(true)}
+              disabled={!canReview}
+            >
               <FileText className="size-4 shrink-0" strokeWidth={2} />
               Review Manifest
             </Button>
@@ -130,6 +139,15 @@ export const GuestManifestCard = ({
           )}
         </div>
       </div>
+
+      {manifest && (
+        <ManifestDetailSheet
+          open={showDetail}
+          onClose={() => setShowDetail(false)}
+          bookingId={bookingId}
+          manifest={manifest}
+        />
+      )}
     </div>
   );
 };
