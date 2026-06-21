@@ -155,6 +155,7 @@ model Booking {
   primaryGuestId          String
   primaryGuest            Guest              @relation("BookingPrimaryGuest", fields: [primaryGuestId], references: [id])
   manifestGuests          ManifestGuest[]
+  manifestDraft           ManifestDraft?
   folioItems              FolioItem[]
   experienceRequests      ExperienceRequest[]
   notifications           Notification[]
@@ -743,4 +744,33 @@ enum ScheduleItemType {
   MAINTENANCE
   STAFF_BRIEFING
   OTHER
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MANIFEST DRAFT
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ManifestDraft {
+  id          String   @id @default(cuid())
+  bookingId   String   @unique
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  data        Json     @default("{}")
+  guestId     String?
+  updatedAt   DateTime @updatedAt
+
+  @@index([bookingId])
+}
+
+model MagicToken {
+  id        String   @id @default(cuid())
+  email     String
+  otp       String
+  bookingId String
+  guestTier String
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([otp, email])
 }
