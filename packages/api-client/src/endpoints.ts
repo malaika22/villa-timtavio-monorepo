@@ -102,9 +102,11 @@ export const API = {
     export: '/api/v1/dashboard/export',
   },
   pusher: {
+    auth: '/api/v1/pusher/auth',
     authEm: '/api/v1/pusher/auth-em',
   },
   manifest: {
+    options: '/api/v1/manifest/options',
     byBooking: (bookingId: string) => `/api/v1/manifest/${bookingId}`,
     addGuest: (bookingId: string) => `/api/v1/manifest/${bookingId}/guests`,
     updateGuest: (bookingId: string, guestId: string) => `/api/v1/manifest/${bookingId}/guests/${guestId}`,
@@ -114,5 +116,6 @@ export const API = {
     chefsBrief: (bookingId: string) => `/api/v1/manifest/${bookingId}/chefs-brief`,
     resendLink: (bookingId: string, guestId: string) => `/api/v1/manifest/${bookingId}/guests/${guestId}/resend-link`,
     linkOpened: '/api/v1/manifest/link-opened',
+    draft: (bookingId: string) => `/api/v1/manifest/${bookingId}/draft`,
   },
 } as const;

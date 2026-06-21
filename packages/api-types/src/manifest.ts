@@ -42,6 +42,28 @@ export interface CreateManifestGuestDto {
 
 export type UpdateManifestGuestDto = Partial<CreateManifestGuestDto>;
 
+export interface UpsertManifestDraftDto {
+  data: Record<string, unknown>;
+  guestId?: string;
+}
+
+export interface ManifestDraftResponse {
+  bookingId: string;
+  data: Record<string, unknown>;
+  guestId?: string | null;
+  updatedAt: string;
+}
+
+export interface ManifestOptionItem {
+  value: string;
+  label: string;
+}
+
+export interface ManifestOptionsResponse {
+  dietaryRestrictions: ManifestOptionItem[];
+  relationships: ManifestOptionItem[];
+}
+
 export interface ChefsBriefResponse {
   bookingId: string;
   checkIn: string;

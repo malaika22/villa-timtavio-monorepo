@@ -79,6 +79,13 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
         body: body !== undefined ? JSON.stringify(body) : undefined,
       }),
 
+    put: <T>(path: string, body?: unknown, init?: RequestInit) =>
+      request<T>(path, {
+        ...init,
+        method: 'PUT',
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      }),
+
     patch: <T>(path: string, body?: unknown, init?: RequestInit) =>
       request<T>(path, {
         ...init,

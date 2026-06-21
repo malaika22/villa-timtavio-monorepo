@@ -19,6 +19,7 @@ export interface ApiClientConfig {
 export interface ApiClient {
   get: <T>(path: string, init?: RequestInit) => Promise<T>;
   post: <T>(path: string, body?: unknown, init?: RequestInit) => Promise<T>;
+  put: <T>(path: string, body?: unknown, init?: RequestInit) => Promise<T>;
   patch: <T>(path: string, body?: unknown, init?: RequestInit) => Promise<T>;
   delete: <T>(path: string, init?: RequestInit) => Promise<T>;
   postFormData: <T>(path: string, formData: FormData, init?: RequestInit) => Promise<T>;
