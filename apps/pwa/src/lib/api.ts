@@ -5,11 +5,11 @@ export const api = createApiClient({
   baseUrl: config.NEXT_PUBLIC_API_URL ?? '',
   getAccessToken: () =>
     typeof window !== 'undefined'
-      ? sessionStorage.getItem('access_token')
+      ? localStorage.getItem('access_token')
       : null,
   onUnauthorized: () => {
     if (typeof window === 'undefined') return;
-    sessionStorage.removeItem('access_token');
+    localStorage.removeItem('access_token');
     document.cookie = 'auth_session=; Max-Age=0; path=/';
     window.location.href = '/link-expired';
   },

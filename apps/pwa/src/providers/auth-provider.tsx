@@ -13,7 +13,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const token = sessionStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token');
 
     if (!token) {
       setLoading(false);
@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const payload = decodeJwt(token);
 
     if (!payload) {
-      sessionStorage.removeItem('access_token');
+      localStorage.removeItem('access_token');
       setLoading(false);
       return;
     }
@@ -31,7 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check expiry
     const isExpired = payload.exp && Date.now() / 1000 > payload.exp;
     if (isExpired) {
-      sessionStorage.removeItem('access_token');
+      localStorage.removeItem('access_token');
       clearUser();
       router.push('/link-expired');
       return;

@@ -33,7 +33,7 @@ export function usePusherChannel(bookingId: string | null) {
         headers: {
           Authorization: `Bearer ${
             typeof window !== 'undefined'
-              ? sessionStorage.getItem('access_token')
+              ? localStorage.getItem('access_token')
               : ''
           }`,
         },

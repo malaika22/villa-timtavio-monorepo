@@ -17,7 +17,7 @@ export function useAuth() {
     const res = await fetch('/api/auth/signout', { method: 'POST' });
     const { logoutUrl } = await res.json();
 
-    sessionStorage.removeItem('access_token');
+    localStorage.removeItem('access_token');
     document.cookie = 'auth_session=; Max-Age=0; path=/';
     clearUser();
 

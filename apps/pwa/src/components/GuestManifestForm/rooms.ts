@@ -4,6 +4,9 @@ export type RoomOption = {
   suiteLabel: string;
   filled: number;
   capacity: number;
+  bedConfig?: string;
+  totalBeds?: number;
+  bathrooms?: number;
 };
 
 export const ROOM_OPTIONS: RoomOption[] = [

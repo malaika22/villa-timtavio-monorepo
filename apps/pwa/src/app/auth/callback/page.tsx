@@ -28,7 +28,7 @@ export default function AuthCallback() {
 
       const { access_token } = await res.json();
 
-      sessionStorage.setItem('access_token', access_token);
+      localStorage.setItem('access_token', access_token);
 
       const payload = decodeJwt(access_token);
       if (payload) {
@@ -79,7 +79,7 @@ export default function AuthCallback() {
       const { access_token } = await res.json();
 
       // Store token
-      sessionStorage.setItem('access_token', access_token);
+      localStorage.setItem('access_token', access_token);
 
       // Decode and set user in store
       const payload = decodeJwt(access_token);

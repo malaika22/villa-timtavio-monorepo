@@ -1,8 +1,9 @@
 'use client';
 
 import { motion, AnimatePresence } from 'motion/react';
+import { BedDouble, Bath, ChevronRight } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
-import type { RoomWithAvailability } from '@repo/api-types';
+import type { Bed, RoomWithAvailability } from '@repo/api-types';
 
 function initials(first: string, last: string) {
   return `${first[0] ?? ''}${last[0] ?? ''}`.toUpperCase();
@@ -11,28 +12,47 @@ function initials(first: string, last: string) {
 export const RoomCard = ({
   room,
   locked,
+  onShowDetails,
 }: {
   room: RoomWithAvailability;
   locked: boolean;
+  onShowDetails?: () => void;
 }) => {
   const filled = room.assignedGuests.length;
   const isEmpty = filled === 0;
   const pct = room.capacity > 0 ? (filled / room.capacity) * 100 : 0;
+  const beds = (room.beds ?? []) as Bed[];
+  const totalBeds = beds.reduce((sum, b) => sum + b.count, 0);
 
   return (
-    <motion.div
+    <motion.button
+      type="button"
       layout
+      onClick={onShowDetails}
+      whileTap={{ scale: 0.98 }}
       variants={{
         hidden: { opacity: 0, y: 14 },
         visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: 'easeOut' } },
       }}
       className={cn(
-        'rounded-[14px] border p-3 flex flex-col gap-2.5 overflow-hidden',
+        'group rounded-[14px] border p-3 flex flex-col gap-2.5 overflow-hidden text-left transition-colors',
         isEmpty
-          ? 'border-dashed border-[#C9C4BC] bg-[#F7F5F2]'
-          : 'border border-[#E3E0DA] bg-white shadow-[0_1px_4px_rgba(15,31,46,0.06)]',
+          ? 'border-dashed border-[#C9C4BC] bg-[#F7F5F2] hover:border-[#B0AAA0]'
+          : 'border border-[#E3E0DA] bg-white shadow-[0_1px_4px_rgba(15,31,46,0.06)] hover:border-[#C9C4BC]',
       )}
     >
+      {/* Room image */}
+      {room.imageUrl && (
+        <div className="-mx-3 -mt-3 mb-0.5 h-20 overflow-hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={room.imageUrl}
+            alt={room.name}
+            className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+          />
+        </div>
+      )}
+
       {/* Room label + capacity dots */}
       <div className="flex items-start justify-between gap-1">
         <div className="min-w-0">
@@ -42,7 +62,17 @@ export const RoomCard = ({
           <p className="text-[11px] font-medium text-[#2B2824] leading-snug mt-0.5 truncate">
             {room.name}
           </p>
-          <p className="text-[8.5px] text-[#B0AAA0] mt-0.5 truncate">{room.bedConfig}</p>
+          {/* Inline bed/bath summary */}
+          <div className="mt-1 flex items-center gap-2 text-[8.5px] text-[#9A9288]">
+            <span className="inline-flex items-center gap-0.5">
+              <BedDouble className="size-2.5" aria-hidden />
+              {totalBeds || room.capacity}
+            </span>
+            <span className="inline-flex items-center gap-0.5">
+              <Bath className="size-2.5" aria-hidden />
+              {room.bathrooms}
+            </span>
+          </div>
         </div>
         {/* Dot indicators */}
         <div className="flex flex-wrap justify-end gap-[3px] mt-0.5 max-w-[36px] shrink-0">
@@ -116,6 +146,17 @@ export const RoomCard = ({
           Full
         </motion.div>
       )}
-    </motion.div>
+
+      {/* Tap-for-details affordance */}
+      <div className="mt-auto flex items-center justify-between border-t border-[#EDEAE4] pt-2">
+        <span className="text-[7px] font-semibold uppercase tracking-[1.5px] text-[#B0AAA0] transition-colors group-hover:text-[#797168]">
+          Tap for details
+        </span>
+        <ChevronRight
+          className="size-3 text-[#B0AAA0] transition-transform group-hover:translate-x-0.5"
+          aria-hidden
+        />
+      </div>
+    </motion.button>
   );
 };

@@ -31,6 +31,9 @@ function mapFormToDto(data: GuestManifestFormValues): CreateManifestGuestDto {
     relationship: data.relationship,
     roomNumber: data.roomId ? parseInt(data.roomId, 10) : undefined,
     dietaryRestrictions: data.dietaryRestrictions,
+    dietaryOtherDetails: data.dietaryRestrictions.includes('other')
+      ? data.dietaryOtherDetails || undefined
+      : undefined,
     allergies: data.foodAllergies || undefined,
     beveragePreferences: data.beveragePreferences || undefined,
     specialNotes: data.specialNotes || undefined,

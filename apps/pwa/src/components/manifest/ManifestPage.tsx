@@ -20,6 +20,7 @@ import { GuestManifestForm } from '@/components/GuestManifestForm';
 import type { GuestManifestFormValues } from '@/components/GuestManifestForm';
 import { GuestAddedSheet } from './GuestAddedSheet';
 import { RoomCard } from './RoomCard';
+import { RoomDetailSheet } from './RoomDetailSheet';
 import type {
   CreateManifestGuestDto,
   ManifestGuest,
@@ -43,6 +44,9 @@ function mapFormToDto(data: GuestManifestFormValues): CreateManifestGuestDto {
     relationship: data.relationship,
     roomNumber: data.roomId ? parseInt(data.roomId, 10) : undefined,
     dietaryRestrictions: data.dietaryRestrictions,
+    dietaryOtherDetails: data.dietaryRestrictions.includes('other')
+      ? data.dietaryOtherDetails || undefined
+      : undefined,
     allergies: data.foodAllergies || undefined,
     beveragePreferences: data.beveragePreferences || undefined,
     specialNotes: data.specialNotes || undefined,
@@ -59,7 +63,7 @@ function mapGuestToFormValues(guest: ManifestGuest): GuestManifestFormValues {
     dateOfBirth: guest.dateOfBirth ?? '',
     roomId: guest.roomNumber?.toString() ?? '',
     dietaryRestrictions: (guest.dietaryRestrictions ?? []) as DietaryValue[],
-    dietaryOtherDetails: '',
+    dietaryOtherDetails: guest.dietaryOtherDetails ?? '',
     foodAllergies: guest.allergies ?? '',
     beveragePreferences: guest.beveragePreferences ?? '',
     specialNotes: guest.specialNotes ?? '',
@@ -116,6 +120,9 @@ export const ManifestPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [addedGuestName, setAddedGuestName] = useState('');
   const [showAddedSheet, setShowAddedSheet] = useState(false);
+  const [detailRoom, setDetailRoom] = useState<RoomWithAvailability | null>(
+    null,
+  );
 
   const isLoading = manifestLoading || roomsLoading;
   const status = manifest?.manifestStatus ?? 'INCOMPLETE';
@@ -231,6 +238,12 @@ export const ManifestPage = () => {
             />
           ))}
         </div>
+      ) : (rooms?.length ?? 0) === 0 ? (
+        <div className="rounded-[14px] border border-dashed border-[#C9C4BC] bg-[#F7F5F2] px-4 py-8 text-center">
+          <p className="text-[11px] text-[#797168]">
+            No rooms available to display yet.
+          </p>
+        </div>
       ) : (
         <motion.div
           className="grid grid-cols-2 gap-3"
@@ -243,7 +256,12 @@ export const ManifestPage = () => {
           }}
         >
           {(rooms ?? []).map((room) => (
-            <RoomCard key={room.number} room={room} locked={isLocked} />
+            <RoomCard
+              key={room.number}
+              room={room}
+              locked={isLocked}
+              onShowDetails={() => setDetailRoom(room)}
+            />
           ))}
         </motion.div>
       )}
@@ -375,6 +393,13 @@ export const ManifestPage = () => {
           setTimeout(() => openAddForm(), 150);
         }}
         onViewManifest={() => setShowAddedSheet(false)}
+      />
+
+      {/* ─── Room detail sheet ──────────────────────────────────── */}
+      <RoomDetailSheet
+        open={!!detailRoom}
+        onClose={() => setDetailRoom(null)}
+        room={detailRoom}
       />
     </div>
   );
