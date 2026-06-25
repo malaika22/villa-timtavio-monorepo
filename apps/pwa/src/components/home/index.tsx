@@ -11,6 +11,7 @@ import type { GuestManifestFormValues } from '@/components/GuestManifestForm';
 import { GuestAddedSheet } from '@/components/manifest/GuestAddedSheet';
 import { TodaySchedule } from './today-schedule';
 import { FeaturedExperiences } from '../featured-experiences';
+import { RoomsExploreCard } from './rooms-explore/RoomsExploreCard';
 import { useBookingStore } from '@/store/useBookingStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentBooking } from '@/hooks/useBooking';
@@ -93,6 +94,10 @@ export const Home = () => {
           onAddGuest={() => setIsAddOpen(true)}
         />
       )}
+      <RoomsExploreCard
+        roomCount={rooms?.length}
+        previewImage={rooms?.find((r) => r.imageUrl)?.imageUrl}
+      />
       <div className="bg-[#E3E0DA] h-[1px]" />
       <TodaySchedule />
       <FeaturedExperiences />
