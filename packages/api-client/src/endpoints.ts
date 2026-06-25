@@ -7,8 +7,8 @@ export const API = {
   rooms: {
     list: '/api/v1/rooms',
     availability: (bookingId: string) => `/api/v1/rooms/availability/${bookingId}`,
-    byNumber: (number: string) => `/api/v1/rooms/${number}`,
-    toggleActive: (number: string) => `/api/v1/rooms/${number}/toggle-active`,
+    byNumber: (number: string | number) => `/api/v1/rooms/${number}`,
+    toggleActive: (number: string | number) => `/api/v1/rooms/${number}/toggle-active`,
   },
   experienceCategories: {
     list: '/api/v1/experience-categories',
