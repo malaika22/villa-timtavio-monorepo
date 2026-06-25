@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
-import { Plus, ArrowLeft, Pencil } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, ArrowLeft, ArrowRight, Pencil } from 'lucide-react';
 import { Button } from '@repo/ui/components/button';
 import { Progress } from '@repo/ui/components/progress';
 import { cn } from '@repo/ui/lib/utils';
@@ -19,8 +20,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { GuestManifestForm } from '@/components/GuestManifestForm';
 import type { GuestManifestFormValues } from '@/components/GuestManifestForm';
 import { GuestAddedSheet } from './GuestAddedSheet';
-import { RoomCard } from './RoomCard';
-import { RoomDetailSheet } from './RoomDetailSheet';
 import type {
   CreateManifestGuestDto,
   ManifestGuest,
@@ -120,9 +119,6 @@ export const ManifestPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [addedGuestName, setAddedGuestName] = useState('');
   const [showAddedSheet, setShowAddedSheet] = useState(false);
-  const [detailRoom, setDetailRoom] = useState<RoomWithAvailability | null>(
-    null,
-  );
 
   const isLoading = manifestLoading || roomsLoading;
   const status = manifest?.manifestStatus ?? 'INCOMPLETE';
@@ -224,46 +220,65 @@ export const ManifestPage = () => {
         <Progress value={pct} className="h-[3px] rounded-full bg-[#E3E0DA]" />
       </div>
 
-      {/* ─── Room overview ──────────────────────────────────────── */}
-      <p className="text-[8px] uppercase tracking-[2.5px] text-[#9A9288] mb-3">
-        Room overview
-      </p>
+      {/* ─── Room availability (compact) ────────────────────────── */}
+      <div className="mb-1 flex items-center justify-between">
+        <p className="text-[8px] uppercase tracking-[2.5px] text-[#9A9288]">
+          Room availability
+        </p>
+        <Link
+          href="/rooms"
+          className="flex items-center gap-1 text-[8px] font-medium uppercase tracking-[2px] text-[#0F1F2E]"
+        >
+          View rooms
+          <ArrowRight className="size-3" aria-hidden />
+        </Link>
+      </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-[140px] rounded-[14px] bg-[#E8E5E0] animate-pulse"
-            />
-          ))}
-        </div>
+        <div className="h-[52px] animate-pulse rounded-[12px] bg-[#E8E5E0]" />
       ) : (rooms?.length ?? 0) === 0 ? (
-        <div className="rounded-[14px] border border-dashed border-[#C9C4BC] bg-[#F7F5F2] px-4 py-8 text-center">
-          <p className="text-[11px] text-[#797168]">
-            No rooms available to display yet.
-          </p>
-        </div>
-      ) : (
-        <motion.div
-          className="grid grid-cols-2 gap-3"
-          initial="hidden"
-          animate="visible"
-          variants={{
-            visible: {
-              transition: { staggerChildren: 0.08, delayChildren: 0.05 },
-            },
-          }}
+        <Link
+          href="/rooms"
+          className="block rounded-[12px] border border-dashed border-[#C9C4BC] bg-[#F7F5F2] px-4 py-4 text-center text-[10px] text-[#797168]"
         >
-          {(rooms ?? []).map((room) => (
-            <RoomCard
-              key={room.number}
-              room={room}
-              locked={isLocked}
-              onShowDetails={() => setDetailRoom(room)}
-            />
-          ))}
-        </motion.div>
+          View room details
+        </Link>
+      ) : (
+        <Link
+          href="/rooms"
+          className="flex flex-wrap gap-1.5 rounded-[12px] border border-[#E3E0DA] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(15,31,46,0.04)]"
+        >
+          {(rooms ?? []).map((room) => {
+            const filled = room.assignedGuests.length;
+            const full = filled >= room.capacity;
+            return (
+              <span
+                key={room.number}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full border px-2 py-1',
+                  full
+                    ? 'border-[#854F0B]/25 bg-[#FAEEDA]'
+                    : 'border-[#E3E0DA] bg-[#FAF9F7]',
+                )}
+              >
+                <span className="text-[9px] font-semibold text-[#2B2824]">
+                  R{room.number}
+                </span>
+                <span className="flex gap-[2px]">
+                  {Array.from({ length: room.capacity }).map((_, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        'size-[5px] rounded-full',
+                        i < filled ? 'bg-[#0F1F2E]' : 'bg-[#DDD9D3]',
+                      )}
+                    />
+                  ))}
+                </span>
+              </span>
+            );
+          })}
+        </Link>
       )}
 
       {/* ─── Guest list ─────────────────────────────────────────── */}
@@ -393,13 +408,6 @@ export const ManifestPage = () => {
           setTimeout(() => openAddForm(), 150);
         }}
         onViewManifest={() => setShowAddedSheet(false)}
-      />
-
-      {/* ─── Room detail sheet ──────────────────────────────────── */}
-      <RoomDetailSheet
-        open={!!detailRoom}
-        onClose={() => setDetailRoom(null)}
-        room={detailRoom}
       />
     </div>
   );
