@@ -237,6 +237,7 @@ model ManifestGuest {
   roomNumber            Int?
   room                  Room?     @relation(fields: [roomNumber], references: [number])
   dietaryRestrictions   String[]  @default([])
+  dietaryOtherDetails   String?
   allergies             String?
   beveragePreferences   String?
   specialNotes          String?
@@ -263,6 +264,12 @@ model Room {
   type            RoomType
   capacity        Int
   bedConfig       String
+  beds            Json     @default("[]") // [{ type: 'king'|'queen'|'double'|'twin'|'single'|'bunk'|'sofa', count: number }]
+  bathrooms       Int      @default(1)
+  ensuite         Boolean  @default(false)
+  amenities       String[] @default([])  // 'balcony'|'ac'|'pool_view'|'ocean_view'|'walk_in_closet'|'workspace'|'smart_tv'|'minibar'
+  description     String?
+  imageUrl        String?
   floorLevel      Int?
   isActive        Boolean  @default(true)
 

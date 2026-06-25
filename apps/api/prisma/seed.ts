@@ -16,6 +16,14 @@ async function main() {
       type: RoomType.KING_MASTER_SUITE,
       capacity: 2,
       bedConfig: 'King bed',
+      beds: [{ type: 'king', count: 1 }],
+      bathrooms: 1,
+      ensuite: true,
+      amenities: ['balcony', 'ac', 'ocean_view', 'walk_in_closet', 'smart_tv'],
+      description:
+        'Spacious primary suite with a private balcony overlooking the ocean and a generous walk-in closet.',
+      imageUrl:
+        'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=900&q=80',
       floorLevel: 1,
     },
     {
@@ -24,6 +32,14 @@ async function main() {
       type: RoomType.KING_MASTER_SUITE,
       capacity: 2,
       bedConfig: 'King bed',
+      beds: [{ type: 'king', count: 1 }],
+      bathrooms: 1,
+      ensuite: true,
+      amenities: ['ac', 'pool_view', 'smart_tv', 'minibar'],
+      description:
+        'Elegant king suite facing the pool deck, with an ensuite bath and minibar.',
+      imageUrl:
+        'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=900&q=80',
       floorLevel: 1,
     },
     {
@@ -31,7 +47,18 @@ async function main() {
       name: 'Luxury Bunk Room',
       type: RoomType.LUXURY_BUNK_ROOM,
       capacity: 4,
-      bedConfig: '1 Queen + 2 Twins',
+      bedConfig: '1 Queen + 2 Twin bunks',
+      beds: [
+        { type: 'queen', count: 1 },
+        { type: 'bunk', count: 1 },
+      ],
+      bathrooms: 1,
+      ensuite: false,
+      amenities: ['ac', 'smart_tv'],
+      description:
+        'Family-friendly room with a queen bed plus a twin bunk — ideal for kids or a small group.',
+      imageUrl:
+        'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=900&q=80',
       floorLevel: 1,
     },
     {
@@ -39,7 +66,18 @@ async function main() {
       name: 'Luxury Bunk Room',
       type: RoomType.LUXURY_BUNK_ROOM,
       capacity: 4,
-      bedConfig: '1 Queen + 2 Twins',
+      bedConfig: '1 Queen + 2 Twin bunks',
+      beds: [
+        { type: 'queen', count: 1 },
+        { type: 'bunk', count: 1 },
+      ],
+      bathrooms: 1,
+      ensuite: false,
+      amenities: ['ac', 'smart_tv', 'workspace'],
+      description:
+        'Versatile bunk room with a queen and a twin bunk, plus a quiet workspace nook.',
+      imageUrl:
+        'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=900&q=80',
       floorLevel: 1,
     },
     {
@@ -48,6 +86,14 @@ async function main() {
       type: RoomType.KING_MASTER_SUITE,
       capacity: 2,
       bedConfig: 'King bed',
+      beds: [{ type: 'king', count: 1 }],
+      bathrooms: 1,
+      ensuite: true,
+      amenities: ['balcony', 'ac', 'ocean_view', 'smart_tv'],
+      description:
+        'Upper-floor king suite with a sunrise-facing balcony and ensuite bathroom.',
+      imageUrl:
+        'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=900&q=80',
       floorLevel: 2,
     },
     {
@@ -56,15 +102,24 @@ async function main() {
       type: RoomType.KING_MASTER_SUITE,
       capacity: 2,
       bedConfig: 'King bed',
+      beds: [{ type: 'king', count: 1 }],
+      bathrooms: 1,
+      ensuite: true,
+      amenities: ['ac', 'pool_view', 'walk_in_closet', 'smart_tv', 'minibar'],
+      description:
+        'Top-floor retreat overlooking the pool, with walk-in closet, minibar and ensuite bath.',
+      imageUrl:
+        'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=900&q=80',
       floorLevel: 2,
     },
   ];
 
   for (const room of rooms) {
+    const { beds, ...rest } = room;
     await prisma.room.upsert({
       where: { number: room.number },
-      update: {},
-      create: room,
+      update: { ...rest, beds },
+      create: { ...rest, beds },
     });
   }
 

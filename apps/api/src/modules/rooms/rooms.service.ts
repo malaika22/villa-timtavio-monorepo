@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
@@ -39,11 +40,12 @@ export class RoomsService {
       },
     });
 
-    return rooms.map((room) => ({
+    return rooms.map(({ manifestGuests, ...room }) => ({
       ...room,
-      assignedCount: room.manifestGuests.length,
-      availableCapacity: room.capacity - room.manifestGuests.length,
-      isFull: room.manifestGuests.length >= room.capacity,
+      assignedGuests: manifestGuests,
+      assignedCount: manifestGuests.length,
+      availableCapacity: room.capacity - manifestGuests.length,
+      isFull: manifestGuests.length >= room.capacity,
     }));
   }
 
@@ -55,14 +57,24 @@ export class RoomsService {
       throw new ConflictException(`Room ${dto.number} already exists`);
     }
 
-    return this.prisma.room.create({ data: dto });
+    const { beds, ...rest } = dto;
+    return this.prisma.room.create({
+      data: {
+        ...rest,
+        ...(beds !== undefined ? { beds: beds as unknown as Prisma.InputJsonValue } : {}),
+      },
+    });
   }
 
   async update(number: number, dto: UpdateRoomDto) {
     await this.findOne(number);
+    const { beds, ...rest } = dto;
     return this.prisma.room.update({
       where: { number },
-      data: dto,
+      data: {
+        ...rest,
+        ...(beds !== undefined ? { beds: beds as unknown as Prisma.InputJsonValue } : {}),
+      },
     });
   }
 

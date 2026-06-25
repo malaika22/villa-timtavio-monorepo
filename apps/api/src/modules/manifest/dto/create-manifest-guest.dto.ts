@@ -43,6 +43,10 @@ export class CreateManifestGuestDto {
 
   @IsOptional()
   @IsString()
+  dietaryOtherDetails?: string;
+
+  @IsOptional()
+  @IsString()
   allergies?: string;
 
   @IsOptional()
