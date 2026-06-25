@@ -1,7 +1,6 @@
 'use client';
 
 import { ManagerShell } from '@/components/manager/layout/ManagerShell';
-import { TokenInitializer } from '@/components/manager/TokenInitializer';
 import { useEmPusher } from '@/hooks/use-em-pusher';
 
 function DashboardRealtime({ children }: { children: React.ReactNode }) {
@@ -16,7 +15,6 @@ export default function DashboardRouteLayout({
 }) {
   return (
     <ManagerShell>
-      <TokenInitializer />
       <DashboardRealtime>{children}</DashboardRealtime>
     </ManagerShell>
   );

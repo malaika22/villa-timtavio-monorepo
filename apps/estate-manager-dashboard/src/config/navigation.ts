@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   BarChart3,
+  BedDouble,
   BookMarked,
   Calendar,
   CheckSquare,
@@ -35,6 +36,7 @@ export const managerNavSections: ManagerNavSection[] = [
         icon: CheckSquare,
       },
       { title: 'Bookings + Manifest', href: '/bookings', icon: BookMarked },
+      { title: 'Rooms', href: '/rooms', icon: BedDouble },
       { title: 'Guests', href: '/guests', icon: Users },
       { title: 'Inquiries', href: '/inquiries', icon: Inbox },
       { title: 'Vendors', href: '/vendors', icon: Truck },
@@ -87,6 +89,11 @@ export const pageMeta: Record<string, PageMeta> = {
     subtitle: 'Current stay, upcoming arrivals & guest manifest review',
     showNotifications: true,
     lodgifySync: 'Lodgify synced · 4 min ago',
+  },
+  '/rooms': {
+    title: 'Rooms',
+    subtitle: 'Room details, beds & amenities shown to guests',
+    showNotifications: true,
   },
   '/guests': {
     title: 'Guest DNA',
