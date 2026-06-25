@@ -8,7 +8,14 @@ const PUBLIC_PATHS = [
   '/guest-submitted',
 ];
 
-const PROTECTED_PATHS = ['/', '/experiences', '/status', '/folio', '/checkout'];
+const PROTECTED_PATHS = [
+  '/',
+  '/experiences',
+  '/status',
+  '/folio',
+  '/checkout',
+  '/rooms',
+];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
