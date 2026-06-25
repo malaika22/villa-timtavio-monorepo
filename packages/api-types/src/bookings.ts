@@ -25,6 +25,7 @@ export interface ManifestGuest {
   relationship?: string | null;
   roomNumber?: number | null;
   dietaryRestrictions: string[];
+  dietaryOtherDetails?: string | null;
   allergies?: string | null;
   beveragePreferences?: string | null;
   specialNotes?: string | null;

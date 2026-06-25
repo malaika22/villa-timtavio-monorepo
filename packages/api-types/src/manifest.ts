@@ -35,6 +35,7 @@ export interface CreateManifestGuestDto {
   relationship?: string;
   roomNumber?: number;
   dietaryRestrictions?: string[];
+  dietaryOtherDetails?: string;
   allergies?: string;
   beveragePreferences?: string;
   specialNotes?: string;

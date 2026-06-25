@@ -6,7 +6,7 @@ export type * from './folio';
 export type * from './guests';
 export type * from './inquiries';
 export type * from './requests';
-export type * from './rooms';
+export * from './rooms';
 export type * from './vendors';
 export type * from './manifest';
 export type * from './system';
