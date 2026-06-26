@@ -13,6 +13,12 @@ export class BookingsController {
     return this.bookingsService.getCurrentForGuest(user.bookingId);
   }
 
+  @Get('current-active')
+  @Roles('estate_manager', 'owner')
+  getCurrentActiveBooking() {
+    return this.bookingsService.getCurrentActiveForEm();
+  }
+
   @Patch(':id/status')
   @Roles('estate_manager')
   updateStatus(

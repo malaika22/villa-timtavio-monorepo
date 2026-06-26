@@ -18,6 +18,90 @@ export class BookingsService {
 
   // ─── Get current booking for guest ───────────────────────────────────────────
 
+  // ─── Get current active booking for the estate manager ──────────────────────
+  // Unlike the guest-scoped current booking, the EM oversees the whole villa, so
+  // we surface the most relevant booking: checked-in now, else the next arrival,
+  // else the most recent.
+
+  async getCurrentActiveForEm() {
+    const include = {
+      primaryGuest: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          dietaryRestrictions: true,
+          allergies: true,
+          beveragePreferences: true,
+          winePreferences: true,
+        },
+      },
+      manifestGuests: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          roomNumber: true,
+          relationship: true,
+          dietaryRestrictions: true,
+          dietaryOtherDetails: true,
+          allergies: true,
+          beveragePreferences: true,
+          specialNotes: true,
+          pwaLinkSent: true,
+        },
+      },
+      experienceRequests: {
+        select: {
+          id: true,
+          status: true,
+          preferredDate: true,
+          confirmedDate: true,
+          guestCount: true,
+          catalogItem: { select: { name: true } },
+        },
+        orderBy: { preferredDate: 'asc' as const },
+      },
+    };
+
+    // 1) Currently checked-in. With overlapping test bookings there can be more
+    // than one, so prefer the booking the EM actually needs to act on: the one
+    // with the most manifest activity, then the most guests, then most recent.
+    const checkedIn = await this.prisma.booking.findMany({
+      where: { status: 'CHECKED_IN' },
+      include,
+    });
+    if (checkedIn.length > 0) {
+      const manifestRank = (s: string) =>
+        s === 'SUBMITTED' ? 3 : s === 'APPROVED' ? 2 : s === 'IN_PROGRESS' ? 1 : 0;
+      checkedIn.sort((a, b) => {
+        const byManifest =
+          manifestRank(b.manifestStatus) - manifestRank(a.manifestStatus);
+        if (byManifest !== 0) return byManifest;
+        const byGuests = b.manifestGuests.length - a.manifestGuests.length;
+        if (byGuests !== 0) return byGuests;
+        return b.checkIn.getTime() - a.checkIn.getTime();
+      });
+      return checkedIn[0];
+    }
+
+    // 2) Next upcoming arrival
+    const upcoming = await this.prisma.booking.findFirst({
+      where: { status: 'CONFIRMED', checkIn: { gte: new Date() } },
+      orderBy: { checkIn: 'asc' },
+      include,
+    });
+    if (upcoming) return upcoming;
+
+    // 3) Most recent booking as a fallback
+    return this.prisma.booking.findFirst({
+      orderBy: { checkIn: 'desc' },
+      include,
+    });
+  }
+
   async getCurrentForGuest(bookingId: string) {
     return this.prisma.booking.findUnique({
       where: { id: bookingId },
