@@ -1,13 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, CheckCircle2, FileText } from 'lucide-react';
+import { Check, CheckCircle2, FileText, ChefHat } from 'lucide-react';
 import { Button } from '@repo/ui';
 
 import type { ManifestResponse } from '@repo/api-types';
 import { useApproveManifest, useChefsBrief } from '@/hooks/useManifest';
 import { STATUS_LABELS } from './constants';
 import { ManifestDetailSheet } from './ManifestDetailSheet';
+import { ChefsBriefSheet } from './ChefsBriefSheet';
 
 export const GuestManifestCard = ({
   bookingId,
@@ -17,10 +18,13 @@ export const GuestManifestCard = ({
   manifest: ManifestResponse | null | undefined;
 }) => {
   const [showDetail, setShowDetail] = useState(false);
+  const [showChefsBrief, setShowChefsBrief] = useState(false);
   const approveManifest = useApproveManifest();
-  const { data: chefsBrief } = useChefsBrief(
-    manifest?.manifestStatus === 'APPROVED' ? bookingId : null,
-  );
+  // The chef's brief is generated once the manifest is submitted (before approval).
+  const briefAvailable =
+    manifest?.manifestStatus === 'SUBMITTED' ||
+    manifest?.manifestStatus === 'APPROVED';
+  const { data: chefsBrief } = useChefsBrief(briefAvailable ? bookingId : null);
 
   const pct = manifest
     ? Math.min(
@@ -118,22 +122,13 @@ export const GuestManifestCard = ({
               Review Manifest
             </Button>
           )}
-          {chefsBrief && (
+          {briefAvailable && (
             <Button
               variant="outline"
-              className="h-11 shrink-0 rounded-lg border-[#d4d0c8] bg-white px-5 text-sm font-medium text-manager-text shadow-none hover:bg-[#faf9f7]"
-              onClick={() => {
-                const blob = new Blob([JSON.stringify(chefsBrief, null, 2)], {
-                  type: 'application/json',
-                });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `chefs-brief-${bookingId}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
+              className="h-11 shrink-0 gap-2 rounded-lg border-[#d4d0c8] bg-white px-5 text-sm font-medium text-manager-text shadow-none hover:bg-[#faf9f7]"
+              onClick={() => setShowChefsBrief(true)}
             >
+              <ChefHat className="size-4 shrink-0" strokeWidth={2} />
               Chef&apos;s Brief
             </Button>
           )}
@@ -148,6 +143,12 @@ export const GuestManifestCard = ({
           manifest={manifest}
         />
       )}
+
+      <ChefsBriefSheet
+        open={showChefsBrief}
+        onClose={() => setShowChefsBrief(false)}
+        brief={chefsBrief}
+      />
     </div>
   );
 };

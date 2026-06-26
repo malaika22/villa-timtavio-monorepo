@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { emManifestApi } from '@/lib/api/manifest';
+import type { UpdateManifestGuestDto } from '@repo/api-types';
 
 export function useManifest(bookingId: string | null) {
   return useQuery({
@@ -7,6 +8,22 @@ export function useManifest(bookingId: string | null) {
     queryFn: () => emManifestApi.getManifest(bookingId!),
     enabled: !!bookingId,
     staleTime: 30_000,
+  });
+}
+
+export function useUpdateManifestGuest(bookingId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      guestId,
+      dto,
+    }: {
+      guestId: string;
+      dto: UpdateManifestGuestDto;
+    }) => emManifestApi.updateGuest(bookingId, guestId, dto),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['manifest', bookingId] });
+    },
   });
 }
 

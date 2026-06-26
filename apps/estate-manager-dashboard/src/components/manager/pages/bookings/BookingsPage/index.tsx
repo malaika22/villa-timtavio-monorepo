@@ -8,49 +8,71 @@ import { CurrentBookingHero } from '@/components/manager/pages/bookings/CurrentB
 import { GuestManifestCard } from '@/components/manager/pages/bookings/GuestManifestCard';
 import { PreArrivalChecklist } from '@/components/manager/pages/bookings/PreArrivalChecklist';
 import { RequestedExperiencesCard } from '@/components/manager/pages/bookings/RequestedExperiencesCard';
-import { currentBooking } from '@/lib/bookings-mock-data';
+import { mapToCurrentBooking } from '@/lib/mappers/booking';
 import type { BookingTab } from '@/types';
-import { useCurrentGuests } from '@/hooks/useGuests';
+import { useCurrentActiveBooking } from '@/hooks/useBookings';
 import { useManifest } from '@/hooks/useManifest';
+
+const EmptyState = ({ message }: { message: string }) => (
+  <p className="rounded-lg border border-[#ebe6df] bg-white p-8 text-center text-sm text-manager-text-muted">
+    {message}
+  </p>
+);
 
 export const BookingsPage = () => {
   const [activeTab, setActiveTab] = useState<BookingTab>('current');
-  const { data: currentGuests } = useCurrentGuests();
 
-  // Use the first current guest's active booking ID for manifest
-  const activeBookingId = currentGuests?.[0]?.activeBookingId ?? null;
-  const { data: manifest } = useManifest(activeBookingId);
+  const { data: detail, isLoading } = useCurrentActiveBooking();
+  const { data: manifest } = useManifest(detail?.id ?? null);
 
   if (activeTab !== 'current') {
     return (
       <div className="space-y-5">
         <BookingsTabs activeTab={activeTab} onTabChange={setActiveTab} />
-        <p className="rounded-lg border border-[#ebe6df] bg-white p-8 text-center text-sm text-manager-text-muted">
-          {activeTab === 'upcoming' && 'Upcoming bookings will appear here.'}
-          {activeTab === 'past' && 'Past bookings will appear here.'}
-          {activeTab === 'manifest' && 'Manifest review queue will appear here.'}
-        </p>
+        <EmptyState
+          message={
+            activeTab === 'upcoming'
+              ? 'Upcoming bookings will appear here once synced from Lodgify.'
+              : activeTab === 'past'
+                ? 'Past bookings will appear here.'
+                : 'The manifest review queue will appear here.'
+          }
+        />
       </div>
     );
   }
 
+  const booking = detail ? mapToCurrentBooking(detail) : null;
+
   return (
     <div className="space-y-6">
       <BookingsTabs activeTab={activeTab} onTabChange={setActiveTab} />
-      <CurrentBookingHero booking={currentBooking} />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <GuestManifestCard
-          bookingId={activeBookingId ?? currentBooking.id}
-          manifest={manifest}
-        />
-        <RequestedExperiencesCard booking={currentBooking} />
-      </div>
+      {isLoading ? (
+        <div className="space-y-6">
+          <div className="h-32 animate-pulse rounded-xl bg-manager-border" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="h-64 animate-pulse rounded-xl bg-manager-border" />
+            <div className="h-64 animate-pulse rounded-xl bg-manager-border" />
+          </div>
+        </div>
+      ) : !booking ? (
+        <EmptyState message="No active booking right now. The current stay will appear here once a booking is checked in or upcoming." />
+      ) : (
+        <>
+          <CurrentBookingHero booking={booking} />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <BookingPreferencesCard booking={currentBooking} />
-        <PreArrivalChecklist booking={currentBooking} />
-      </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <GuestManifestCard bookingId={booking.id} manifest={manifest} />
+            <RequestedExperiencesCard booking={booking} />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <BookingPreferencesCard booking={booking} />
+            <PreArrivalChecklist booking={booking} />
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -7,11 +7,23 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@repo/ui/components/sheet';
-import { Button } from '@repo/ui';
-import { CheckCircle2, Send, AlertTriangle, BedDouble } from 'lucide-react';
+import { Button, Input } from '@repo/ui';
+import {
+  CheckCircle2,
+  Send,
+  AlertTriangle,
+  BedDouble,
+  Pencil,
+  X,
+  Check,
+} from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
 import type { ManifestResponse, ManifestGuest } from '@repo/api-types';
-import { useApproveManifest, useResendGuestLink } from '@/hooks/useManifest';
+import {
+  useApproveManifest,
+  useResendGuestLink,
+  useUpdateManifestGuest,
+} from '@/hooks/useManifest';
 import { toast } from 'sonner';
 
 type ManifestDetailSheetProps = {
@@ -29,6 +41,10 @@ export function ManifestDetailSheet({
 }: ManifestDetailSheetProps) {
   const approveManifest = useApproveManifest();
   const resendLink = useResendGuestLink();
+  const updateGuest = useUpdateManifestGuest(bookingId);
+
+  // EM can correct guest details while reviewing a submitted manifest.
+  const canEdit = manifest.manifestStatus === 'SUBMITTED';
 
   const handleApprove = async () => {
     await approveManifest.mutateAsync(bookingId);
@@ -98,6 +114,12 @@ export function ManifestDetailSheet({
                     : undefined
                 }
                 resendPending={resendLink.isPending}
+                canEdit={canEdit}
+                onSave={async (dto) => {
+                  await updateGuest.mutateAsync({ guestId: guest.id, dto });
+                  toast.success('Guest updated');
+                }}
+                saving={updateGuest.isPending}
               />
             ))}
           </div>
@@ -163,13 +185,32 @@ function GuestCard({
   roomSummary,
   onResend,
   resendPending,
+  canEdit,
+  onSave,
+  saving,
 }: {
   guest: ManifestGuest;
   roomSummary: ManifestResponse['roomSummary'];
   onResend?: () => void;
   resendPending: boolean;
+  canEdit?: boolean;
+  onSave?: (dto: {
+    firstName?: string;
+    lastName?: string;
+    roomNumber?: number;
+    allergies?: string;
+  }) => Promise<void>;
+  saving?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [firstName, setFirstName] = useState(guest.firstName);
+  const [lastName, setLastName] = useState(guest.lastName);
+  const [roomNumber, setRoomNumber] = useState<string>(
+    guest.roomNumber != null ? String(guest.roomNumber) : '',
+  );
+  const [allergies, setAllergies] = useState(guest.allergies ?? '');
+
   const roomName = guest.roomNumber
     ? roomSummary.find((r) => r.roomNumber === guest.roomNumber)?.roomName ??
       `Room ${guest.roomNumber}`
@@ -177,6 +218,104 @@ function GuestCard({
 
   const hasDietary = guest.dietaryRestrictions?.length > 0;
   const hasExtra = guest.allergies || guest.beveragePreferences || guest.specialNotes;
+
+  const startEdit = () => {
+    setFirstName(guest.firstName);
+    setLastName(guest.lastName);
+    setRoomNumber(guest.roomNumber != null ? String(guest.roomNumber) : '');
+    setAllergies(guest.allergies ?? '');
+    setEditing(true);
+    setExpanded(true);
+  };
+
+  const handleSave = async () => {
+    await onSave?.({
+      firstName: firstName.trim() || undefined,
+      lastName: lastName.trim() || undefined,
+      roomNumber: roomNumber ? Number(roomNumber) : undefined,
+      allergies: allergies.trim() || undefined,
+    });
+    setEditing(false);
+  };
+
+  // ─── Edit mode ───────────────────────────────────────────────────────────
+  if (editing) {
+    return (
+      <div className="rounded-xl border border-[#cdd9cf] bg-white p-4 space-y-3">
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178]">
+              First name
+            </label>
+            <Input
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="mt-1 h-9 text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178]">
+              Last name
+            </label>
+            <Input
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              className="mt-1 h-9 text-sm"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178]">
+            Room
+          </label>
+          <select
+            value={roomNumber}
+            onChange={(e) => setRoomNumber(e.target.value)}
+            className="mt-1 h-9 w-full rounded-md border border-[#d4d0c8] bg-white px-2.5 text-sm text-[#1a1614]"
+          >
+            <option value="">Unassigned</option>
+            {roomSummary.map((r) => (
+              <option key={r.roomNumber} value={r.roomNumber}>
+                {r.roomName} (Room {r.roomNumber})
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="text-[10px] font-semibold uppercase tracking-widest text-[#c53030]">
+            Allergy notes
+          </label>
+          <Input
+            value={allergies}
+            onChange={(e) => setAllergies(e.target.value)}
+            placeholder="e.g. Severe nut allergy — carries EpiPen"
+            className="mt-1 h-9 text-sm"
+          />
+        </div>
+        <div className="flex gap-2 pt-1">
+          <Button
+            size="sm"
+            onClick={handleSave}
+            disabled={saving}
+            className="h-8 flex-1 gap-1.5 rounded-lg bg-[#4a7c59] text-xs font-medium text-white hover:bg-[#3a6448] disabled:opacity-60"
+          >
+            <Check className="size-3.5" />
+            {saving ? 'Saving…' : 'Save'}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setEditing(false)}
+            disabled={saving}
+            className="h-8 gap-1.5 rounded-lg border-[#d4d0c8] text-xs font-medium text-[#3d3530]"
+          >
+            <X className="size-3.5" />
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-[#e8e4de] bg-white overflow-hidden">
@@ -203,6 +342,15 @@ function GuestCard({
             <span className="text-xs font-medium text-[#4a7c59] bg-[#e8f1e9] rounded-full px-2.5 py-0.5">
               {roomName}
             </span>
+          )}
+          {canEdit && (
+            <button
+              onClick={startEdit}
+              className="flex items-center gap-1 text-[10px] font-medium text-[#4a7c59] underline underline-offset-2"
+            >
+              <Pencil className="size-3" />
+              Edit
+            </button>
           )}
           {(hasDietary || hasExtra) && (
             <button

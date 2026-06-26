@@ -175,7 +175,7 @@ export type CurrentBooking = {
   rooms: number;
   arrivesIn: string;
   tags: string[];
-  status: 'Confirmed' | 'Pending';
+  status: string;
   manifestAlert: string;
   roomsManifest: { id: string; label: string; guestCount: number }[];
   manifestProgress: { added: number; total: number };

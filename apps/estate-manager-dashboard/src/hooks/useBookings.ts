@@ -1,6 +1,14 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { emBookingsApi } from '@/lib/api/bookings';
 import type { UpdateBookingStatusDto } from '@repo/api-types';
+
+export function useCurrentActiveBooking() {
+  return useQuery({
+    queryKey: ['bookings', 'current-active'],
+    queryFn: emBookingsApi.currentActive,
+    staleTime: 30_000,
+  });
+}
 
 export function useApproveManifest() {
   const queryClient = useQueryClient();
