@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { cn } from '@repo/ui/lib/utils';
 
-import { managerNavSections } from '@/config/navigation';
+import { getNavSections } from '@/config/navigation';
 import { useApprovalQueueCount } from '@/hooks/useDashboard';
 import { useNewInquiriesCount } from '@/hooks/useInquiries';
+import { useDashboardAuth } from '@/hooks/use-dashboard-auth';
 
 type Props = {
   pathname: string;
@@ -17,10 +18,12 @@ type Props = {
 export const ManagerNavLinks = ({ pathname, onNavigate, className }: Props) => {
   const { data: approvalCount = 0 } = useApprovalQueueCount();
   const { data: newInquiriesCount = 0 } = useNewInquiriesCount();
+  const { isOwner, isEM } = useDashboardAuth();
+  const sections = getNavSections({ isOwner, isEM });
 
   return (
     <div className={cn('space-y-6', className)}>
-      {managerNavSections.map((section) => (
+      {sections.map((section) => (
         <div key={section.label}>
           <p className="mb-3 px-3 text-[10px] font-medium tracking-[0.14em] text-manager-nav-section uppercase">
             {section.label}

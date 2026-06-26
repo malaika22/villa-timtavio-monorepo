@@ -1,10 +1,13 @@
 import type { LucideIcon } from 'lucide-react';
 import {
+  Activity,
   BarChart3,
   BedDouble,
   BookMarked,
   Calendar,
   CheckSquare,
+  Flame,
+  Gauge,
   Inbox,
   LayoutDashboard,
   LayoutGrid,
@@ -53,6 +56,32 @@ export const managerNavSections: ManagerNavSection[] = [
 export const managerNavigation: ManagerNavItem[] = managerNavSections.flatMap(
   (section) => section.items,
 );
+
+// ─── Owner navigation ───────────────────────────────────────────────────────
+
+export const ownerNavSections: ManagerNavSection[] = [
+  {
+    label: 'Intelligence',
+    items: [
+      { title: 'Overview', href: '/overview', icon: Gauge },
+      { title: 'Analytics', href: '/analytics', icon: BarChart3 },
+      { title: 'Heat Maps', href: '/heat-maps', icon: Flame },
+      { title: 'System Health', href: '/system-health', icon: Activity },
+    ],
+  },
+];
+
+/** Returns the nav sections appropriate for the signed-in role(s). */
+export function getNavSections(opts: {
+  isOwner?: boolean;
+  isEM?: boolean;
+}): ManagerNavSection[] {
+  const sections: ManagerNavSection[] = [];
+  if (opts.isOwner) sections.push(...ownerNavSections);
+  if (opts.isEM) sections.push(...managerNavSections);
+  // Fallback: if role unknown, show manager sections.
+  return sections.length > 0 ? sections : managerNavSections;
+}
 
 export type PageMeta = {
   title: string;
@@ -137,6 +166,26 @@ export const pageMeta: Record<string, PageMeta> = {
     subtitle: 'Experiences, menus & recommendations shown to guests',
     showPreviewGuestView: true,
     showAddContentItem: true,
+    showNotifications: true,
+  },
+  '/overview': {
+    title: 'Owner Overview',
+    subtitle: 'Estate performance at a glance',
+    showNotifications: true,
+  },
+  '/analytics': {
+    title: 'Analytics',
+    subtitle: 'Revenue, occupancy & experience performance',
+    showNotifications: true,
+  },
+  '/heat-maps': {
+    title: 'Estate Heat Maps',
+    subtitle: 'Where and when the estate is most active',
+    showNotifications: true,
+  },
+  '/system-health': {
+    title: 'System Health',
+    subtitle: 'Integrations & background services',
     showNotifications: true,
   },
 };
