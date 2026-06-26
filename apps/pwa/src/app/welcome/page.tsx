@@ -37,8 +37,7 @@ export default function WelcomePage() {
           width: '60vw',
           height: '60vw',
           borderRadius: '50%',
-          background:
-            'radial-gradient(circle, #C8A96E 0%, transparent 70%)',
+          background: 'radial-gradient(circle, #C8A96E 0%, transparent 70%)',
           top: '10%',
           left: '50%',
           transform: 'translateX(-50%)',

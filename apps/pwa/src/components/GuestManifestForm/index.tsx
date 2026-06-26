@@ -150,10 +150,9 @@ export function GuestManifestForm({
   );
 
   const initialValuesRef = useRef(initialValues);
-  initialValuesRef.current = initialValues;
-
-  const draftDataRef = useRef(draftQuery.data);
-  draftDataRef.current = draftQuery.data;
+  useEffect(() => {
+    initialValuesRef.current = initialValues;
+  });
 
   // Tracks whether we've already seeded the form from draft data this open cycle.
   // Prevents re-applying on every autosave write-back (which also updates draftQuery.data).
@@ -182,9 +181,11 @@ export function GuestManifestForm({
 
   // Refs so timer callbacks always read the latest values
   const draftUpsertRef = useRef(draftUpsert);
-  draftUpsertRef.current = draftUpsert;
   const allValuesRef = useRef(allValues);
-  allValuesRef.current = allValues;
+  useEffect(() => {
+    draftUpsertRef.current = draftUpsert;
+    allValuesRef.current = allValues;
+  });
 
   // Reset form whenever the drawer opens.
   // Draft data may not have loaded yet — the effect below handles applying it once it arrives.
@@ -192,6 +193,8 @@ export function GuestManifestForm({
     if (!open) return;
     submittedRef.current = false;
     hasAppliedDraftRef.current = false;
+    // Intentional: reset transient UI state each time the drawer opens.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSubmitError(null);
     setSubmitting(false);
     if (initialValuesRef.current) {
@@ -256,6 +259,8 @@ export function GuestManifestForm({
     setUiStep(1);
   };
 
+  // Refs below are read inside this deferred submit callback, not during render.
+  // eslint-disable-next-line react-hooks/refs
   const onSubmit = handleSubmit(async (data: GuestManifestFormValues) => {
     if (submitting) return; // guard against double-submit
     setValue('__step', 2);

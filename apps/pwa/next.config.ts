@@ -9,6 +9,11 @@ const withPWA = require('next-pwa')({
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@repo/ui', '@repo/api-client', '@repo/api-types'],
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+    ],
+  },
 };
 
 export default withPWA({

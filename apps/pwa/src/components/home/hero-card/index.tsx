@@ -30,7 +30,9 @@ export const HeroCard = () => {
           {isLoading ? (
             <SkeletonText className="h-3 w-12" />
           ) : (
-            <div className="text-[#FFFFFFA6] text-[12px]">{formatBookingDate(checkIn)}</div>
+            <div className="text-[#FFFFFFA6] text-[12px]">
+              {formatBookingDate(checkIn)}
+            </div>
           )}
         </div>
         <div className="w-[1px] bg-[#FFFFFF14] self-stretch" />
@@ -41,7 +43,9 @@ export const HeroCard = () => {
           {isLoading ? (
             <SkeletonText className="h-3 w-12" />
           ) : (
-            <div className="text-[#FFFFFFA6] text-[12px]">{formatBookingDate(checkOut)}</div>
+            <div className="text-[#FFFFFFA6] text-[12px]">
+              {formatBookingDate(checkOut)}
+            </div>
           )}
         </div>
         <div className="w-[1px] bg-[#FFFFFF14] self-stretch" />

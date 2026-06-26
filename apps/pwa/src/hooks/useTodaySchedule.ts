@@ -14,7 +14,11 @@ export interface TodayScheduleItem {
 export function useTodaySchedule() {
   const { bookingId } = useAuth();
 
-  const { data: requests, isLoading, error } = useQuery({
+  const {
+    data: requests,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['requests', bookingId, 'today'],
     queryFn: () => requestsApi.byBooking(bookingId!, 'today'),
     enabled: !!bookingId,

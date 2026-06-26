@@ -11,11 +11,9 @@ function initials(first: string, last: string) {
 
 export const RoomCard = ({
   room,
-  locked,
   onShowDetails,
 }: {
   room: RoomWithAvailability;
-  locked: boolean;
   onShowDetails?: () => void;
 }) => {
   const filled = room.assignedGuests.length;
@@ -32,7 +30,11 @@ export const RoomCard = ({
       whileTap={{ scale: 0.98 }}
       variants={{
         hidden: { opacity: 0, y: 14 },
-        visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: 'easeOut' } },
+        visible: {
+          opacity: 1,
+          y: 0,
+          transition: { duration: 0.38, ease: 'easeOut' },
+        },
       }}
       className={cn(
         'group rounded-[14px] border p-3 flex flex-col gap-2.5 overflow-hidden text-left transition-colors',

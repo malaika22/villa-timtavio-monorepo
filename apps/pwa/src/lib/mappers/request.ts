@@ -9,6 +9,7 @@ import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 
 const STATUS_MAP: Record<RequestStatus, ExperienceStatus> = {
   PENDING: ExperienceStatus.PENDING,
+  CONFLICT: ExperienceStatus.PENDING,
   CONFIRMED: ExperienceStatus.CONFIRMED,
   IN_PROGRESS: ExperienceStatus.IN_PROGRESS,
   READY: ExperienceStatus.READY,
