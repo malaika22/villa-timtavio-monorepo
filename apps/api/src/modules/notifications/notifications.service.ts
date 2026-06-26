@@ -43,6 +43,13 @@ export class NotificationsService {
     });
   }
 
+  async getUnreadCount(bookingId: string, email: string) {
+    const count = await this.prisma.notification.count({
+      where: { bookingId, recipientEmail: email, status: 'UNREAD' },
+    });
+    return { count };
+  }
+
   async markRead(id: string) {
     return this.prisma.notification.update({
       where: { id },
