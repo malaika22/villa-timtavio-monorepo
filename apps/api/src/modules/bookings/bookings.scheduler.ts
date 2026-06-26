@@ -43,6 +43,28 @@ export class BookingsScheduler {
     }
   }
 
+  // ─── Auto check-in once the stay has started (runs hourly) ────────────────
+  // Without this, confirmed bookings never transition to CHECKED_IN on their
+  // own, so guest-facing features that unlock on arrival (e.g. experiences)
+  // stay locked for the whole stay. Mirrors the date-driven departure job.
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async autoCheckIn() {
+    const now = new Date();
+    const result = await this.prisma.booking.updateMany({
+      where: {
+        status: 'CONFIRMED',
+        checkIn: { lte: now },
+        checkOut: { gte: now },
+      },
+      data: { status: 'CHECKED_IN' },
+    });
+
+    if (result.count > 0) {
+      this.logger.log(`Auto checked-in ${result.count} booking(s)`);
+    }
+  }
+
   // ─── Set departure today flag (runs at 6am daily) ─────────────────────────
 
   @Cron('0 6 * * *')
