@@ -76,6 +76,11 @@ export function mapCatalogItemToContentExperience(
     vendorId: item.vendorId,
     primaryPhotoUrl: item.primaryPhotoUrl,
     maxGuestCount: item.maxGuestCount,
+    included: item.included ?? [],
+    hostName: item.hostName,
+    hostTitle: item.hostTitle,
+    hostAvatarUrl: item.hostAvatarUrl,
+    hostReviewNote: item.hostReviewNote,
     imageTone: item.isActive ? IMAGE_TONE_MAP[category] : 'inactive',
   };
 }

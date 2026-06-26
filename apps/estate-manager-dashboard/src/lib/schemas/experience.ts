@@ -11,6 +11,12 @@ export const experienceFormSchema = z.object({
   vendorId: z.string().optional(),
   primaryPhotoUrl: z.string().optional(),
   maxGuestCount: z.number().int().positive().optional(),
+  /** Newline-separated "what's included" list (one item per line) */
+  included: z.string().optional(),
+  hostName: z.string().optional(),
+  hostTitle: z.string().optional(),
+  hostAvatarUrl: z.string().optional(),
+  hostReviewNote: z.string().optional(),
 });
 
 export type ExperienceFormValues = z.infer<typeof experienceFormSchema>;

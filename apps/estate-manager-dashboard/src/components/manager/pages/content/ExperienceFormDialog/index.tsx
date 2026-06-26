@@ -76,6 +76,11 @@ export const ExperienceFormDialog = ({
       vendorId: '',
       primaryPhotoUrl: '',
       maxGuestCount: undefined,
+      included: '',
+      hostName: '',
+      hostTitle: '',
+      hostAvatarUrl: '',
+      hostReviewNote: '',
     },
   });
 
@@ -103,6 +108,11 @@ export const ExperienceFormDialog = ({
         vendorId: experience.vendorId ?? '',
         primaryPhotoUrl: experience.primaryPhotoUrl ?? '',
         maxGuestCount: experience.maxGuestCount ?? undefined,
+        included: (experience.included ?? []).join('\n'),
+        hostName: experience.hostName ?? '',
+        hostTitle: experience.hostTitle ?? '',
+        hostAvatarUrl: experience.hostAvatarUrl ?? '',
+        hostReviewNote: experience.hostReviewNote ?? '',
       });
       setImagePreview(experience.primaryPhotoUrl ?? null);
       return;
@@ -119,6 +129,11 @@ export const ExperienceFormDialog = ({
       vendorId: '',
       primaryPhotoUrl: '',
       maxGuestCount: undefined,
+      included: '',
+      hostName: '',
+      hostTitle: '',
+      hostAvatarUrl: '',
+      hostReviewNote: '',
     });
     setImagePreview(null);
   }, [open, experience, form, defaultCategoryId]);
@@ -144,6 +159,14 @@ export const ExperienceFormDialog = ({
       vendorId: values.vendorId || undefined,
       primaryPhotoUrl: values.primaryPhotoUrl || undefined,
       maxGuestCount: values.maxGuestCount,
+      included: (values.included ?? '')
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean),
+      hostName: values.hostName || undefined,
+      hostTitle: values.hostTitle || undefined,
+      hostAvatarUrl: values.hostAvatarUrl || undefined,
+      hostReviewNote: values.hostReviewNote || undefined,
       isActive: true,
     };
 
@@ -413,6 +436,95 @@ export const ExperienceFormDialog = ({
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="included"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>What&apos;s included</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={4}
+                        placeholder={
+                          'One item per line, e.g.\n8-course tasting menu\nWine pairing from private cellar\nSetup & service by estate staff'
+                        }
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Shown as a bulleted list on the guest experience detail.
+                      One item per line.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="rounded-lg border border-manager-border bg-[#faf9f7] p-4">
+                <p className="mb-3 text-sm font-medium text-manager-text">
+                  Host (optional)
+                </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="hostName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Chef Maria Lopez" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="hostTitle"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Title</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Private Chef" {...field} />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="mt-3 space-y-3">
+                  <FormField
+                    control={form.control}
+                    name="hostAvatarUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Avatar URL</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="url"
+                            placeholder="https://…/host.jpg"
+                            {...field}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="hostReviewNote"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Review note</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g. 4.9★ from past guests"
+                            {...field}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
 
               <DialogFooter>
                 <Button

@@ -112,15 +112,19 @@ export function mapCatalogItemToDetail(
     ? mapTimeSlots(item.availableTimeSlots)
     : undefined;
 
-  const host = item.vendor
+  // Prefer the explicit host fields; fall back to the linked vendor.
+  const hostName = item.hostName ?? item.vendor?.name;
+  const host = hostName
     ? {
-        name: item.vendor.name,
-        role: 'Provider',
+        name: hostName,
+        role: item.hostTitle ?? 'Provider',
         category: CATEGORY_LABEL[item.category] ?? item.category,
         avatar:
+          item.hostAvatarUrl ??
           item.primaryPhotoUrl ??
           item.photoUrls[0] ??
           '/images/experience.png',
+        reviewNote: item.hostReviewNote ?? undefined,
       }
     : undefined;
 
@@ -128,7 +132,7 @@ export function mapCatalogItemToDetail(
     images,
     about,
     longDescription,
-    included: [],
+    included: item.included ?? [],
     host,
     availableTimes: times,
     maxGuests: item.maxGuestCount ?? undefined,

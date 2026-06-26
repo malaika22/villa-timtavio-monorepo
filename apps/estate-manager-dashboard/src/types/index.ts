@@ -260,5 +260,10 @@ export type ContentExperience = {
   vendorId?: string | null;
   primaryPhotoUrl?: string | null;
   maxGuestCount?: number | null;
+  included?: string[];
+  hostName?: string | null;
+  hostTitle?: string | null;
+  hostAvatarUrl?: string | null;
+  hostReviewNote?: string | null;
   imageTone?: 'dining' | 'water' | 'wellness' | 'wine' | 'culture' | 'inactive';
 };

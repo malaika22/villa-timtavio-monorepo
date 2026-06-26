@@ -90,4 +90,24 @@ export class CreateCatalogItemDto {
   @IsOptional()
   @IsInt()
   sortOrder?: number;
+
+  @IsOptional()
+  @IsArray()
+  included?: string[];
+
+  @IsOptional()
+  @IsString()
+  hostName?: string;
+
+  @IsOptional()
+  @IsString()
+  hostTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  hostAvatarUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  hostReviewNote?: string;
 }

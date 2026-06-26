@@ -40,6 +40,11 @@ export interface CatalogItem {
   availableTimeSlots: string[];
   maxGuestCount?: number | null;
   setupLeadTimeMinutes?: number | null;
+  included: string[];
+  hostName?: string | null;
+  hostTitle?: string | null;
+  hostAvatarUrl?: string | null;
+  hostReviewNote?: string | null;
   vendorId?: string | null;
   vendor?: { id: string; name: string; status: string } | null;
   sortOrder: number;
@@ -101,6 +106,11 @@ export interface CreateCatalogItemDto {
   experienceCategoryId?: string;
   basePrice?: number;
   sortOrder?: number;
+  included?: string[];
+  hostName?: string;
+  hostTitle?: string;
+  hostAvatarUrl?: string;
+  hostReviewNote?: string;
 }
 
 export interface UpdateCatalogItemDto extends Partial<CreateCatalogItemDto> {}

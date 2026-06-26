@@ -179,6 +179,28 @@ export function RequestExperienceSheet({
               />
             </section>
 
+            {/* Price breakdown */}
+            {base > 0 && (
+              <section className="rounded-xl border border-[#E3E0DA] bg-white px-4 py-3.5">
+                <div className="flex items-center justify-between text-[12px] text-[#797168]">
+                  <span>{experience.title}</span>
+                  <span className="tabular-nums">${base.toLocaleString()}.00</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-[12px] text-[#797168]">
+                  <span>Service charge (16%)</span>
+                  <span className="tabular-nums">
+                    ${Math.round(base * 0.16).toLocaleString()}.00
+                  </span>
+                </div>
+                <div className="mt-3 flex items-center justify-between border-t border-[#E3E0DA] pt-3 text-[14px] font-medium text-[#2B2824]">
+                  <span>Total</span>
+                  <span className="tabular-nums">
+                    ${Math.round(base * 1.16).toLocaleString()}.00
+                  </span>
+                </div>
+              </section>
+            )}
+
             <div className="h-24" />
           </div>
         </div>
