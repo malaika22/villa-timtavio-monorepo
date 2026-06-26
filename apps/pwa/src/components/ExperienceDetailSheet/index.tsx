@@ -2,10 +2,9 @@
 
 import type { Experience } from '@/types/experience';
 import { ExperienceStatus } from '@/types/experienceStatus';
-import {
-  DEFAULT_EXPERIENCE_DETAIL,
-  EXPERIENCE_DETAIL_DATA,
-} from '@/data/experiencesMockData';
+import { DEFAULT_EXPERIENCE_DETAIL } from '@/data/experiencesMockData';
+import { useCatalog } from '@/hooks/useCatalog';
+import { mapCatalogItemToDetail } from '@/lib/mappers/experience';
 import { cn } from '@repo/ui/lib/utils';
 import { AnimatePresence, motion } from 'motion/react';
 import { Info, Lock } from 'lucide-react';
@@ -53,9 +52,16 @@ export function ExperienceDetailSheet({ open, experience, onClose }: Props) {
     });
   }
 
+  const { data: catalogItems } = useCatalog();
+
   const exp = sheet?.exp ?? null;
-  const detail = exp
-    ? (EXPERIENCE_DETAIL_DATA[exp.id] ?? DEFAULT_EXPERIENCE_DETAIL)
+  // Detail comes from the EM-managed catalog item; fall back to a generic
+  // default only if the item isn't loaded yet.
+  const catalogItem = exp
+    ? catalogItems?.find((item) => item.id === exp.id)
+    : undefined;
+  const detail = catalogItem
+    ? mapCatalogItemToDetail(catalogItem)
     : DEFAULT_EXPERIENCE_DETAIL;
   const images = exp
     ? detail.images && detail.images.length > 0

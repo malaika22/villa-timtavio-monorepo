@@ -15,7 +15,11 @@ import { RoomsExploreCard } from './rooms-explore/RoomsExploreCard';
 import { useBookingStore } from '@/store/useBookingStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentBooking } from '@/hooks/useBooking';
-import { useManifest, useAddManifestGuest } from '@/hooks/useManifest';
+import {
+  useManifest,
+  useAddManifestGuest,
+  useSubmitManifest,
+} from '@/hooks/useManifest';
 import { useRoomAvailability } from '@/hooks/useRoomAvailability';
 import { usePusherChannel } from '@/hooks/usePusherChannel';
 import { useQueryClient } from '@tanstack/react-query';
@@ -58,8 +62,14 @@ export const Home = () => {
   const { data: manifest } = useManifest();
   const { data: rooms } = useRoomAvailability();
   const addGuest = useAddManifestGuest();
+  const submitManifest = useSubmitManifest();
 
   const displayArrivalStatus = arrivalStatus ?? ArrivalStatus.PRE_ARRIVAL;
+
+  // Prefer the live manifest response; fall back to the booking store.
+  const liveManifestStatus = manifest?.manifestStatus ?? manifestStatus;
+  const guestsAdded = manifest?.addedGuests ?? 0;
+  const maxGuests = manifest?.totalGuests ?? totalGuests ?? 16;
 
   const handleSave = async (data: GuestManifestFormValues) => {
     const dto = mapFormToDto(data);
@@ -68,6 +78,11 @@ export const Home = () => {
     setAddedGuestName(dto.firstName);
     setIsAddOpen(false);
     setShowAddedSheet(true);
+  };
+
+  const handleSubmitManifest = async () => {
+    if (submitManifest.isPending) return;
+    await submitManifest.mutateAsync();
   };
 
   return (
@@ -87,11 +102,14 @@ export const Home = () => {
       </div>
       <HeroCard />
       <ArrivalCountdown />
-      {isAuthenticated && manifestStatus !== 'APPROVED' && (
+      {isAuthenticated && (
         <GuestManifestPrompt
-          guestsAdded={manifest?.addedGuests ?? 0}
-          maxGuests={totalGuests ?? 16}
+          manifestStatus={liveManifestStatus}
+          guestsAdded={guestsAdded}
+          maxGuests={maxGuests}
           onAddGuest={() => setIsAddOpen(true)}
+          onSubmit={handleSubmitManifest}
+          submitting={submitManifest.isPending}
         />
       )}
       <RoomsExploreCard
