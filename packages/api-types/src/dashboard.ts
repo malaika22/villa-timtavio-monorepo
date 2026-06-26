@@ -35,3 +35,26 @@ export interface DashboardExport {
   filename: string;
   csv: string;
 }
+
+export type CalendarEventType =
+  | 'arrival'
+  | 'departure'
+  | 'occupancy'
+  | 'experience';
+
+export interface WeekCalendarEvent {
+  id: string;
+  type: CalendarEventType;
+  label: string;
+  time?: string;
+}
+
+export interface WeekCalendarDay {
+  date: string;
+  events: WeekCalendarEvent[];
+}
+
+export interface WeekCalendar {
+  weekStart: string;
+  days: WeekCalendarDay[];
+}

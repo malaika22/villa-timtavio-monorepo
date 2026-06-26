@@ -63,3 +63,47 @@ export interface CurrentBooking {
 export interface UpdateBookingStatusDto {
   status: BookingStatus;
 }
+
+/** Rich current-active booking returned to the estate manager dashboard. */
+export interface EmCurrentBookingDetail {
+  id: string;
+  checkIn: string;
+  checkOut: string;
+  nights: number;
+  totalGuests: number;
+  status: BookingStatus;
+  manifestStatus: ManifestStatus;
+  internalNotes?: string | null;
+  primaryGuest: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    dietaryRestrictions: string[];
+    allergies?: string | null;
+    beveragePreferences?: string | null;
+    winePreferences?: string | null;
+  };
+  manifestGuests: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email?: string;
+    roomNumber?: number | null;
+    relationship?: string | null;
+    dietaryRestrictions?: string[];
+    dietaryOtherDetails?: string | null;
+    allergies?: string | null;
+    beveragePreferences?: string | null;
+    specialNotes?: string | null;
+    pwaLinkSent: boolean;
+  }[];
+  experienceRequests: {
+    id: string;
+    status: string;
+    preferredDate: string;
+    confirmedDate?: string | null;
+    guestCount: number;
+    catalogItem: { name: string } | null;
+  }[];
+}

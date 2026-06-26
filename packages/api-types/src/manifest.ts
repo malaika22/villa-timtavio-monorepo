@@ -69,15 +69,22 @@ export interface ChefsBriefResponse {
   bookingId: string;
   checkIn: string;
   checkOut: string;
-  primaryGuest: { firstName: string; lastName: string; email: string };
-  guests: Array<{
-    firstName: string;
-    lastName: string;
-    roomNumber?: number | null;
+  totalGuests: number;
+  generatedAt: string;
+  summary: {
+    totalRestrictions: number;
+    totalAllergies: number;
+    totalBeveragePrefs: number;
+  };
+  /** Dietary restriction → list of guest names with it */
+  dietaryRestrictions: Record<string, string[]>;
+  allergies: { guest: string; allergy: string }[];
+  beveragePreferences: { guest: string; preference: string }[];
+  guestBreakdown: {
+    name: string;
     dietaryRestrictions: string[];
     allergies?: string | null;
     beveragePreferences?: string | null;
-    specialNotes?: string | null;
-  }>;
-  totalGuests: number;
+    room: string;
+  }[];
 }

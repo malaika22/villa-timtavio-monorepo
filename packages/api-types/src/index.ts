@@ -11,3 +11,5 @@ export type * from './vendors';
 export type * from './manifest';
 export type * from './system';
 export type * from './dashboard';
+export * from './analytics';
+export * from './notifications';
