@@ -37,7 +37,11 @@ export const GuestManifestPrompt = ({
       >
         <div className="flex items-center gap-2.5">
           <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#3A5E48]">
-            <Check className="size-4 text-white" strokeWidth={2.5} aria-hidden />
+            <Check
+              className="size-4 text-white"
+              strokeWidth={2.5}
+              aria-hidden
+            />
           </span>
           <p className="text-[11px] leading-snug text-[#2F4A3A]">
             <span className="font-semibold">Guest list approved</span> ·{' '}
