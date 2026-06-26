@@ -6,11 +6,12 @@ import Image from 'next/image';
 import { useState } from 'react';
 
 import { NotificationsDrawer } from '@/components/Notifications';
-import { NOTIFICATIONS_MOCK } from '@/components/Notifications/mockData';
+import { useUnreadCount } from '@/hooks/useNotifications';
 
 export const Header = () => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const unreadCount = NOTIFICATIONS_MOCK.filter((n) => !n.read).length;
+  const { data: unread } = useUnreadCount();
+  const unreadCount = unread?.count ?? 0;
 
   return (
     <>

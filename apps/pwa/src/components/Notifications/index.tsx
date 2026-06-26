@@ -12,12 +12,16 @@ import { cn } from '@repo/ui/lib/utils';
 import { X } from 'lucide-react';
 import { useState } from 'react';
 
+import { NOTIFICATION_TABS, type NotificationTabId } from './mockData';
 import {
-  NOTIFICATIONS_MOCK,
-  NOTIFICATION_TABS,
-  type AppNotification,
-  type NotificationTabId,
-} from './mockData';
+  useNotifications,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+} from '@/hooks/useNotifications';
+import {
+  mapNotification,
+  type DisplayNotification,
+} from '@/lib/mappers/notification';
 
 interface NotificationsDrawerProps {
   open: boolean;
@@ -29,7 +33,13 @@ export const NotificationsDrawer = ({
   onClose,
 }: NotificationsDrawerProps) => {
   const [activeTab, setActiveTab] = useState<NotificationTabId>('all');
-  const [notifications, setNotifications] = useState(NOTIFICATIONS_MOCK);
+  const { data: apiNotifications } = useNotifications();
+  const markReadMutation = useMarkNotificationRead();
+  const markAllReadMutation = useMarkAllNotificationsRead();
+
+  const notifications: DisplayNotification[] = (apiNotifications ?? []).map(
+    mapNotification,
+  );
 
   const totalUnread = notifications.filter((n) => !n.read).length;
 
@@ -43,13 +53,9 @@ export const NotificationsDrawer = ({
       ? totalUnread
       : notifications.filter((n) => !n.read && n.category === tab).length;
 
-  const markAllRead = () =>
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  const markAllRead = () => markAllReadMutation.mutate();
 
-  const markRead = (id: number) =>
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
-    );
+  const markRead = (id: string) => markReadMutation.mutate(id);
 
   return (
     <Drawer open={open} onOpenChange={(v) => !v && onClose()}>
@@ -216,9 +222,9 @@ function NotificationItem({
   isLast,
   onRead,
 }: {
-  notification: AppNotification;
+  notification: DisplayNotification;
   isLast: boolean;
-  onRead: (id: number) => void;
+  onRead: (id: string) => void;
 }) {
   const { id, title, body, timestamp, read, Icon, iconBg, iconColor } =
     notification;
