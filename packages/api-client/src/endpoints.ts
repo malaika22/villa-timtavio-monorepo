@@ -1,6 +1,7 @@
 export const API = {
   bookings: {
     current: '/api/v1/bookings/current',
+    currentActive: '/api/v1/bookings/current-active',
     status: (id: string) => `/api/v1/bookings/${id}/status`,
     approveManifest: (id: string) => `/api/v1/bookings/${id}/approve-manifest`,
   },
@@ -95,11 +96,43 @@ export const API = {
     lodgifySyncStatus: '/api/v1/system/lodgify-sync-status',
     alerts: '/api/v1/system-alerts',
   },
+  analytics: {
+    overview: (period?: string) =>
+      `/api/v1/analytics/overview${period ? `?period=${period}` : ''}`,
+    revenueTrend: (year: number, compare?: number) =>
+      `/api/v1/analytics/revenue-trend?year=${year}${compare ? `&compare=${compare}` : ''}`,
+    occupancy: (period?: string) =>
+      `/api/v1/analytics/occupancy${period ? `?period=${period}` : ''}`,
+    heatMap: (date?: string, range?: string, category?: string) => {
+      const params = new URLSearchParams();
+      if (date) params.set('date', date);
+      if (range) params.set('range', range);
+      if (category) params.set('category', category);
+      const qs = params.toString();
+      return `/api/v1/analytics/heat-map${qs ? `?${qs}` : ''}`;
+    },
+    peakHours: (date?: string) =>
+      `/api/v1/analytics/peak-hours${date ? `?date=${date}` : ''}`,
+    experiences: (period?: string) =>
+      `/api/v1/analytics/experiences${period ? `?period=${period}` : ''}`,
+    upcomingStays: '/api/v1/analytics/upcoming-stays',
+    intelligenceAlerts: '/api/v1/analytics/intelligence-alerts',
+  },
   dashboard: {
     kpis: '/api/v1/dashboard/kpis',
     alertBanner: '/api/v1/dashboard/alert-banner',
     scheduleToday: '/api/v1/dashboard/schedule/today',
+    calendar: (start?: string) =>
+      `/api/v1/dashboard/calendar${start ? `?start=${start}` : ''}`,
     export: '/api/v1/dashboard/export',
+  },
+  notifications: {
+    list: (bookingId: string) => `/api/v1/notifications/bookings/${bookingId}`,
+    unreadCount: (bookingId: string) =>
+      `/api/v1/notifications/bookings/${bookingId}/unread-count`,
+    markRead: (id: string) => `/api/v1/notifications/${id}/read`,
+    markAllRead: (bookingId: string) =>
+      `/api/v1/notifications/bookings/${bookingId}/read-all`,
   },
   pusher: {
     auth: '/api/v1/pusher/auth',
