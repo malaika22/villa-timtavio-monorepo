@@ -1,0 +1,30 @@
+# Local infrastructure for Villa TimTavio.
+# Redis backs the BullMQ queues (magic-link emails, Lodgify sync). If it is
+# down, queued jobs sit "pending" and never process — see apps/api Bull setup.
+#
+# Usage:
+#   docker compose up -d        # start Redis (and any other services)
+#   docker compose ps           # check status
+#   docker compose down         # stop
+#
+# The API reads REDIS_HOST/REDIS_PORT/REDIS_PASSWORD from apps/api/.env
+# (defaults: localhost / 6379 / no password) — matched below.
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: villa-timtavio-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis-data:
