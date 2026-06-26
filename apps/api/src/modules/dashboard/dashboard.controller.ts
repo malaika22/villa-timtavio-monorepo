@@ -1,5 +1,5 @@
 // apps/api/src/dashboard/dashboard.controller.ts
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { DashboardService } from './dashboard.service';
 
@@ -19,6 +19,13 @@ export class DashboardController {
   @Roles('estate_manager', 'owner')
   getAlertBanner() {
     return this.dashboardService.getAlertBanner();
+  }
+
+  // Week calendar (occupancy, arrivals, departures, experiences)
+  @Get('calendar')
+  @Roles('estate_manager', 'owner')
+  getCalendar(@Query('start') start?: string) {
+    return this.dashboardService.getCalendar(start);
   }
 
   // Today's schedule (merged experiences + manual items)

@@ -7,6 +7,78 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class DashboardService {
   constructor(private prisma: PrismaService) {}
 
+  // ─── Week calendar: occupancy + arrivals/departures + experiences ──────────
+
+  async getCalendar(startStr?: string) {
+    // Resolve the Monday of the requested (or current) week.
+    const base = startStr ? new Date(startStr) : new Date();
+    const day = (base.getDay() + 6) % 7; // 0 = Monday
+    const weekStart = new Date(base);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() - day);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
+
+    const [bookings, requests] = await Promise.all([
+      this.prisma.booking.findMany({
+        where: {
+          status: { not: 'CANCELLED' },
+          checkIn: { lt: weekEnd },
+          checkOut: { gte: weekStart },
+        },
+        include: { primaryGuest: { select: { firstName: true, lastName: true } } },
+      }),
+      this.prisma.experienceRequest.findMany({
+        where: {
+          status: { notIn: ['CANCELLED'] },
+          preferredDate: { gte: weekStart, lt: weekEnd },
+        },
+        include: { catalogItem: { select: { name: true } } },
+      }),
+    ]);
+
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(weekStart);
+      date.setDate(date.getDate() + i);
+      const dayStart = new Date(date);
+      const dayEnd = new Date(date);
+      dayEnd.setHours(23, 59, 59, 999);
+
+      const events: {
+        id: string;
+        type: 'arrival' | 'departure' | 'occupancy' | 'experience';
+        label: string;
+        time?: string;
+      }[] = [];
+
+      for (const b of bookings) {
+        const name = `${b.primaryGuest.firstName} ${b.primaryGuest.lastName[0]}.`;
+        if (b.checkIn >= dayStart && b.checkIn <= dayEnd) {
+          events.push({ id: `${b.id}-arr`, type: 'arrival', label: `${name} arrives` });
+        } else if (b.checkOut >= dayStart && b.checkOut <= dayEnd) {
+          events.push({ id: `${b.id}-dep`, type: 'departure', label: `${name} departs` });
+        } else if (b.checkIn < dayStart && b.checkOut > dayEnd) {
+          events.push({ id: `${b.id}-occ-${i}`, type: 'occupancy', label: `${name} in residence` });
+        }
+      }
+
+      for (const r of requests) {
+        if (r.preferredDate >= dayStart && r.preferredDate <= dayEnd) {
+          events.push({
+            id: r.id,
+            type: 'experience',
+            label: r.catalogItem?.name ?? 'Experience',
+            time: r.preferredTime,
+          });
+        }
+      }
+
+      return { date: date.toISOString(), events };
+    });
+
+    return { weekStart: weekStart.toISOString(), days };
+  }
+
   async getKpis() {
     const now = new Date();
     const todayStart = new Date(
