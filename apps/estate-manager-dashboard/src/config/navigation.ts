@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   Truck,
+  UtensilsCrossed,
   Users,
 } from 'lucide-react';
 
@@ -49,7 +50,10 @@ export const managerNavSections: ManagerNavSection[] = [
   },
   {
     label: 'Content',
-    items: [{ title: 'Content Catalog', href: '/content', icon: LayoutGrid }],
+    items: [
+      { title: 'Content Catalog', href: '/content', icon: LayoutGrid },
+      { title: 'Menu', href: '/menu', icon: UtensilsCrossed },
+    ],
   },
 ];
 
@@ -166,6 +170,11 @@ export const pageMeta: Record<string, PageMeta> = {
     subtitle: 'Experiences, menus & recommendations shown to guests',
     showPreviewGuestView: true,
     showAddContentItem: true,
+    showNotifications: true,
+  },
+  '/menu': {
+    title: 'Dining Menu',
+    subtitle: 'Curate the all-inclusive food & drink menu',
     showNotifications: true,
   },
   '/overview': {

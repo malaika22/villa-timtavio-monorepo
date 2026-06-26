@@ -45,7 +45,20 @@ export function useEmPusher() {
     void queryClient.invalidateQueries({ queryKey: ['guests', 'current'] });
     void queryClient.invalidateQueries({ queryKey: ['catalog'] });
     void queryClient.invalidateQueries({ queryKey: ['bookings'] });
+    void queryClient.invalidateQueries({ queryKey: ['dining'] });
   }, [queryClient]);
+
+  const handleDiningRequested = useCallback(
+    (data: { guestName?: string; kind?: string }) => {
+      invalidateDashboard();
+      showDashboardToast(
+        'info',
+        data.kind === 'ORDER' ? 'New snack/drink order' : 'New dining sitting',
+        `${data.guestName ?? 'A guest'} submitted a dining request`,
+      );
+    },
+    [invalidateDashboard],
+  );
 
   const handleNewRequest = useCallback(
     (data: {
@@ -145,6 +158,7 @@ export function useEmPusher() {
         channel.bind('booking.arrived', handleBookingArrived);
         channel.bind('request.resolved', handleRequestResolved);
         channel.bind('breezeway.task_overdue', handleBreezeWayOverdue);
+        channel.bind('dining.requested', handleDiningRequested);
       })
       .catch((error: unknown) => {
         console.error('Failed to connect EM Pusher client:', error);
@@ -162,6 +176,7 @@ export function useEmPusher() {
     handleBookingArrived,
     handleRequestResolved,
     handleBreezeWayOverdue,
+    handleDiningRequested,
   ]);
 
   useEffect(() => {

@@ -126,6 +126,13 @@ export const API = {
       `/api/v1/dashboard/calendar${start ? `?start=${start}` : ''}`,
     export: '/api/v1/dashboard/export',
   },
+  dining: {
+    byBooking: (bookingId: string) =>
+      `/api/v1/dining/bookings/${bookingId}`,
+    create: (bookingId: string) => `/api/v1/dining/bookings/${bookingId}`,
+    confirm: (id: string) => `/api/v1/dining/${id}/confirm`,
+    cancel: (id: string) => `/api/v1/dining/${id}/cancel`,
+  },
   notifications: {
     list: (bookingId: string) => `/api/v1/notifications/bookings/${bookingId}`,
     unreadCount: (bookingId: string) =>

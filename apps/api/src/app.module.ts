@@ -23,6 +23,7 @@ import { InquiriesModule } from './modules/inqueries/inquiries.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { SystemModule } from './modules/system/system.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { DiningModule } from './modules/dining/dining.module';
 import { ExperienceCategoriesModule } from './modules/experience-categories/experience-categories.module';
 
 @Module({
@@ -57,6 +58,7 @@ import { ExperienceCategoriesModule } from './modules/experience-categories/expe
     AnalyticsModule,
     SystemModule,
     DashboardModule,
+    DiningModule,
     ExperienceCategoriesModule,
   ],
 })

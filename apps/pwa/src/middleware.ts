@@ -15,6 +15,7 @@ const PROTECTED_PATHS = [
   '/folio',
   '/checkout',
   '/rooms',
+  '/dining',
 ];
 
 export function middleware(request: NextRequest) {

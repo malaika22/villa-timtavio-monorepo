@@ -425,6 +425,33 @@ async function main() {
 
   console.log(`Seeded ${addOnExperiences.length} add-on experiences`);
 
+  // ─── Seed Dining Menu ───────────────────────────────────────────────────────
+  const menuItems = [
+    { name: 'Chilaquiles Verdes', category: 'BREAKFAST', description: 'Crispy tortillas, salsa verde, crema, queso fresco & eggs.', isVegetarian: true, isGlutenFree: true, sortOrder: 1 },
+    { name: 'Tropical Fruit Plate', category: 'BREAKFAST', description: 'Seasonal mango, papaya, pineapple & lime.', isVegetarian: true, isVegan: true, isGlutenFree: true, sortOrder: 2 },
+    { name: 'Huevos al Gusto', category: 'BREAKFAST', description: 'Eggs your way with black beans & house tortillas.', isVegetarian: true, isGlutenFree: true, sortOrder: 3 },
+    { name: 'Tuna Tostadas', category: 'LUNCH', description: 'Fresh-caught tuna, avocado, chipotle aioli.', containsShellfish: false, sortOrder: 1 },
+    { name: 'Grilled Vegetable Bowl', category: 'LUNCH', description: 'Charred seasonal vegetables, quinoa, herb dressing.', isVegetarian: true, isVegan: true, isGlutenFree: true, sortOrder: 2 },
+    { name: 'Catch of the Day', category: 'DINNER', description: 'Local fish, citrus butter, grilled vegetables.', isGlutenFree: true, sortOrder: 1 },
+    { name: 'Mole Poblano', category: 'DINNER', description: 'Slow-cooked chicken in rich house mole.', containsNuts: true, sortOrder: 2 },
+    { name: 'Agave-Glazed Short Rib', category: 'DINNER', description: 'Braised short rib, mezcal reduction, purée.', sortOrder: 3 },
+    { name: 'Guacamole & Totopos', category: 'SNACKS', description: 'Hand-mashed guacamole with warm chips.', isVegetarian: true, isVegan: true, sortOrder: 1 },
+    { name: 'Ceviche Cup', category: 'SNACKS', description: 'Citrus-cured fish, cucumber, chile.', isGlutenFree: true, sortOrder: 2 },
+    { name: 'Fresh Coconut', category: 'BEVERAGES', description: 'Chilled young coconut, served whole.', isVegan: true, isGlutenFree: true, sortOrder: 1 },
+    { name: 'Mezcal Negroni', category: 'BEVERAGES', description: 'Mezcal, bitter, sweet vermouth, orange.', isVegan: true, sortOrder: 2 },
+    { name: 'Agua Fresca de Jamaica', category: 'BEVERAGES', description: 'Hibiscus infusion, lightly sweetened.', isVegan: true, isGlutenFree: true, sortOrder: 3 },
+  ] as const;
+
+  for (const item of menuItems) {
+    const existing = await prisma.menuItem.findFirst({
+      where: { name: item.name },
+    });
+    if (!existing) {
+      await prisma.menuItem.create({ data: item as never });
+    }
+  }
+  console.log(`Seeded ${menuItems.length} menu items`);
+
   console.log('Database seeding complete.');
 }
 

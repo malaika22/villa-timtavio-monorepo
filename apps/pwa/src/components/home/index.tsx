@@ -12,6 +12,7 @@ import { GuestAddedSheet } from '@/components/manifest/GuestAddedSheet';
 import { TodaySchedule } from './today-schedule';
 import { FeaturedExperiences } from '../featured-experiences';
 import { RoomsExploreCard } from './rooms-explore/RoomsExploreCard';
+import { DiningCard } from './dining/DiningCard';
 import { useBookingStore } from '@/store/useBookingStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentBooking } from '@/hooks/useBooking';
@@ -74,7 +75,9 @@ export const Home = () => {
   const handleSave = async (data: GuestManifestFormValues) => {
     const dto = mapFormToDto(data);
     await addGuest.mutateAsync(dto);
-    void queryClient.invalidateQueries({ queryKey: ['rooms', 'availability', bookingId] });
+    void queryClient.invalidateQueries({
+      queryKey: ['rooms', 'availability', bookingId],
+    });
     setAddedGuestName(dto.firstName);
     setIsAddOpen(false);
     setShowAddedSheet(true);
@@ -116,6 +119,7 @@ export const Home = () => {
         roomCount={rooms?.length}
         previewImage={rooms?.find((r) => r.imageUrl)?.imageUrl}
       />
+      <DiningCard />
       <div className="bg-[#E3E0DA] h-[1px]" />
       <TodaySchedule />
       <FeaturedExperiences />

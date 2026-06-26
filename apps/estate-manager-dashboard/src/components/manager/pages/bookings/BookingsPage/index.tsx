@@ -8,6 +8,7 @@ import { CurrentBookingHero } from '@/components/manager/pages/bookings/CurrentB
 import { GuestManifestCard } from '@/components/manager/pages/bookings/GuestManifestCard';
 import { PreArrivalChecklist } from '@/components/manager/pages/bookings/PreArrivalChecklist';
 import { RequestedExperiencesCard } from '@/components/manager/pages/bookings/RequestedExperiencesCard';
+import { DiningSittingsCard } from '@/components/manager/pages/bookings/DiningSittingsCard';
 import { mapToCurrentBooking } from '@/lib/mappers/booking';
 import type { BookingTab } from '@/types';
 import { useCurrentActiveBooking } from '@/hooks/useBookings';
@@ -71,6 +72,8 @@ export const BookingsPage = () => {
             <BookingPreferencesCard booking={booking} />
             <PreArrivalChecklist booking={booking} />
           </div>
+
+          <DiningSittingsCard bookingId={booking.id} />
         </>
       )}
     </div>

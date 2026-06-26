@@ -158,6 +158,7 @@ model Booking {
   manifestDraft           ManifestDraft?
   folioItems              FolioItem[]
   experienceRequests      ExperienceRequest[]
+  diningRequests          DiningRequest[]
   notifications           Notification[]
   auditLogs               AuditLog[]
 
@@ -319,6 +320,13 @@ model CatalogItem {
   multiDayDuration        Int?
   availableTimeSlots      String[]        @default([])
   maxGuestCount           Int?
+  // What's-included bullet list shown on the guest experience detail
+  included                String[]        @default([])
+  // Host shown on the guest experience detail
+  hostName                String?
+  hostTitle               String?
+  hostAvatarUrl           String?
+  hostReviewNote          String?
   setupLeadTimeMinutes    Int?
   vendorId                String?
   vendor                  Vendor?         @relation(fields: [vendorId], references: [id])
@@ -359,6 +367,52 @@ model MenuItem {
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
   createdBy           String?
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DINING REQUEST — sit-down meal reservations + on-demand snack/drink orders.
+// Dining is all-inclusive (no payment); guests pick a sitting time or order
+// snacks/beverages, and the estate manager confirms.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum DiningRequestKind {
+  SITTING
+  ORDER
+}
+
+enum DiningRequestStatus {
+  REQUESTED
+  CONFIRMED
+  CANCELLED
+}
+
+model DiningRequest {
+  id                String              @id @default(cuid())
+  bookingId         String
+  booking           Booking             @relation(fields: [bookingId], references: [id])
+  requestedByEmail  String
+  requestedByName   String
+  kind              DiningRequestKind
+  status            DiningRequestStatus @default(REQUESTED)
+
+  // SITTING (BREAKFAST / LUNCH / DINNER)
+  mealType          MenuCategory?
+  date              DateTime?
+  time              String?
+  partySize         Int?
+  allergies         String?
+  specialRequests   String?
+
+  // ORDER (SNACKS / BEVERAGES) — items: [{ menuItemId, name, quantity }]
+  items             Json?
+  requestedFor      String?
+  notes             String?
+
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  @@index([bookingId])
+  @@index([status])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

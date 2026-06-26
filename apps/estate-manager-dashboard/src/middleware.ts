@@ -33,6 +33,7 @@ const EM_ONLY_ROUTES = [
   '/calendar',
   '/reports',
   '/content',
+  '/menu',
   '/vendors',
 ];
 
