@@ -21,7 +21,6 @@ import { useCurrentBooking } from '@/hooks/useBooking';
 import { useManifest, useAddManifestGuest } from '@/hooks/useManifest';
 import { usePendingApprovalRequests } from '@/hooks/useRequests';
 import { useRoomAvailability } from '@/hooks/useRoomAvailability';
-import { usePusherChannel } from '@/hooks/usePusherChannel';
 import { useQueryClient } from '@tanstack/react-query';
 import type { CreateManifestGuestDto } from '@repo/api-types';
 
@@ -54,7 +53,7 @@ export const Home = () => {
   const [addedGuestName, setAddedGuestName] = useState('');
 
   useCurrentBooking();
-  usePusherChannel(bookingId ?? null);
+  // Real-time is now subscribed globally in AppLayout (PushRegistrar).
 
   const arrivalStatus = useBookingStore((s) => s.arrivalStatus);
   const manifestStatus = useBookingStore((s) => s.manifestStatus);

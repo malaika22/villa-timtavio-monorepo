@@ -22,10 +22,11 @@ const fmtAmount = (n: number) =>
 
 export const FolioLineItems = ({ data }: FolioLineItemsProps) => {
   const [activeTab, setActiveTab] = useState<FolioTabId>('all');
-  const { items, totals } = data;
+  const { items, totals, checkedOut } = data;
 
-  const tax = totals.subtotal * totals.taxRate;
-  const grandTotal = totals.subtotal + tax;
+  const tax = totals.taxAmount ?? totals.subtotal * totals.taxRate;
+  const service = totals.serviceAmount ?? 0;
+  const grandTotal = totals.grandTotal ?? totals.subtotal + tax + service;
 
   return (
     <div className="flex flex-col bg-[#F5F0E8]">
@@ -60,11 +61,25 @@ export const FolioLineItems = ({ data }: FolioLineItemsProps) => {
 
       {/* Summary */}
       <div className="mx-4 mt-2 mb-6 border-t border-[#E3E0DA] pt-4 flex flex-col gap-2.5">
+        {checkedOut && (
+          <div className="mb-1 flex items-center gap-1.5 self-start rounded-full bg-[#EAF3E8] px-2.5 py-1">
+            <span className="size-[5px] rounded-full bg-[#3A5E48]" aria-hidden />
+            <span className="text-[8px] font-semibold uppercase tracking-[1.5px] text-[#3A5E48]">
+              Payment complete
+            </span>
+          </div>
+        )}
         <SummaryRow label="Subtotal" value={fmtAmount(totals.subtotal)} />
         <SummaryRow label={totals.taxLabel} value={fmtAmount(tax)} />
+        {service > 0 && (
+          <SummaryRow
+            label={totals.serviceLabel ?? 'Service'}
+            value={fmtAmount(service)}
+          />
+        )}
         <div className="mt-1 flex items-center justify-between">
           <span className="text-[14px] font-semibold text-[#1A1A18]">
-            Grand Total
+            {checkedOut ? 'Final Total' : 'Grand Total'}
           </span>
           <span className="text-[14px] font-semibold text-[#1A1A18]">
             {fmtAmount(grandTotal)}

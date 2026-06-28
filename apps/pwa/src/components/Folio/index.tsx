@@ -24,17 +24,24 @@ export const Folio = () => {
     const meta = mapFolioResponseToMeta(folioData);
     const items: FolioItem[] = folioData.items.map(mapFolioItemToUI);
 
+    const checkedOut = folioData.booking.status === 'CHECKED_OUT';
+
     folioMeta = {
       breakdown: {
         villa: meta.villaTotal,
         experiences: meta.experiencesTotal,
         incidentals: meta.incidentalsTotal,
       },
-      paymentInfo: 'Auto-charged at checkout',
+      paymentInfo: checkedOut ? 'Payment complete' : 'Auto-charged at checkout',
+      checkedOut,
       totals: {
         subtotal: meta.subtotal,
         taxRate: meta.taxRate,
         taxLabel: `IVA Tax (${(meta.taxRate * 100).toFixed(0)}%)`,
+        taxAmount: meta.taxAmount,
+        serviceAmount: meta.serviceAmount,
+        serviceLabel: `Service (${(meta.serviceChargeRate * 100).toFixed(0)}%)`,
+        grandTotal: meta.grandTotal,
       },
       items,
     };

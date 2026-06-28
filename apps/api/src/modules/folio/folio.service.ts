@@ -6,6 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import Stripe from 'stripe';
+import { Resend } from 'resend';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PusherService } from '../pusher/pusher.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -14,6 +15,9 @@ import { CreateFolioItemDto } from './dto/create-folio-item.dto';
 @Injectable()
 export class FolioService {
   private readonly logger = new Logger(FolioService.name);
+  private readonly resend = process.env.RESEND_API_KEY
+    ? new Resend(process.env.RESEND_API_KEY)
+    : null;
 
   constructor(
     private prisma: PrismaService,
@@ -234,12 +238,55 @@ export class FolioService {
         this.logger.error(`Receipt notification failed: ${String(err)}`),
       );
 
+    // Receipt email to the primary member (best-effort; guarded by RESEND key).
+    await this.sendReceiptEmail(
+      booking.primaryGuest.email,
+      `${booking.primaryGuest.firstName} ${booking.primaryGuest.lastName}`,
+      summary,
+    ).catch((err) =>
+      this.logger.error(`Receipt email failed: ${String(err)}`),
+    );
+
     await this.pusherService.bookingCheckedOut(bookingId, {
       grandTotal: summary.grandTotal,
       chargedAt: new Date().toISOString(),
     });
 
     return { success: true, grandTotal: summary.grandTotal, captured };
+  }
+
+  private async sendReceiptEmail(
+    to: string,
+    guestName: string,
+    summary: {
+      subtotal: number;
+      taxAmount: number;
+      serviceAmount: number;
+      grandTotal: number;
+    },
+  ) {
+    if (!this.resend) return;
+    const money = (n: number) =>
+      `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+
+    await this.resend.emails.send({
+      from: process.env.EMAIL_FROM ?? 'reservations@villatimtavio.com',
+      to,
+      subject: 'Your Villa TimTavio receipt',
+      html: `
+        <div style="font-family:Georgia,serif;max-width:520px;margin:0 auto;color:#2b2824">
+          <h2 style="font-weight:normal">Thank you, ${guestName}</h2>
+          <p style="color:#6b6661">Your stay has been settled. Here is your receipt.</p>
+          <table style="width:100%;border-collapse:collapse;margin-top:16px">
+            <tr><td style="padding:6px 0;color:#6b6661">Subtotal</td><td style="text-align:right">${money(summary.subtotal)}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b6661">Tax</td><td style="text-align:right">${money(summary.taxAmount)}</td></tr>
+            <tr><td style="padding:6px 0;color:#6b6661">Service</td><td style="text-align:right">${money(summary.serviceAmount)}</td></tr>
+            <tr><td style="padding:10px 0;border-top:1px solid #e8e4de;font-weight:bold">Total charged</td><td style="text-align:right;padding-top:10px;border-top:1px solid #e8e4de;font-weight:bold">${money(summary.grandTotal)}</td></tr>
+          </table>
+          <p style="color:#9a9288;font-size:12px;margin-top:24px">Villa TimTavio · We hope to welcome you again.</p>
+        </div>
+      `,
+    });
   }
 
   /**

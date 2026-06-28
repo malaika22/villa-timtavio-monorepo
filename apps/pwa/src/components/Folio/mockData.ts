@@ -21,6 +21,10 @@ export interface FolioTotals {
   subtotal: number;
   taxRate: number;
   taxLabel: string;
+  taxAmount?: number;
+  serviceAmount?: number;
+  serviceLabel?: string;
+  grandTotal?: number;
 }
 
 export interface FolioMeta {
@@ -28,6 +32,8 @@ export interface FolioMeta {
   paymentInfo: string;
   totals: FolioTotals;
   items: FolioItem[];
+  /** Stay has been checked out → receipt/read-only mode. */
+  checkedOut?: boolean;
 }
 
 export const FOLIO_MOCK: FolioMeta = {
