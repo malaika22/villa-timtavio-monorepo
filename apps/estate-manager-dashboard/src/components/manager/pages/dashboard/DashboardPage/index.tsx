@@ -36,7 +36,12 @@ export const DashboardPage = () => {
       ) : null}
 
       {alertBanner?.reminders?.map((reminder) => (
-        <OperationsAlertBanner key={reminder.type} message={reminder.message} />
+        <OperationsAlertBanner
+          key={reminder.type}
+          message={reminder.message}
+          reviewHref="#current-guests"
+          reviewLabel="Update status →"
+        />
       ))}
 
       {isLoading ? (
@@ -52,7 +57,10 @@ export const DashboardPage = () => {
         <MetricCardGrid metrics={metrics} variant="manager" columns={4} />
       )}
 
-      <section className="grid gap-5 xl:grid-cols-2">
+      <section
+        id="current-guests"
+        className="grid scroll-mt-24 gap-5 xl:grid-cols-2"
+      >
         {isLoading ? (
           <>
             <div className="h-64 animate-pulse rounded-xl bg-manager-border" />

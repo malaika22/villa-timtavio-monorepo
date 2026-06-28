@@ -27,7 +27,9 @@ function alertIcon(alert: SystemAlert) {
 }
 
 function alertHref(alert: SystemAlert): string | null {
-  if (alert.category === 'REMINDER') return '/';
+  // Reminders are resolved by changing booking status in the Current Guests
+  // table — deep-link straight to it.
+  if (alert.category === 'REMINDER') return '/#current-guests';
   if (alert.category === 'BOOKING') return '/approvals';
   return null;
 }
