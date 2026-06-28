@@ -12,6 +12,7 @@ export type * from './manifest';
 export type * from './system';
 export type * from './dashboard';
 export type * from './audit';
+export type * from './inventory';
 export * from './analytics';
 export * from './notifications';
 export * from './dining';

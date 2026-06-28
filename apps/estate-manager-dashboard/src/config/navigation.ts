@@ -8,6 +8,7 @@ import {
   CheckSquare,
   Flame,
   Gauge,
+  Boxes,
   Inbox,
   LayoutDashboard,
   LayoutGrid,
@@ -53,6 +54,10 @@ export const managerNavSections: ManagerNavSection[] = [
   {
     label: 'Finance',
     items: [{ title: 'Folio', href: '/folio', icon: Receipt }],
+  },
+  {
+    label: 'Property',
+    items: [{ title: 'Inventory', href: '/inventory', icon: Boxes }],
   },
   {
     label: 'Content',
@@ -195,6 +200,11 @@ export const pageMeta: Record<string, PageMeta> = {
   '/audit-log': {
     title: 'Audit Log',
     subtitle: 'Immutable record of every action',
+    showNotifications: true,
+  },
+  '/inventory': {
+    title: 'Inventory',
+    subtitle: 'Stock levels, low-stock alerts & reorders',
     showNotifications: true,
   },
   '/overview': {

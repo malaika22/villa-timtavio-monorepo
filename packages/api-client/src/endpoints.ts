@@ -161,4 +161,9 @@ export const API = {
     draft: (bookingId: string) => `/api/v1/manifest/${bookingId}/draft`,
   },
   auditLog: '/api/v1/audit-log',
+  inventory: {
+    list: '/api/v1/inventory',
+    adjust: (id: string) => `/api/v1/inventory/${id}/adjust`,
+    reorder: (id: string) => `/api/v1/inventory/${id}/reorder`,
+  },
 } as const;
