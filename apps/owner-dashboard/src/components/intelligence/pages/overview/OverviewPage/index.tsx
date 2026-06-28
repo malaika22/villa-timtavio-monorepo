@@ -12,14 +12,17 @@ import {
   villaOccupancy,
 } from '@/lib/mock-data';
 import { useUpcomingGuests } from '@/hooks/useGuests';
+import { useAnalyticsOverview, overviewToMetrics } from '@/hooks/useAnalytics';
 
 export const OverviewPage = () => {
   const { data: upcomingData, isLoading } = useUpcomingGuests();
+  const { data: overview } = useAnalyticsOverview();
   const staysToShow = upcomingData ?? upcomingStays;
+  const metrics = overview ? overviewToMetrics(overview) : overviewMetrics;
 
   return (
     <div className="space-y-6">
-      <MetricCardGrid metrics={overviewMetrics} />
+      <MetricCardGrid metrics={metrics} />
 
       <section>
         <div className="mb-3 flex items-center justify-between">
