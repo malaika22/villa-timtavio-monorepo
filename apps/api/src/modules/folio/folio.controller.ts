@@ -14,7 +14,10 @@ export class FolioController {
     return this.folioService.getDailyRevenue();
   }
 
+  // Priced folio is visible to the estate, owner, and the booking's primary
+  // member only — secondary guests never see pricing (they use My Orders).
   @Get(':bookingId')
+  @Roles('estate_manager', 'owner', 'primary_member')
   getForBooking(@Param('bookingId') bookingId: string) {
     return this.folioService.getForBooking(bookingId);
   }
