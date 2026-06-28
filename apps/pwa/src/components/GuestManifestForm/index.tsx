@@ -66,6 +66,10 @@ type GuestManifestFormProps = {
   onCancel?: () => void;
   onSave?: (data: GuestManifestFormValues) => void | Promise<void>;
   onRemoveGuest?: () => void;
+  /** Error from a failed remove (e.g. link already sent) */
+  removeError?: string | null;
+  /** Remove mutation in flight */
+  removing?: boolean;
   rooms?: RoomWithAvailability[];
   /** If provided, form opens prefilled (edit mode) */
   initialValues?: GuestManifestFormValues;
@@ -81,6 +85,8 @@ export function GuestManifestForm({
   onCancel,
   onSave,
   onRemoveGuest,
+  removeError,
+  removing = false,
   open,
   onClose,
   rooms: livRooms,
@@ -670,10 +676,16 @@ export function GuestManifestForm({
                       type="button"
                       variant="ghost"
                       onClick={onRemoveGuest}
-                      className="text-center text-[12px] font-medium text-[#B42318] underline-offset-2 hover:underline"
+                      disabled={removing}
+                      className="text-center text-[12px] font-medium text-[#B42318] underline-offset-2 hover:underline disabled:opacity-60"
                     >
-                      Remove this guest
+                      {removing ? 'Removing…' : 'Remove this guest'}
                     </Button>
+                  )}
+                  {removeError && (
+                    <p className="text-center text-[11px] leading-snug text-[#B42318]">
+                      {removeError}
+                    </p>
                   )}
                 </div>
               </>

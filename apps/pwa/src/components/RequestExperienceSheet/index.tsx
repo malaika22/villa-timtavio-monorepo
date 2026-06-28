@@ -15,6 +15,7 @@ import { ExperienceSheetProps } from './types';
 import { CalenderPicker } from '../CalenderPicker';
 import { SubmitRequestButton } from './SubmitRequestButton';
 import { useCreateRequest } from '@/hooks/useRequests';
+import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
 
 export function RequestExperienceSheet({
@@ -33,6 +34,9 @@ export function RequestExperienceSheet({
 
   const maxGuests = detail.maxGuests ?? 8;
   const base = detail.basePrice ?? 0;
+  const { isPrimary } = useAuth();
+  // Pricing is for the primary member only — secondary guests never see cost.
+  const showPrice = isPrimary && base > 0;
   const createRequest = useCreateRequest();
 
   const handleSubmitRequest = async () => {
@@ -179,12 +183,14 @@ export function RequestExperienceSheet({
               />
             </section>
 
-            {/* Price breakdown */}
-            {base > 0 && (
+            {/* Price breakdown — primary member only */}
+            {showPrice && (
               <section className="rounded-xl border border-[#E3E0DA] bg-white px-4 py-3.5">
                 <div className="flex items-center justify-between text-[12px] text-[#797168]">
                   <span>{experience.title}</span>
-                  <span className="tabular-nums">${base.toLocaleString()}.00</span>
+                  <span className="tabular-nums">
+                    ${base.toLocaleString()}.00
+                  </span>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-[12px] text-[#797168]">
                   <span>Service charge (16%)</span>

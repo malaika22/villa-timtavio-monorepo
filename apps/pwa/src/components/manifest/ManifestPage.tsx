@@ -4,7 +4,14 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, ArrowLeft, ArrowRight, Pencil, Check, Clock } from 'lucide-react';
+import {
+  Plus,
+  ArrowLeft,
+  ArrowRight,
+  Pencil,
+  Check,
+  Clock,
+} from 'lucide-react';
 import { Button } from '@repo/ui/components/button';
 import { Progress } from '@repo/ui/components/progress';
 import { cn } from '@repo/ui/lib/utils';
@@ -14,6 +21,7 @@ import {
   useManifest,
   useAddManifestGuest,
   useUpdateManifestGuest,
+  useRemoveManifestGuest,
   useSubmitManifest,
 } from '@/hooks/useManifest';
 import { useRoomAvailability } from '@/hooks/useRoomAvailability';
@@ -113,7 +121,9 @@ export const ManifestPage = () => {
   const { data: rooms, isLoading: roomsLoading } = useRoomAvailability();
   const addGuest = useAddManifestGuest();
   const updateGuest = useUpdateManifestGuest();
+  const removeGuest = useRemoveManifestGuest();
   const submitManifest = useSubmitManifest();
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<ManifestGuest | null>(null);
@@ -226,7 +236,11 @@ export const ManifestPage = () => {
         (status === 'APPROVED' ? (
           <div className="mb-5 flex items-center gap-3 rounded-[12px] border border-[#3A5E48]/30 bg-[#EAF3E8] px-4 py-3.5">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#3A5E48]">
-              <Check className="size-4 text-white" strokeWidth={2.5} aria-hidden />
+              <Check
+                className="size-4 text-white"
+                strokeWidth={2.5}
+                aria-hidden
+              />
             </span>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold text-[#2F4A3A]">
@@ -240,7 +254,11 @@ export const ManifestPage = () => {
         ) : (
           <div className="mb-5 flex items-center gap-3 rounded-[12px] border border-[#854F0B]/30 bg-[#FAEEDA] px-4 py-3.5">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#BA7517]">
-              <Clock className="size-4 text-white" strokeWidth={2.5} aria-hidden />
+              <Clock
+                className="size-4 text-white"
+                strokeWidth={2.5}
+                aria-hidden
+              />
             </span>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold text-[#7A4A0B]">
@@ -408,12 +426,24 @@ export const ManifestPage = () => {
         onSave={handleSave}
         onRemoveGuest={
           editingGuest
-            ? () => {
-                setIsAddOpen(false);
-                setEditingGuest(null);
+            ? async () => {
+                setRemoveError(null);
+                try {
+                  await removeGuest.mutateAsync(editingGuest.id);
+                  setIsAddOpen(false);
+                  setEditingGuest(null);
+                } catch (err) {
+                  setRemoveError(
+                    err instanceof Error
+                      ? err.message
+                      : 'This guest can no longer be removed — their access link was already sent.',
+                  );
+                }
               }
             : undefined
         }
+        removeError={removeError}
+        removing={removeGuest.isPending}
         rooms={rooms}
         guestId={editingGuest?.id}
         initialValues={

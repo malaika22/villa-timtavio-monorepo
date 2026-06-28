@@ -2,11 +2,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FOOTER_LINKS } from './constants';
+import { getFooterLinks } from './constants';
+import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@repo/ui/lib/utils';
 
 export const Footer = () => {
   const pathname = usePathname();
+  const { isSecondary } = useAuth();
+  const links = getFooterLinks(isSecondary);
 
   return (
     <footer
@@ -19,7 +22,7 @@ export const Footer = () => {
       )}
     >
       <div className="flex items-center justify-between py-3 max-w-[330px] mx-auto">
-        {FOOTER_LINKS.map(({ href, Icon, label }) => {
+        {links.map(({ href, Icon, label }) => {
           const isActive = pathname === href;
 
           return (
