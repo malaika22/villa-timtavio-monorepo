@@ -11,6 +11,7 @@ import {
   Inbox,
   LayoutDashboard,
   LayoutGrid,
+  Receipt,
   Truck,
   UtensilsCrossed,
   Users,
@@ -47,6 +48,10 @@ export const managerNavSections: ManagerNavSection[] = [
       { title: 'Calendar', href: '/calendar', icon: Calendar },
       { title: 'Reports', href: '/reports', icon: BarChart3 },
     ],
+  },
+  {
+    label: 'Finance',
+    items: [{ title: 'Folio', href: '/folio', icon: Receipt }],
   },
   {
     label: 'Content',
@@ -175,6 +180,11 @@ export const pageMeta: Record<string, PageMeta> = {
   '/menu': {
     title: 'Dining Menu',
     subtitle: 'Curate the all-inclusive food & drink menu',
+    showNotifications: true,
+  },
+  '/folio': {
+    title: 'Folio',
+    subtitle: 'Guest charges, incidentals & checkout',
     showNotifications: true,
   },
   '/overview': {
