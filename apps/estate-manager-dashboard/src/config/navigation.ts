@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   Receipt,
+  ScrollText,
   Truck,
   UtensilsCrossed,
   Users,
@@ -59,6 +60,10 @@ export const managerNavSections: ManagerNavSection[] = [
       { title: 'Content Catalog', href: '/content', icon: LayoutGrid },
       { title: 'Menu', href: '/menu', icon: UtensilsCrossed },
     ],
+  },
+  {
+    label: 'System',
+    items: [{ title: 'Audit Log', href: '/audit-log', icon: ScrollText }],
   },
 ];
 
@@ -185,6 +190,11 @@ export const pageMeta: Record<string, PageMeta> = {
   '/folio': {
     title: 'Folio',
     subtitle: 'Guest charges, incidentals & checkout',
+    showNotifications: true,
+  },
+  '/audit-log': {
+    title: 'Audit Log',
+    subtitle: 'Immutable record of every action',
     showNotifications: true,
   },
   '/overview': {

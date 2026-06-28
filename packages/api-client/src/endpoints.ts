@@ -160,4 +160,5 @@ export const API = {
     linkOpened: '/api/v1/manifest/link-opened',
     draft: (bookingId: string) => `/api/v1/manifest/${bookingId}/draft`,
   },
+  auditLog: '/api/v1/audit-log',
 } as const;
