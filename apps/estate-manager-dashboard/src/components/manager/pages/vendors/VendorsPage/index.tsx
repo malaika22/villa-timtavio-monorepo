@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 
 import { AddVendorCard } from '@/components/manager/pages/vendors/AddVendorCard';
+import { AddVendorDialog } from '@/components/manager/pages/vendors/AddVendorDialog';
 import { VendorCard } from '@/components/manager/pages/vendors/VendorCard';
 import { VendorsFilterBar } from '@/components/manager/pages/vendors/VendorsFilterBar';
 import { vendorProfiles } from '@/lib/vendors-mock-data';
@@ -33,6 +34,7 @@ function filterVendors(
 export const VendorsPage = () => {
   const [activeTab, setActiveTab] = useState<VendorFilterTab>('all');
   const [search, setSearch] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
 
   const { data: vendorData, isLoading } = useVendors();
   const allVendors: VendorProfile[] = vendorData
@@ -67,9 +69,11 @@ export const VendorsPage = () => {
           {filtered.map((vendor) => (
             <VendorCard key={vendor.id} vendor={vendor} />
           ))}
-          <AddVendorCard />
+          <AddVendorCard onClick={() => setAddOpen(true)} />
         </div>
       )}
+
+      <AddVendorDialog open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 };

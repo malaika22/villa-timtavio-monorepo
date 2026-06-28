@@ -2,12 +2,17 @@
 
 import { useState } from 'react';
 
-import { useCrmNotes, useAddCrmNote } from '@/hooks/useCrmNotes';
+import {
+  useCrmNotes,
+  useAddCrmNote,
+  useMarkNoteStale,
+} from '@/hooks/useCrmNotes';
 import type { GuestDNAProfile } from '@/types';
 
 export const GuestStaffNotes = ({ profile }: { profile: GuestDNAProfile }) => {
   const { data: notes, isLoading } = useCrmNotes(profile.id);
   const addNote = useAddCrmNote(profile.id);
+  const markStale = useMarkNoteStale(profile.id);
   const [draft, setDraft] = useState('');
 
   const displayNote = notes?.[0] ?? null;
@@ -34,14 +39,26 @@ export const GuestStaffNotes = ({ profile }: { profile: GuestDNAProfile }) => {
               ? `[Stale] ${displayNote.note}`
               : displayNote.note}
           </p>
-          <p className="mt-2 text-sm text-manager-text-muted">
-            Added by {displayNote.addedBy} ·{' '}
-            {new Date(displayNote.createdAt).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })}
-          </p>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <p className="text-sm text-manager-text-muted">
+              Added by {displayNote.addedBy} ·{' '}
+              {new Date(displayNote.createdAt).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })}
+            </p>
+            {!displayNote.isStale && (
+              <button
+                type="button"
+                onClick={() => markStale.mutate(displayNote.id)}
+                disabled={markStale.isPending}
+                className="shrink-0 text-[11px] font-medium text-manager-text-muted underline-offset-2 hover:underline disabled:opacity-50"
+              >
+                Mark no longer relevant
+              </button>
+            )}
+          </div>
         </>
       ) : (
         <p className="text-sm leading-relaxed text-manager-text">
