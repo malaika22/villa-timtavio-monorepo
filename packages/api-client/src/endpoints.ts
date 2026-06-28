@@ -119,6 +119,7 @@ export const API = {
       `/api/v1/analytics/experiences${period ? `?period=${period}` : ''}`,
     upcomingStays: '/api/v1/analytics/upcoming-stays',
     intelligenceAlerts: '/api/v1/analytics/intelligence-alerts',
+    satisfaction: '/api/v1/analytics/satisfaction',
   },
   dashboard: {
     kpis: '/api/v1/dashboard/kpis',

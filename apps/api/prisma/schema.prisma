@@ -868,3 +868,23 @@ model EstateSettings {
   notifyStripeError  Boolean  @default(true)
   updatedAt          DateTime @updatedAt @default(now())
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SATISFACTION — post-stay guest review (owner analytics)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SatisfactionReview {
+  id          String   @id @default(cuid())
+  bookingId   String?
+  overall     Int
+  cleanliness Int
+  staff       Int
+  experiences Int
+  privacy     Int
+  value       Int
+  arrival     Int
+  comment     String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+}

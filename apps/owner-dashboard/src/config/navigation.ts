@@ -4,6 +4,7 @@ import {
   Clock,
   DollarSign,
   Grid3x3,
+  Heart,
   LineChart,
   Star,
   Users,
@@ -23,6 +24,7 @@ export const intelligenceNavigation: IntelligenceNavItem[] = [
   { title: 'Experiences', href: '/experiences', icon: Star },
   { title: 'Vendors', href: '/vendors', icon: Users },
   { title: 'Capital Insights', href: '/capital-insights', icon: DollarSign },
+  { title: 'Satisfaction', href: '/satisfaction', icon: Heart },
   { title: 'System Health', href: '/system-health', icon: Activity },
 ];
 
@@ -55,6 +57,10 @@ export const pageMeta: Record<string, PageMeta> = {
   '/capital-insights': {
     title: 'Capital Insights',
     subtitle: 'Buy vs. rent analysis & equipment decisions',
+  },
+  '/satisfaction': {
+    title: 'Guest Satisfaction',
+    subtitle: 'Scores, sentiment & themes from post-stay reviews',
   },
   '/system-health': {
     title: 'System Health',

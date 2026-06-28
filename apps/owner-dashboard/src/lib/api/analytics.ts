@@ -24,4 +24,13 @@ export const analyticsApi = {
   peakHours: (date?: string) => api.get<unknown>(API.analytics.peakHours(date)),
   experiences: (period?: string) =>
     api.get<unknown>(API.analytics.experiences(period)),
+  satisfaction: () => api.get<SatisfactionResponse>(API.analytics.satisfaction),
 };
+
+export interface SatisfactionResponse {
+  overall: number;
+  reviewCount: number;
+  categories: { key: string; label: string; score: number }[];
+  trend: { month: string; score: number }[];
+  themes: { praise: string[]; improvement: string[] };
+}

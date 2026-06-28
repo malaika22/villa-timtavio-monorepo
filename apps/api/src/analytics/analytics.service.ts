@@ -38,11 +38,73 @@ export class AnalyticsService {
     const daysInYear = 365;
     const occupancyRate = Math.round((totalNights / daysInYear) * 100);
 
+    const sat = await this.prisma.satisfactionReview.aggregate({
+      _avg: { overall: true },
+    });
+
     return {
       ytdRevenue: Number(revenue._sum.amount || 0),
       occupancyRate,
       experiencesBooked: experiences,
-      avgSatisfaction: 4.94, // TODO: wire to real ratings
+      avgSatisfaction: sat._avg.overall
+        ? Math.round(sat._avg.overall * 100) / 100
+        : 0,
+    };
+  }
+
+  // ─── Satisfaction (owner) ─────────────────────────────────────────────────
+
+  async getSatisfaction() {
+    const reviews = await this.prisma.satisfactionReview.findMany({
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const count = reviews.length;
+    const avg = (key: 'overall' | 'cleanliness' | 'staff' | 'experiences' | 'privacy' | 'value' | 'arrival') =>
+      count === 0
+        ? 0
+        : Math.round(
+            (reviews.reduce((s, r) => s + Number(r[key] ?? 0), 0) / count) * 100,
+          ) / 100;
+
+    const categories = [
+      { key: 'cleanliness', label: 'Cleanliness', score: avg('cleanliness') },
+      { key: 'staff', label: 'Staff', score: avg('staff') },
+      { key: 'experiences', label: 'Experiences', score: avg('experiences') },
+      { key: 'privacy', label: 'Privacy', score: avg('privacy') },
+      { key: 'value', label: 'Value', score: avg('value') },
+      { key: 'arrival', label: 'Arrival', score: avg('arrival') },
+    ];
+
+    // Monthly sentiment trend (avg overall per month).
+    const byMonth = new Map<string, { sum: number; n: number }>();
+    for (const r of reviews) {
+      const key = `${r.createdAt.getFullYear()}-${String(r.createdAt.getMonth() + 1).padStart(2, '0')}`;
+      const cur = byMonth.get(key) ?? { sum: 0, n: 0 };
+      cur.sum += r.overall;
+      cur.n += 1;
+      byMonth.set(key, cur);
+    }
+    const trend = [...byMonth.entries()].map(([month, { sum, n }]) => ({
+      month,
+      score: Math.round((sum / n) * 100) / 100,
+    }));
+
+    // Themes: praise = strongest categories, improvement = weakest below 4.5
+    // (a production build would NLP the free-text comments).
+    const sorted = [...categories].sort((a, b) => b.score - a.score);
+    const praise = sorted.slice(0, 2).map((c) => c.label);
+    const improvement = sorted
+      .slice(-2)
+      .filter((c) => c.score < 4.5)
+      .map((c) => c.label);
+
+    return {
+      overall: avg('overall'),
+      reviewCount: count,
+      categories,
+      trend,
+      themes: { praise, improvement },
     };
   }
 

@@ -82,3 +82,12 @@ export function useExperiencePerformance(period?: string) {
     staleTime: TEN_MINUTES,
   });
 }
+
+export function useSatisfaction() {
+  return useQuery({
+    queryKey: ['analytics', 'satisfaction'],
+    queryFn: analyticsApi.satisfaction,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}
