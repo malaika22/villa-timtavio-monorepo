@@ -23,7 +23,9 @@ export class NotificationsService {
     this.vapidReady = Boolean(pub && priv);
     if (this.vapidReady) {
       webpush.setVapidDetails(
-        process.env.VAPID_SUBJECT ?? 'mailto:estate@villatimtavio.com',
+        process.env.VAPID_SUBJECT ??
+          process.env.VAPID_EMAIL ??
+          'mailto:estate@villatimtavio.com',
         pub!,
         priv!,
       );

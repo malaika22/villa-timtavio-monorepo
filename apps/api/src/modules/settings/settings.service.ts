@@ -90,7 +90,7 @@ export class SettingsService {
       {
         key: 'breezeway',
         name: 'Breezeway',
-        connected: configured('BREEZEWAY_API_KEY', 'BREEZEWAY_CLIENT_ID'),
+        connected: configured('BREEZEWAY_API_KEY', 'BREEZEWAY_ORG_ID'),
         lastSyncAt: null,
       },
       {
