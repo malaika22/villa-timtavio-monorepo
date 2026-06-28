@@ -18,11 +18,15 @@ import {
 import type { ContentCatalogTab, ContentExperience } from '@/types';
 import {
   useCatalogAdmin,
-  useDeleteCatalogItem,
   useToggleCatalogItem,
   useImportCatalogCsv,
 } from '@/hooks/useCatalogAdmin';
 import { useExperienceCategories } from '@/hooks/useExperienceCategories';
+import { ExperienceDeleteDialog } from '@/components/manager/pages/content/ExperienceDeleteDialog';
+import { MenusTabView } from '@/components/manager/pages/content/MenusTabView';
+import { RecommendationsTabView } from '@/components/manager/pages/content/RecommendationsTabView';
+import { useMenu } from '@/hooks/useMenu';
+import { useRecommendations } from '@/hooks/useCatalogAdmin';
 import { mapCatalogItemToContentExperience } from '@/lib/mappers/catalog';
 
 type FilterValue = 'all' | string;
@@ -54,12 +58,15 @@ export const ContentCatalogPage = () => {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [editingExperience, setEditingExperience] =
     useState<ContentExperience | null>(null);
+  const [deletingExperience, setDeletingExperience] =
+    useState<ContentExperience | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: catalogData, isLoading } = useCatalogAdmin();
   const { data: categories = [] } = useExperienceCategories();
+  const { data: menuItems = [] } = useMenu();
+  const { data: recommendations = [] } = useRecommendations();
   const toggleActive = useToggleCatalogItem();
-  const deleteItem = useDeleteCatalogItem();
   const importCsv = useImportCatalogCsv();
 
   const openExperienceForm = useCallback((experienceId?: string) => {
@@ -98,10 +105,6 @@ export const ContentCatalogPage = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleDelete = async (experience: ContentExperience) => {
-    if (!window.confirm(`Delete "${experience.name}" from the catalog?`)) return;
-    await deleteItem.mutateAsync(experience.id);
-  };
 
   return (
     <div className="font-inter space-y-6">
@@ -109,6 +112,8 @@ export const ContentCatalogPage = () => {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         experienceCount={allExperiences.length}
+        menuCount={menuItems.length}
+        recommendationCount={recommendations.length}
       />
 
       {activeTab === 'experiences' ? (
@@ -130,37 +135,33 @@ export const ContentCatalogPage = () => {
             </div>
           )}
 
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <ContentCatalogToolbar
-                search={search}
-                onSearchChange={setSearch}
-                activeFilter={activeFilter}
-                onFilterChange={setActiveFilter}
-                summary={`${allExperiences.length} experiences · ${activeCount} active`}
-                categories={categories}
-                onManageCategories={() => setCategoryDialogOpen(true)}
-              />
-            </div>
-            <div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,text/csv"
-                className="hidden"
-                onChange={handleCsvUpload}
-              />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={handleCsvUpload}
+          />
+          <ContentCatalogToolbar
+            search={search}
+            onSearchChange={setSearch}
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
+            summary={`${allExperiences.length} experiences · ${activeCount} active`}
+            categories={categories}
+            onManageCategories={() => setCategoryDialogOpen(true)}
+            action={
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={importCsv.isPending}
-                className="font-inter inline-flex items-center gap-2 rounded-lg border border-[#e5e0d8] bg-white px-3.5 py-2 text-sm font-medium text-manager-text shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:bg-[#faf8f5] disabled:cursor-not-allowed disabled:opacity-50"
+                className="font-inter inline-flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-[#e5e0d8] bg-white px-3.5 text-sm font-medium text-manager-text shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:bg-[#faf8f5] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <Upload className="size-3.5" />
+                <Upload className="size-3.5 shrink-0" />
                 {importCsv.isPending ? 'Importing…' : 'Import CSV'}
               </button>
-            </div>
-          </div>
+            }
+          />
 
           {isLoading ? (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
@@ -179,22 +180,17 @@ export const ContentCatalogPage = () => {
                   experience={experience}
                   onToggle={() => toggleActive.mutate(experience.id)}
                   onEdit={() => openExperienceForm(experience.id)}
-                  onDelete={() => void handleDelete(experience)}
+                  onDelete={() => setDeletingExperience(experience)}
                 />
               ))}
               <AddExperienceCard onClick={() => openExperienceForm()} />
             </div>
           )}
         </div>
+      ) : activeTab === 'menus' ? (
+        <MenusTabView />
       ) : (
-        <div className="rounded-xl border border-[#e8e4de] bg-white px-6 py-16 text-center shadow-[0_1px_3px_rgba(26,22,20,0.04)]">
-          <p className="font-cormorant text-2xl text-manager-text">
-            {activeTab === 'menus' ? 'Menus' : 'Recommendations'}
-          </p>
-          <p className="font-inter mt-2 text-sm text-manager-text-muted">
-            Switch to Experiences to view the catalog grid.
-          </p>
-        </div>
+        <RecommendationsTabView />
       )}
 
       <ExperienceFormDialog
@@ -206,6 +202,13 @@ export const ContentCatalogPage = () => {
       <CategoryManageDialog
         open={categoryDialogOpen}
         onOpenChange={setCategoryDialogOpen}
+      />
+
+      <ExperienceDeleteDialog
+        open={!!deletingExperience}
+        onOpenChange={(open) => !open && setDeletingExperience(null)}
+        experienceId={deletingExperience?.id ?? null}
+        experienceName={deletingExperience?.name ?? ''}
       />
     </div>
   );

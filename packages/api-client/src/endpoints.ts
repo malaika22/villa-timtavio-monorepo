@@ -39,6 +39,7 @@ export const API = {
     emQueue: '/api/v1/requests/em/queue',
     emActive: '/api/v1/requests/em/active',
     emToday: '/api/v1/requests/em/today',
+    emHistory: '/api/v1/requests/em/history',
     approve: (id: string) => `/api/v1/requests/${id}/approve`,
     decline: (id: string) => `/api/v1/requests/${id}/decline`,
     confirmCost: (id: string) => `/api/v1/requests/${id}/confirm-cost`,
@@ -95,6 +96,7 @@ export const API = {
   system: {
     lodgifySyncStatus: '/api/v1/system/lodgify-sync-status',
     alerts: '/api/v1/system-alerts',
+    dismissAlert: (id: string) => `/api/v1/system-alerts/${id}/dismiss`,
   },
   analytics: {
     overview: (period?: string) =>

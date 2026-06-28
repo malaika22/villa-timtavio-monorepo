@@ -13,6 +13,14 @@ export function useCatalogAdmin() {
   });
 }
 
+export function useRecommendations() {
+  return useQuery({
+    queryKey: ['catalog', 'recommendations'],
+    queryFn: emCatalogApi.recommendations,
+    staleTime: 60_000,
+  });
+}
+
 export function useToggleCatalogItem() {
   const queryClient = useQueryClient();
   return useMutation({

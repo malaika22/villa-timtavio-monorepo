@@ -55,3 +55,31 @@ export function useCreateRequest() {
     },
   });
 }
+
+function useInvalidateApprovals() {
+  const bookingId = useBookingId();
+  const queryClient = useQueryClient();
+  return () => {
+    void queryClient.invalidateQueries({
+      queryKey: ['requests', bookingId, 'pending-approval'],
+    });
+    void queryClient.invalidateQueries({ queryKey: ['requests', bookingId] });
+  };
+}
+
+export function usePrimaryApprove() {
+  const invalidate = useInvalidateApprovals();
+  return useMutation({
+    mutationFn: (id: string) => requestsApi.primaryApprove(id),
+    onSuccess: invalidate,
+  });
+}
+
+export function usePrimaryDecline() {
+  const invalidate = useInvalidateApprovals();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      requestsApi.primaryDecline(id, reason),
+    onSuccess: invalidate,
+  });
+}

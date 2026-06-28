@@ -6,12 +6,14 @@ const styles: Record<GuestStayStatus, string> = {
   Settled: 'bg-manager-success-bg text-[#1e7e34]',
   Departing: 'bg-manager-info-bg text-[#1e429f]',
   Arriving: 'bg-manager-warning-bg text-[#b45309]',
+  Departed: 'bg-[#eef0f2] text-[#64748b]',
 };
 
 const dotStyles: Record<GuestStayStatus, string> = {
   Settled: 'bg-[#1e7e34]',
   Departing: 'bg-[#1e429f]',
   Arriving: 'bg-[#b45309]',
+  Departed: 'bg-[#64748b]',
 };
 
 export const GuestStatusDot = ({ status }: { status: GuestStayStatus }) => (

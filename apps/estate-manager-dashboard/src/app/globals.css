@@ -6,3 +6,25 @@
 @source "../../../../packages/ui/src/**/*.tsx";
 @source "../../../../packages/dashboard-ui/src/**/*.ts";
 @source "../../../../packages/dashboard-ui/src/**/*.tsx";
+
+/* ─── Custom scrollbars (app-wide) ─────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cfc8bd transparent;
+}
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #cfc8bd;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #b3aa9c;
+}

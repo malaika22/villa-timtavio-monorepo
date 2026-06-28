@@ -33,6 +33,19 @@ export interface ManifestGuest {
   pwaLinkOpened: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Experiences this guest has requested (grouped by guest email). */
+  experiences?: GuestExperienceSummary[];
+}
+
+export interface GuestExperienceSummary {
+  id: string;
+  name: string;
+  category?: string | null;
+  status: string;
+  preferredDate: string;
+  preferredTime: string;
+  confirmedDate?: string | null;
+  confirmedTime?: string | null;
 }
 
 export interface CurrentBooking {

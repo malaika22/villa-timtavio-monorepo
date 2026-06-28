@@ -47,6 +47,11 @@ export const ApprovalsQueueTable = ({ rows }: { rows: ApprovalQueueItem[] }) => 
         <div className="min-w-[140px]">
           <p className="text-sm font-semibold text-manager-text">{row.experience}</p>
             <p className="text-[15px] text-manager-text-muted">{row.experienceDetail}</p>
+          {row.status === 'Declined' && row.declineReason ? (
+            <p className="mt-0.5 text-xs italic text-[#b42318]">
+              “{row.declineReason}”
+            </p>
+          ) : null}
         </div>
       ),
     },

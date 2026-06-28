@@ -116,7 +116,7 @@ export class RequestsService {
         type: 'REQUEST_CONFIRMED',
         title: 'Guest upgrade request',
         body: `${requestedBy.name} has requested ${catalogItem.name} — tap to approve or decline`,
-        deepLink: `/requests/${request.id}/approve`,
+        deepLink: `/approvals`,
       });
 
       await this.pusherService.secondaryRequestPending(bookingId, {
@@ -381,6 +381,20 @@ export class RequestsService {
           }
         : request.booking,
     }));
+  }
+
+  // Resolved requests (declined / completed) so the EM can keep track —
+  // includes primary-declined requests with the reason the primary gave.
+  async getHistory() {
+    return this.prisma.experienceRequest.findMany({
+      where: { status: { in: ['COMPLETED', 'CANCELLED'] } },
+      include: {
+        catalogItem: { include: { vendor: true } },
+        booking: { include: { primaryGuest: true } },
+      },
+      orderBy: { statusUpdatedAt: 'desc' },
+      take: 100,
+    });
   }
 
   async getActive() {

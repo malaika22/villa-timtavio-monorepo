@@ -1,28 +1,29 @@
 import type { NextConfig } from 'next';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const withPWA = require('next-pwa')({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-});
-
 const nextConfig: NextConfig = {
   transpilePackages: ['@repo/ui', '@repo/api-client', '@repo/api-types'],
   images: {
-    remotePatterns: [
-      { protocol: 'https', hostname: 'images.unsplash.com' },
-    ],
+    remotePatterns: [{ protocol: 'https', hostname: 'images.unsplash.com' }],
   },
 };
 
-export default withPWA({
-  dest: 'public',
-  cacheOnFrontEndNav: true,
-  aggressiveFrontEndNavCaching: true,
-  reloadOnOnline: true,
-  disable: process.env.NODE_ENV === 'development',
-  workboxOptions: {
-    disableDevLogs: true,
-  },
-})(nextConfig);
+// next-pwa injects a webpack config, which Next 16 rejects under Turbopack
+// (the dev/build default). The service worker is only needed for production,
+// so wrap with next-pwa there only — dev runs clean on Turbopack, and the
+// production build uses webpack (see the `build` script: `next build --webpack`).
+function buildConfig(): NextConfig {
+  if (process.env.NODE_ENV !== 'production') return nextConfig;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const withPWA = require('next-pwa')({
+    dest: 'public',
+    register: true,
+    skipWaiting: true,
+    cacheOnFrontEndNav: true,
+    aggressiveFrontEndNavCaching: true,
+    reloadOnOnline: true,
+    workboxOptions: { disableDevLogs: true },
+  });
+  return withPWA(nextConfig);
+}
+
+export default buildConfig();

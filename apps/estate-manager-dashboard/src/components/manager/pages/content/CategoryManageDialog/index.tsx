@@ -3,16 +3,18 @@
 import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
-import { Pencil, Trash2 } from 'lucide-react';
+import { AlertTriangle, Pencil, Trash2 } from 'lucide-react';
 import {
   Button,
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   Input,
 } from '@repo/ui';
+import { toast } from 'sonner';
 
 import {
   Form,
@@ -45,6 +47,8 @@ export const CategoryManageDialog = ({ open, onOpenChange }: Props) => {
   const updateCategory = useUpdateExperienceCategory();
   const deleteCategory = useDeleteExperienceCategory();
   const [editing, setEditing] = useState<ExperienceCategory | null>(null);
+  const [confirmDelete, setConfirmDelete] =
+    useState<ExperienceCategory | null>(null);
 
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categoryFormSchema),
@@ -82,21 +86,30 @@ export const CategoryManageDialog = ({ open, onOpenChange }: Props) => {
     });
   };
 
-  const handleDelete = async (category: ExperienceCategory) => {
-    if (
-      !window.confirm(
-        `Delete "${category.name}"? Categories with experiences cannot be removed.`,
-      )
-    ) {
-      return;
-    }
-    await deleteCategory.mutateAsync(category.id);
-    if (editing?.id === category.id) resetForm();
+  const performDelete = () => {
+    if (!confirmDelete) return;
+    const category = confirmDelete;
+    deleteCategory.mutate(category.id, {
+      onSuccess: () => {
+        toast.success('Category deleted');
+        if (editing?.id === category.id) resetForm();
+        setConfirmDelete(null);
+      },
+      onError: (error) => {
+        toast.error('Could not delete category', {
+          description:
+            error instanceof Error
+              ? error.message
+              : 'Categories with experiences cannot be removed.',
+        });
+      },
+    });
   };
 
   const isPending = createCategory.isPending || updateCategory.isPending;
 
   return (
+    <>
     <Dialog
       open={open}
       onOpenChange={(next) => {
@@ -104,14 +117,15 @@ export const CategoryManageDialog = ({ open, onOpenChange }: Props) => {
         onOpenChange(next);
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogHeader className="shrink-0 border-b border-manager-border px-6 pt-6 pb-4">
           <DialogTitle>Manage categories</DialogTitle>
           <DialogDescription>
             Categories power the filter chips on the experiences catalog.
           </DialogDescription>
         </DialogHeader>
 
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
         <Form {...form}>
           <form
             onSubmit={onSubmit}
@@ -193,7 +207,7 @@ export const CategoryManageDialog = ({ open, onOpenChange }: Props) => {
                   variant="ghost"
                   size="icon"
                   className="size-8 text-red-600 hover:text-red-700"
-                  onClick={() => void handleDelete(category)}
+                  onClick={() => setConfirmDelete(category)}
                   aria-label={`Delete ${category.name}`}
                 >
                   <Trash2 className="size-3.5" />
@@ -202,7 +216,51 @@ export const CategoryManageDialog = ({ open, onOpenChange }: Props) => {
             </li>
           ))}
         </ul>
+        </div>
       </DialogContent>
     </Dialog>
+
+    <Dialog
+      open={!!confirmDelete}
+      onOpenChange={(next) => !next && setConfirmDelete(null)}
+    >
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-red-50">
+            <AlertTriangle className="size-6 text-red-600" />
+          </div>
+          <DialogTitle className="text-center">Remove category?</DialogTitle>
+          <DialogDescription className="text-center">
+            This removes{' '}
+            <span className="font-medium text-manager-text">
+              {confirmDelete?.name}
+            </span>{' '}
+            from the experience filters. Categories that still have experiences
+            cannot be removed.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2 sm:gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={deleteCategory.isPending}
+            onClick={() => setConfirmDelete(null)}
+            className="flex-1 border-manager-border"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={deleteCategory.isPending}
+            onClick={performDelete}
+            className="flex-1"
+          >
+            {deleteCategory.isPending ? 'Removing…' : 'Remove category'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };

@@ -11,6 +11,7 @@ export const emRequestsApi = {
   queue: () => api.get<EmExperienceRequest[]>(API.requests.emQueue),
   active: () => api.get<EmExperienceRequest[]>(API.requests.emActive),
   today: () => api.get<EmExperienceRequest[]>(API.requests.emToday),
+  history: () => api.get<EmExperienceRequest[]>(API.requests.emHistory),
   byId: (id: string) => api.get<ExperienceRequest>(API.requests.byId(id)),
   approve: (id: string, dto: ConfirmRequestDto) =>
     api.patch<ExperienceRequest>(API.requests.approve(id), dto),

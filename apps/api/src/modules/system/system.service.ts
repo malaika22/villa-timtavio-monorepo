@@ -25,4 +25,11 @@ export class SystemService {
       orderBy: { createdAt: 'desc' },
     });
   }
+
+  async dismissAlert(id: string) {
+    return this.prisma.systemAlert.update({
+      where: { id },
+      data: { isDismissed: true, dismissedAt: new Date(), dismissedBy: 'em' },
+    });
+  }
 }

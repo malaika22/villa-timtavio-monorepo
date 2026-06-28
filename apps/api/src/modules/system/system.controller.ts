@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, Patch, Query } from '@nestjs/common';
 import { SystemService } from './system.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 
@@ -21,5 +21,11 @@ export class SystemController {
     const dismissed =
       isDismissed === undefined ? false : isDismissed === 'true';
     return this.systemService.getSystemAlerts(category, dismissed);
+  }
+
+  @Patch('system-alerts/:id/dismiss')
+  @Roles('estate_manager', 'owner')
+  dismissSystemAlert(@Param('id') id: string) {
+    return this.systemService.dismissAlert(id);
   }
 }

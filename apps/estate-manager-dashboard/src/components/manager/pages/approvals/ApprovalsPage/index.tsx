@@ -10,7 +10,11 @@ import {
   conflictDetectedMessage,
 } from '@/lib/approvals-mock-data';
 import type { ApprovalFilterTab, ApprovalQueueItem } from '@/types';
-import { useApprovalQueue, useApprovalActive } from '@/hooks/useApprovals';
+import {
+  useApprovalQueue,
+  useApprovalActive,
+  useApprovalHistory,
+} from '@/hooks/useApprovals';
 import { mapRequestToApprovalItem } from '@/lib/mappers/request';
 import { filterBySearch, filterByTab } from './helpers';
 
@@ -20,26 +24,40 @@ export const ApprovalsPage = () => {
 
   const { data: queueData, isLoading: queueLoading } = useApprovalQueue();
   const { data: activeData, isLoading: activeLoading } = useApprovalActive();
+  const { data: historyData } = useApprovalHistory();
 
   const allItems: ApprovalQueueItem[] = useMemo(() => {
     if (queueData && activeData) {
       const queueItems = queueData.map(mapRequestToApprovalItem);
       const activeItems = activeData.map(mapRequestToApprovalItem);
+      const historyItems = (historyData ?? []).map(mapRequestToApprovalItem);
       // Deduplicate by id
       const seen = new Set<string>();
-      return [...queueItems, ...activeItems].filter((i) => {
+      return [...queueItems, ...activeItems, ...historyItems].filter((i) => {
         if (seen.has(i.id)) return false;
         seen.add(i.id);
         return true;
       });
     }
     return approvalQueueItems;
-  }, [queueData, activeData]);
+  }, [queueData, activeData, historyData]);
 
   const filteredRows = useMemo(() => {
     const byTab = filterByTab(allItems, activeTab);
     return filterBySearch(byTab, search);
   }, [allItems, activeTab, search]);
+
+  const counts = useMemo(
+    () => ({
+      all: allItems.length,
+      pending: filterByTab(allItems, 'pending').length,
+      confirmed: filterByTab(allItems, 'confirmed').length,
+      'in-progress': filterByTab(allItems, 'in-progress').length,
+      completed: filterByTab(allItems, 'completed').length,
+      declined: filterByTab(allItems, 'declined').length,
+    }),
+    [allItems],
+  );
 
   const hasConflict = allItems.some((i) => i.status === 'Conflict');
   const isLoading = queueLoading || activeLoading;
@@ -51,6 +69,7 @@ export const ApprovalsPage = () => {
         onTabChange={setActiveTab}
         search={search}
         onSearchChange={setSearch}
+        counts={counts}
       />
 
       {hasConflict ? (

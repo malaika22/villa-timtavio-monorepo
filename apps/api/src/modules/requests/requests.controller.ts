@@ -99,6 +99,12 @@ export class RequestsController {
     return this.requestsService.getTodaySchedule();
   }
 
+  @Get('em/history')
+  @Roles('estate_manager')
+  getHistory() {
+    return this.requestsService.getHistory();
+  }
+
   @Patch(':id/approve')
   @Roles('estate_manager')
   approve(

@@ -6,3 +6,40 @@
 /* Fallback: four levels up from src/app → repo root (see packages/theme global.css for primary @repo/ui scan) */
 @source "../../../../packages/ui/src/**/*.ts";
 @source "../../../../packages/ui/src/**/*.tsx";
+
+/* ─── Custom scrollbars (app-wide) ─────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d4cfc6 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: #d4cfc6;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #bdb6aa;
+}
+
+/* ─── Manifest card entrance animation ─────────────────────────────────── */
+@keyframes manifest-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-manifest-in {
+  animation: manifest-card-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

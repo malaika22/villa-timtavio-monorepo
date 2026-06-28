@@ -1,16 +1,24 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MagicLinkService } from '../auth0/magic-link.service';
 
 @Injectable()
-export class BookingsScheduler {
+export class BookingsScheduler implements OnModuleInit {
   private readonly logger = new Logger(BookingsScheduler.name);
 
   constructor(
     private prisma: PrismaService,
     private magicLinkService: MagicLinkService,
   ) {}
+
+  // Populate reminder alerts on boot so the EM bell reflects reality
+  // immediately rather than waiting for the next scheduled run.
+  async onModuleInit() {
+    await this.syncStayReminderAlerts().catch((err) =>
+      this.logger.error('Initial reminder sync failed', err),
+    );
+  }
 
   // ─── Send magic links 24 hours before check-in (runs hourly) ─────────────
 
@@ -43,25 +51,97 @@ export class BookingsScheduler {
     }
   }
 
-  // ─── Auto check-in once the stay has started (runs hourly) ────────────────
-  // Without this, confirmed bookings never transition to CHECKED_IN on their
-  // own, so guest-facing features that unlock on arrival (e.g. experiences)
-  // stay locked for the whole stay. Mirrors the date-driven departure job.
+  // ─── Check-in / check-out are MANUAL actions by the estate manager ────────
+  // We intentionally do NOT auto check-in or check-out. Instead we persist
+  // dismissible SystemAlerts (category REMINDER) so the dashboard banner AND
+  // the notification bell flag stays whose dates have passed but whose status
+  // hasn't been advanced yet. The sync is self-healing: alerts are created for
+  // newly-overdue bookings and auto-dismissed once the EM updates the status.
 
-  @Cron(CronExpression.EVERY_HOUR)
-  async autoCheckIn() {
+  @Cron(CronExpression.EVERY_30_MINUTES)
+  async syncStayReminderAlerts() {
     const now = new Date();
-    const result = await this.prisma.booking.updateMany({
-      where: {
-        status: 'CONFIRMED',
-        checkIn: { lte: now },
-        checkOut: { gte: now },
-      },
-      data: { status: 'CHECKED_IN' },
-    });
 
-    if (result.count > 0) {
-      this.logger.log(`Auto checked-in ${result.count} booking(s)`);
+    const [awaitingCheckIn, awaitingCheckOut] = await Promise.all([
+      this.prisma.booking.findMany({
+        where: {
+          status: 'CONFIRMED',
+          checkIn: { lte: now },
+          checkOut: { gte: now },
+        },
+        include: { primaryGuest: true },
+      }),
+      this.prisma.booking.findMany({
+        where: {
+          status: { in: ['CHECKED_IN', 'SETTLED', 'DEPARTURE_TODAY'] },
+          checkOut: { lt: now },
+        },
+        include: { primaryGuest: true },
+      }),
+    ]);
+
+    await Promise.all([
+      this.reconcileReminderType(
+        'check-in',
+        awaitingCheckIn,
+        (b) =>
+          `${b.primaryGuest.firstName} ${b.primaryGuest.lastName} has arrived but isn't checked in yet — confirm check-in.`,
+        'Guest awaiting check-in',
+      ),
+      this.reconcileReminderType(
+        'check-out',
+        awaitingCheckOut,
+        (b) =>
+          `${b.primaryGuest.firstName} ${b.primaryGuest.lastName}'s stay has ended — mark as checked out.`,
+        'Stay awaiting check-out',
+      ),
+    ]);
+  }
+
+  private async reconcileReminderType(
+    entityType: 'check-in' | 'check-out',
+    overdue: { id: string; primaryGuest: { firstName: string; lastName: string } }[],
+    message: (b: {
+      primaryGuest: { firstName: string; lastName: string };
+    }) => string,
+    title: string,
+  ) {
+    const overdueIds = new Set(overdue.map((b) => b.id));
+
+    const existing = await this.prisma.systemAlert.findMany({
+      where: { category: 'REMINDER', entityType, isDismissed: false },
+    });
+    const existingIds = new Set(existing.map((a) => a.entityId));
+
+    // Create alerts for newly-overdue bookings.
+    const toCreate = overdue.filter((b) => !existingIds.has(b.id));
+    if (toCreate.length > 0) {
+      await this.prisma.systemAlert.createMany({
+        data: toCreate.map((b) => ({
+          severity: 'WARNING',
+          title,
+          message: message(b),
+          category: 'REMINDER',
+          entityType,
+          entityId: b.id,
+        })),
+      });
+    }
+
+    // Auto-dismiss alerts whose booking is no longer overdue (status advanced).
+    const toDismiss = existing.filter((a) => !overdueIds.has(a.entityId ?? ''));
+    if (toDismiss.length > 0) {
+      await this.prisma.systemAlert.updateMany({
+        where: { id: { in: toDismiss.map((a) => a.id) } },
+        data: { isDismissed: true, dismissedAt: new Date(), dismissedBy: 'system' },
+      });
+    }
+
+    const changed = toCreate.length + toDismiss.length;
+    if (changed > 0) {
+      this.logger.log(
+        `Reminder sync (${entityType}): +${toCreate.length} / -${toDismiss.length}`,
+      );
     }
   }
 

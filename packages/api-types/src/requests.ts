@@ -15,7 +15,16 @@ export interface ExperienceRequest {
   id: string;
   bookingId: string;
   catalogItemId: string;
-  catalogItem?: Pick<CatalogItem, 'id' | 'name' | 'category' | 'primaryPhotoUrl' | 'durationLabel'>;
+  catalogItem?: Pick<
+    CatalogItem,
+    | 'id'
+    | 'name'
+    | 'category'
+    | 'primaryPhotoUrl'
+    | 'durationLabel'
+    | 'basePrice'
+    | 'isIncluded'
+  >;
   requestedByEmail: string;
   requestedByName: string;
   guestTier: GuestTier;

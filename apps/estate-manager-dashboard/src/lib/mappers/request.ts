@@ -68,5 +68,6 @@ export function mapRequestToApprovalItem(
     vendor: req.staffMemberName ?? '—',
     submitted: submittedAt,
     status: STATUS_MAP[req.status] ?? 'Pending',
+    declineReason: req.declineReason ?? null,
   };
 }

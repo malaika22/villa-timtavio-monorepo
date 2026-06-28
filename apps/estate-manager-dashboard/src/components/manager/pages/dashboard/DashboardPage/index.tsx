@@ -35,6 +35,10 @@ export const DashboardPage = () => {
         />
       ) : null}
 
+      {alertBanner?.reminders?.map((reminder) => (
+        <OperationsAlertBanner key={reminder.type} message={reminder.message} />
+      ))}
+
       {isLoading ? (
         <div className="grid grid-cols-4 gap-4">
           {[1, 2, 3, 4, 5, 6].map((i) => (

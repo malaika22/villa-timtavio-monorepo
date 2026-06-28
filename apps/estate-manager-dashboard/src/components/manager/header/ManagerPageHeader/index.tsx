@@ -1,9 +1,10 @@
 'use client';
 
 import { Button } from '@repo/ui';
-import { Bell, Download, Eye, Filter, Plus } from 'lucide-react';
+import { Download, Eye, Filter, Plus } from 'lucide-react';
 
 import { MobileManagerNav } from '@/components/manager/sidebar/MobileManagerNav';
+import { NotificationBell } from '@/components/manager/header/NotificationBell';
 import type { PageMeta } from '@/config/navigation';
 
 const outlineBtn =
@@ -92,16 +93,7 @@ export const ManagerPageHeader = ({
           <Filter className="size-4 text-manager-text-muted" />
         </Button>
       ) : null}
-      {meta.showNotifications ? (
-        <Button
-          variant="outline"
-          size="icon"
-          className={outlineIconBtn}
-          aria-label="Notifications"
-        >
-          <Bell className="size-4 text-manager-text-muted" />
-        </Button>
-      ) : null}
+      {meta.showNotifications ? <NotificationBell /> : null}
     </div>
   </header>
 );

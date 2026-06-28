@@ -54,6 +54,38 @@ export class ManifestService {
     // Build room summary — which rooms have how many guests
     const roomSummary = await this.getRoomSummary(bookingId);
 
+    // Experiences each guest has requested, grouped by requester email so the
+    // primary can see "what experiences they've ordered" per guest.
+    const requests = await this.prisma.experienceRequest.findMany({
+      where: { bookingId },
+      include: { catalogItem: { select: { name: true, category: true } } },
+      orderBy: [{ preferredDate: 'asc' }, { preferredTime: 'asc' }],
+    });
+
+    const byEmail = new Map<string, typeof requests>();
+    for (const req of requests) {
+      const key = req.requestedByEmail.toLowerCase();
+      const list = byEmail.get(key) ?? [];
+      list.push(req);
+      byEmail.set(key, list);
+    }
+
+    const toSummary = (req: (typeof requests)[number]) => ({
+      id: req.id,
+      name: req.catalogItem.name,
+      category: req.catalogItem.category,
+      status: req.status,
+      preferredDate: req.preferredDate,
+      preferredTime: req.preferredTime,
+      confirmedDate: req.confirmedDate,
+      confirmedTime: req.confirmedTime,
+    });
+
+    const guests = booking.manifestGuests.map((guest) => ({
+      ...guest,
+      experiences: (byEmail.get(guest.email.toLowerCase()) ?? []).map(toSummary),
+    }));
+
     // Calculate progress
     const totalGuests = booking.totalGuests;
     const addedGuests = booking.manifestGuests.length;
@@ -66,7 +98,7 @@ export class ManifestService {
       addedGuests,
       progressPercent,
       primaryGuest: booking.primaryGuest,
-      guests: booking.manifestGuests,
+      guests,
       roomSummary,
     };
   }

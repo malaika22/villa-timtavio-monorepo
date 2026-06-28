@@ -6,6 +6,8 @@ import { ArrivalStatus } from '@/types/arrivalStatus';
 import { HeroCard } from './hero-card';
 import { ArrivalCountdown } from '../ArrivalCountdown';
 import { GuestManifestPrompt } from './guest-manifest/GuestManifestPrompt';
+import { GuestDetailsCard } from './guest-manifest/GuestDetailsCard';
+import { ApprovalsPromptCard } from './ApprovalsPromptCard';
 import { GuestManifestForm } from '@/components/GuestManifestForm';
 import type { GuestManifestFormValues } from '@/components/GuestManifestForm';
 import { GuestAddedSheet } from '@/components/manifest/GuestAddedSheet';
@@ -16,11 +18,8 @@ import { DiningCard } from './dining/DiningCard';
 import { useBookingStore } from '@/store/useBookingStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentBooking } from '@/hooks/useBooking';
-import {
-  useManifest,
-  useAddManifestGuest,
-  useSubmitManifest,
-} from '@/hooks/useManifest';
+import { useManifest, useAddManifestGuest } from '@/hooks/useManifest';
+import { usePendingApprovalRequests } from '@/hooks/useRequests';
 import { useRoomAvailability } from '@/hooks/useRoomAvailability';
 import { usePusherChannel } from '@/hooks/usePusherChannel';
 import { useQueryClient } from '@tanstack/react-query';
@@ -47,7 +46,7 @@ function mapFormToDto(data: GuestManifestFormValues): CreateManifestGuestDto {
 }
 
 export const Home = () => {
-  const { isAuthenticated, firstName, bookingId } = useAuth();
+  const { isAuthenticated, isPrimary, firstName, bookingId } = useAuth();
   const queryClient = useQueryClient();
   const router = useRouter();
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -60,10 +59,10 @@ export const Home = () => {
   const arrivalStatus = useBookingStore((s) => s.arrivalStatus);
   const manifestStatus = useBookingStore((s) => s.manifestStatus);
   const totalGuests = useBookingStore((s) => s.totalGuests);
-  const { data: manifest } = useManifest();
+  const { data: manifest, isError: manifestError } = useManifest();
   const { data: rooms } = useRoomAvailability();
+  const { data: pendingApprovals = [] } = usePendingApprovalRequests();
   const addGuest = useAddManifestGuest();
-  const submitManifest = useSubmitManifest();
 
   const displayArrivalStatus = arrivalStatus ?? ArrivalStatus.PRE_ARRIVAL;
 
@@ -71,6 +70,16 @@ export const Home = () => {
   const liveManifestStatus = manifest?.manifestStatus ?? manifestStatus;
   const guestsAdded = manifest?.addedGuests ?? 0;
   const maxGuests = manifest?.totalGuests ?? totalGuests ?? 16;
+  const roomsUsed = manifest?.roomSummary?.filter(
+    (r) => r.assignedGuests > 0,
+  ).length;
+
+  // Once the party has settled in, the manifest "prompt" is no longer relevant —
+  // swap it for a read-only entry into the guest details.
+  const isSettledOrLater =
+    displayArrivalStatus === ArrivalStatus.SETTLED ||
+    displayArrivalStatus === ArrivalStatus.DEPARTURE_TODAY ||
+    displayArrivalStatus === ArrivalStatus.CHECKOUT_OUT;
 
   const handleSave = async (data: GuestManifestFormValues) => {
     const dto = mapFormToDto(data);
@@ -81,11 +90,6 @@ export const Home = () => {
     setAddedGuestName(dto.firstName);
     setIsAddOpen(false);
     setShowAddedSheet(true);
-  };
-
-  const handleSubmitManifest = async () => {
-    if (submitManifest.isPending) return;
-    await submitManifest.mutateAsync();
   };
 
   return (
@@ -105,15 +109,21 @@ export const Home = () => {
       </div>
       <HeroCard />
       <ArrivalCountdown />
-      {isAuthenticated && (
-        <GuestManifestPrompt
-          manifestStatus={liveManifestStatus}
-          guestsAdded={guestsAdded}
-          maxGuests={maxGuests}
-          onAddGuest={() => setIsAddOpen(true)}
-          onSubmit={handleSubmitManifest}
-          submitting={submitManifest.isPending}
-        />
+      {isAuthenticated &&
+        (isSettledOrLater ? (
+          <GuestDetailsCard guestsAdded={guestsAdded} roomsUsed={roomsUsed} />
+        ) : (
+          <GuestManifestPrompt
+            loading={!manifest && !manifestError}
+            manifestStatus={liveManifestStatus}
+            guestsAdded={guestsAdded}
+            maxGuests={maxGuests}
+            roomsUsed={roomsUsed}
+            onAddGuest={() => setIsAddOpen(true)}
+          />
+        ))}
+      {isAuthenticated && isPrimary && (
+        <ApprovalsPromptCard count={pendingApprovals.length} />
       )}
       <RoomsExploreCard
         roomCount={rooms?.length}

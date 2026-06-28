@@ -3,14 +3,16 @@ import type {
   CatalogItem,
   CreateCatalogItemDto,
   UpdateCatalogItemDto,
+  Recommendation,
 } from '@repo/api-types';
 
 export const emCatalogApi = {
   adminAll: () => api.get<CatalogItem[]>(API.catalog.adminAll),
+  recommendations: () => api.get<Recommendation[]>(API.catalog.recommendations),
   list: () => api.get<CatalogItem[]>(API.catalog.list),
   byId: (id: string) => api.get<CatalogItem>(API.catalog.byId(id)),
   toggleActive: (id: string) =>
-    api.post<CatalogItem>(API.catalog.toggleActive(id)),
+    api.patch<CatalogItem>(API.catalog.toggleActive(id)),
   create: (dto: CreateCatalogItemDto) =>
     api.post<CatalogItem>(API.catalog.list, dto),
   update: (id: string, dto: UpdateCatalogItemDto) =>

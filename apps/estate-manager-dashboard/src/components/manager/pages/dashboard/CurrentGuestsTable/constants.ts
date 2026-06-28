@@ -5,4 +5,5 @@ export const STATUS_CYCLE: BookingStatus[] = [
   'CHECKED_IN',
   'SETTLED',
   'DEPARTURE_TODAY',
+  'CHECKED_OUT',
 ];

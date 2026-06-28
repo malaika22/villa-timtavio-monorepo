@@ -7,9 +7,9 @@ import { Input } from '@repo/ui';
 
 import type { ApprovalFilterTab } from '@/types';
 
-const TABS: { value: ApprovalFilterTab; label: string; count?: number }[] = [
+const TABS: { value: ApprovalFilterTab; label: string }[] = [
   { value: 'all', label: 'All Requests' },
-  { value: 'pending', label: 'Pending', count: 3 },
+  { value: 'pending', label: 'Pending' },
   { value: 'confirmed', label: 'Confirmed' },
   { value: 'in-progress', label: 'In Progress' },
   { value: 'completed', label: 'Completed' },
@@ -21,14 +21,22 @@ type Props = {
   onTabChange: (tab: ApprovalFilterTab) => void;
   search: string;
   onSearchChange: (value: string) => void;
+  counts?: Partial<Record<ApprovalFilterTab, number>>;
 };
 
-export const ApprovalsFilterBar = ({ activeTab, onTabChange, search, onSearchChange }: Props) => {
+export const ApprovalsFilterBar = ({
+  activeTab,
+  onTabChange,
+  search,
+  onSearchChange,
+  counts = {},
+}: Props) => {
   return (
     <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:gap-3">
       <div className="inline-flex w-full max-w-full flex-wrap items-center gap-0.5 rounded-lg border border-manager-border bg-manager-card p-1 shadow-none xl:w-auto xl:flex-nowrap">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.value;
+          const count = counts[tab.value];
           return (
             <button
               key={tab.value}
@@ -42,7 +50,7 @@ export const ApprovalsFilterBar = ({ activeTab, onTabChange, search, onSearchCha
               )}
             >
               {tab.label}
-              {tab.count != null ? (
+              {count != null && count > 0 ? (
                 <span
                   className={cn(
                     'flex size-6 min-w-6 items-center justify-center rounded-full text-sm font-semibold leading-none',
@@ -51,7 +59,7 @@ export const ApprovalsFilterBar = ({ activeTab, onTabChange, search, onSearchCha
                       : 'bg-[#f5ebe0] text-[#8b6914]',
                   )}
                 >
-                  {tab.count}
+                  {count}
                 </span>
               ) : null}
             </button>

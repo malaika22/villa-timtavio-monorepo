@@ -14,4 +14,7 @@ export const systemApi = {
     const qs = search.toString();
     return api.get<SystemAlert[]>(`${API.system.alerts}${qs ? `?${qs}` : ''}`);
   },
+
+  dismissAlert: (id: string) =>
+    api.patch<SystemAlert>(API.system.dismissAlert(id)),
 };

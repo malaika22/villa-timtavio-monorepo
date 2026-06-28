@@ -1,178 +1,243 @@
 'use client';
 
-import { Button } from '@repo/ui/components/button';
-import { Progress } from '@repo/ui/components/progress';
-import { ArrowRight, Plus, Check, Clock, Loader2 } from 'lucide-react';
+import { ArrowRight, Check, Lock } from 'lucide-react';
 import Link from 'next/link';
 
 type GuestManifestPromptProps = {
   manifestStatus?: string | null;
   guestsAdded?: number;
   maxGuests?: number;
+  roomsUsed?: number;
+  loading?: boolean;
   onAddGuest?: () => void;
+  /** @deprecated submission now happens on the manifest screen */
   onSubmit?: () => void;
   submitting?: boolean;
 };
+
+type CardState = 'incomplete' | 'in-progress' | 'complete';
 
 export const GuestManifestPrompt = ({
   manifestStatus,
   guestsAdded = 0,
   maxGuests = 16,
+  roomsUsed,
+  loading = false,
   onAddGuest,
-  onSubmit,
-  submitting = false,
 }: GuestManifestPromptProps) => {
   const pct =
     maxGuests > 0
       ? Math.min(100, Math.round((guestsAdded / maxGuests) * 100))
       : 0;
-  const remaining = Math.max(0, maxGuests - guestsAdded);
 
-  // ─── Approved: compact green banner ──────────────────────────────────────
-  if (manifestStatus === 'APPROVED') {
+  const isSubmitted =
+    manifestStatus === 'SUBMITTED' || manifestStatus === 'APPROVED';
+  const isFull = guestsAdded > 0 && guestsAdded >= maxGuests;
+
+  const state: CardState =
+    isSubmitted || isFull
+      ? 'complete'
+      : guestsAdded > 0
+        ? 'in-progress'
+        : 'incomplete';
+
+  // ─── Loading: skeleton (prevents a flash of the wrong state) ──────────────
+  if (loading) {
+    return <GuestManifestSkeleton />;
+  }
+
+  // ─── Complete ────────────────────────────────────────────────────────────
+  if (state === 'complete') {
+    const subtext =
+      manifestStatus === 'APPROVED'
+        ? `Guest list approved · ${guestsAdded} guest${guestsAdded === 1 ? '' : 's'} · links sent`
+        : manifestStatus === 'SUBMITTED'
+          ? `Submitted for review · ${guestsAdded} guest${guestsAdded === 1 ? '' : 's'}`
+          : `Guest list complete · ${guestsAdded} guest${guestsAdded === 1 ? '' : 's'}${
+              roomsUsed
+                ? ` across ${roomsUsed} room${roomsUsed === 1 ? '' : 's'}`
+                : ''
+            }`;
+
     return (
-      <Link
-        href="/manifest"
-        className="flex items-center justify-between gap-3 rounded-[10px] border border-[#3A5E48]/30 bg-[#EAF3E8] px-[14px] py-3.5"
-      >
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-[#3A5E48]">
+      <article className="animate-manifest-in overflow-hidden rounded-2xl border border-[#CDD6CB] bg-[#EEF1EC] p-4 shadow-[0_1px_2px_rgba(15,31,46,0.04)]">
+        <div className="flex items-start gap-3">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-[#B7C2B4] bg-[#DCE3D8]">
             <Check
-              className="size-4 text-white"
+              className="size-5 text-[#3A5E48]"
               strokeWidth={2.5}
               aria-hidden
             />
           </span>
-          <p className="text-[11px] leading-snug text-[#2F4A3A]">
-            <span className="font-semibold">Guest list approved</span> ·{' '}
-            {guestsAdded} guest{guestsAdded === 1 ? '' : 's'} · Links sent
-          </p>
-        </div>
-        <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[1.5px] text-[#3A5E48]">
-          View
-          <ArrowRight className="size-3.5 shrink-0" aria-hidden />
-        </span>
-      </Link>
-    );
-  }
-
-  // ─── Submitted: awaiting review ──────────────────────────────────────────
-  if (manifestStatus === 'SUBMITTED') {
-    return (
-      <article className="overflow-hidden rounded-[10px] border border-[#E3E0DA] bg-white shadow-[0_1px_2px_rgba(15,31,46,0.04)]">
-        <div className="space-y-3 px-[14px] py-4">
-          <div className="flex items-start justify-between gap-3">
-            <h2 className="font-cormorant text-[20px] font-medium italic leading-tight text-[#2B2824]">
-              Guest manifest
-            </h2>
-            <div className="shrink-0 rounded-full border border-[#3A5E48]/30 bg-[#EAF3E8] px-[10px] py-1 text-[10px] font-medium uppercase tracking-[1.12px] text-[#3A5E48]">
-              <span className="flex items-center gap-2">
-                <Clock className="size-2.5 shrink-0" aria-hidden />
-                Submitted
-              </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="font-cormorant text-[19px] font-semibold leading-tight text-[#2B2824]">
+                Guest Manifest
+              </h2>
+              <StatusPill tone="green" label="Complete" />
             </div>
-          </div>
-          <p className="text-[11px] leading-[1.45] text-[#797168]">
-            Your guest list has been submitted. The estate manager is reviewing
-            it — you&apos;ll be notified once it&apos;s approved and links are
-            sent.
-          </p>
-          <div className="flex items-center justify-between border-t border-[#E3E0DA] pt-3">
-            <p className="text-[8px] uppercase tracking-[3.08px] text-[#797168]">
-              {guestsAdded} of {maxGuests} guests
+            <p className="mt-1 text-[12px] leading-snug text-[#5E6B5C]">
+              {subtext}
             </p>
-            <Link
-              href="/manifest"
-              className="flex items-center gap-2 text-[8px] uppercase tracking-[3.08px] text-[#797168]"
-            >
-              View manifest
-              <ArrowRight className="size-3.5 shrink-0" aria-hidden />
-            </Link>
           </div>
         </div>
+
+        <Link
+          href="/manifest"
+          className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#C9CFBF] bg-white text-[12px] font-semibold uppercase tracking-[2px] text-[#3A5E48] transition-colors hover:bg-[#F6F8F4]"
+        >
+          View Manifest
+          <ArrowRight className="size-3.5 shrink-0" aria-hidden />
+        </Link>
       </article>
     );
   }
 
-  // ─── In progress (INCOMPLETE / IN_PROGRESS) ──────────────────────────────
-  const isFull = remaining === 0 && guestsAdded > 0;
+  // ─── Incomplete ──────────────────────────────────────────────────────────
+  if (state === 'incomplete') {
+    return (
+      <article className="animate-manifest-in overflow-hidden rounded-2xl border border-[#E9E4DC] bg-white p-4 shadow-[0_1px_2px_rgba(15,31,46,0.04)]">
+        <div className="flex items-start gap-3">
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-[#E0C4BE] bg-[#F7ECEA]">
+            <Lock
+              className="size-5 text-[#7A4A42]"
+              strokeWidth={2}
+              aria-hidden
+            />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="font-cormorant text-[19px] font-semibold leading-tight text-[#2B2824]">
+                Guest Manifest
+              </h2>
+              <StatusPill tone="amber" label="Incomplete" />
+            </div>
+            <p className="mt-1 text-[12px] leading-snug text-[#797168]">
+              Add your guests before arrival so we can prepare rooms,
+              preferences, and magic links.
+            </p>
+          </div>
+        </div>
 
+        <button
+          type="button"
+          onClick={onAddGuest}
+          className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#4A2E28] text-[12px] font-semibold uppercase tracking-[2px] text-white transition-colors hover:bg-[#5C3A33]"
+        >
+          Add Guests
+          <ArrowRight className="size-3.5 shrink-0" aria-hidden />
+        </button>
+
+        <ViewManifestLink />
+      </article>
+    );
+  }
+
+  // ─── In progress ─────────────────────────────────────────────────────────
   return (
-    <article className="overflow-hidden rounded-[10px] border border-[#E3E0DA] bg-white shadow-[0_1px_2px_rgba(15,31,46,0.04)]">
-      <div className="space-y-4 px-[14px] py-4">
-        <div className="flex items-start justify-between gap-3">
-          <h2 className="font-cormorant text-[20px] font-medium italic leading-tight text-[#2B2824]">
-            Guest manifest
-          </h2>
-          <div
-            className="shrink-0 rounded-full border border-[#854F0B]/35 bg-[#FAEEDA] px-[10px] py-1 text-[10px] font-medium uppercase tracking-[1.12px] text-[#854F0B]"
-            role="status"
-          >
-            <span className="flex items-center gap-2">
-              <span
-                className="inline-block size-[5px] shrink-0 rounded-full bg-[#BA7517]"
-                aria-hidden
-              />
-              {isFull ? 'Ready to submit' : 'Action needed'}
-            </span>
+    <article className="animate-manifest-in overflow-hidden rounded-2xl border border-[#D9C79A] bg-white p-4 shadow-[0_1px_2px_rgba(15,31,46,0.04)]">
+      <div className="flex items-start gap-3">
+        <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-[#C7A046] bg-[#FBF3DF]">
+          <Lock className="size-5 text-[#7A4A42]" strokeWidth={2} aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-cormorant text-[19px] font-semibold leading-tight text-[#2B2824]">
+              Guest Manifest
+            </h2>
+            <StatusPill tone="amber" label="In Progress" />
           </div>
-        </div>
-
-        <p className="text-[11px] leading-[1.45] text-[#797168]">
-          {isFull
-            ? 'All your guests have been added. Submit the list so the estate can review it and send each guest their access link.'
-            : 'Assign your guests to rooms and share dietary preferences before arrival.'}
-        </p>
-
-        <div className="space-y-2">
-          <div className="flex items-baseline justify-between gap-2 text-[8px] uppercase tracking-[3.08px] text-[#797168]">
-            <span>Guests added</span>
-            <span className="font-medium tabular-nums text-[#2B2824]">
-              {guestsAdded}
-              <span className="text-[#797168]"> / {maxGuests}</span>
-            </span>
-          </div>
-          <Progress value={pct} className="h-1.5 rounded-full bg-[#E3E0DA]" />
-        </div>
-
-        <div className="flex items-center justify-between border-t border-[#E3E0DA] pt-4">
-          <p className="text-[8px] uppercase tracking-[3.08px] text-[#797168]">
-            {remaining} spot{remaining === 1 ? '' : 's'} remaining
+          <p className="mt-1 text-[12px] leading-snug text-[#5E5750]">
+            {guestsAdded} of {maxGuests} guests added
           </p>
-          <Link
-            href="/manifest"
-            className="flex items-center gap-2 text-[8px] uppercase tracking-[3.08px] text-[#797168]"
+          <div
+            className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-[#EAE4D6]"
+            role="progressbar"
+            aria-valuenow={pct}
+            aria-valuemin={0}
+            aria-valuemax={100}
           >
-            View Manifest
-            <ArrowRight className="size-3.5 shrink-0" aria-hidden />
-          </Link>
+            <div
+              className="h-full rounded-full bg-[#8A6D17] transition-all"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
         </div>
-
-        {isFull ? (
-          <Button
-            type="button"
-            onClick={onSubmit}
-            disabled={submitting}
-            className="h-10 w-full gap-2 rounded-lg border border-[#0F1F2E] bg-[#0F1F2E] text-[12px] font-medium text-white hover:bg-[#1A3040] hover:text-white disabled:opacity-60"
-          >
-            {submitting ? (
-              <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden />
-            ) : (
-              <Check className="size-3.5 shrink-0" aria-hidden />
-            )}
-            {submitting ? 'Submitting…' : 'Submit guest list'}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            onClick={onAddGuest}
-            className="h-10 w-full gap-2 rounded-lg border border-[#0F1F2E] bg-[#0F1F2E] text-[12px] font-medium text-white hover:bg-[#1A3040] hover:text-white"
-          >
-            <Plus className="size-3.5 shrink-0" aria-hidden />
-            Add guests →
-          </Button>
-        )}
       </div>
+
+      <button
+        type="button"
+        onClick={onAddGuest}
+        className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#8A6D17] text-[12px] font-semibold uppercase tracking-[2px] text-white transition-colors hover:bg-[#9C7C1E]"
+      >
+        Continue
+        <ArrowRight className="size-3.5 shrink-0" aria-hidden />
+      </button>
+
+      <ViewManifestLink />
     </article>
   );
 };
+
+function StatusPill({
+  tone,
+  label,
+}: {
+  tone: 'amber' | 'green';
+  label: string;
+}) {
+  const styles =
+    tone === 'green'
+      ? 'border-[#3A5E48]/30 bg-[#E2EADF] text-[#3A5E48]'
+      : 'border-[#C7A046]/45 bg-[#FBF3DF] text-[#8B6914]';
+  const dot = tone === 'green' ? 'bg-[#3A5E48]' : 'bg-[#BA8B17]';
+  return (
+    <span
+      className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium ${styles}`}
+      role="status"
+    >
+      <span
+        className={`inline-block size-[5px] shrink-0 rounded-full ${dot}`}
+        aria-hidden
+      />
+      {label}
+    </span>
+  );
+}
+
+function ViewManifestLink() {
+  return (
+    <div className="mt-3 flex justify-center">
+      <Link
+        href="/manifest"
+        className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[2px] text-[#797168] transition-colors hover:text-[#2B2824]"
+      >
+        View Manifest
+        <ArrowRight className="size-3 shrink-0" aria-hidden />
+      </Link>
+    </div>
+  );
+}
+
+function GuestManifestSkeleton() {
+  return (
+    <article
+      className="overflow-hidden rounded-2xl border border-[#E9E4DC] bg-white p-4 shadow-[0_1px_2px_rgba(15,31,46,0.04)]"
+      aria-busy="true"
+      aria-label="Loading guest manifest"
+    >
+      <div className="flex items-start gap-3">
+        <div className="size-12 shrink-0 animate-pulse rounded-xl bg-[#ECE7DF]" />
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="h-4 w-32 animate-pulse rounded bg-[#ECE7DF]" />
+            <div className="h-5 w-20 animate-pulse rounded-full bg-[#ECE7DF]" />
+          </div>
+          <div className="h-3 w-full animate-pulse rounded bg-[#F0ECE5]" />
+          <div className="h-3 w-3/4 animate-pulse rounded bg-[#F0ECE5]" />
+        </div>
+      </div>
+      <div className="mt-4 h-11 w-full animate-pulse rounded-lg bg-[#ECE7DF]" />
+    </article>
+  );
+}

@@ -16,6 +16,6 @@ export const requestsApi = {
     api.post<ExperienceRequest>(API.requests.create(bookingId), dto),
   primaryApprove: (id: string) =>
     api.post<ExperienceRequest>(API.requests.primaryApprove(id)),
-  primaryDecline: (id: string) =>
-    api.post<ExperienceRequest>(API.requests.primaryDecline(id)),
+  primaryDecline: (id: string, reason: string) =>
+    api.post<ExperienceRequest>(API.requests.primaryDecline(id), { reason }),
 };

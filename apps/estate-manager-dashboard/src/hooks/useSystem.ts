@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { emFolioApi } from '@/lib/api/folio';
 import { systemApi } from '@/lib/api/system';
@@ -31,5 +31,16 @@ export function useSystemAlerts(category?: string) {
         isDismissed: false,
       }),
     refetchInterval: 60_000,
+  });
+}
+
+export function useDismissSystemAlert() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => systemApi.dismissAlert(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['system', 'alerts'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
   });
 }

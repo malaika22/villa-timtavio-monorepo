@@ -22,6 +22,14 @@ export function useApprovalActive() {
   });
 }
 
+export function useApprovalHistory() {
+  return useQuery({
+    queryKey: ['requests', 'em-history'],
+    queryFn: emRequestsApi.history,
+    refetchInterval: 60_000,
+  });
+}
+
 export function useApproveRequest() {
   const queryClient = useQueryClient();
   return useMutation({

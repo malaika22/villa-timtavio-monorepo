@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, ArrowLeft, ArrowRight, Pencil } from 'lucide-react';
+import { Plus, ArrowLeft, ArrowRight, Pencil, Check, Clock } from 'lucide-react';
 import { Button } from '@repo/ui/components/button';
 import { Progress } from '@repo/ui/components/progress';
 import { cn } from '@repo/ui/lib/utils';
+import { format, parseISO } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useManifest,
@@ -174,7 +175,7 @@ export const ManifestPage = () => {
   };
 
   return (
-    <div className="flex flex-col pb-36">
+    <div className={cn('flex flex-col', isLocked ? 'pb-10' : 'pb-36')}>
       {/* ─── Header ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-5">
         <button
@@ -219,6 +220,39 @@ export const ManifestPage = () => {
         </div>
         <Progress value={pct} className="h-[3px] rounded-full bg-[#E3E0DA]" />
       </div>
+
+      {/* ─── Locked status banner (submitted / approved) ────────── */}
+      {isLocked &&
+        (status === 'APPROVED' ? (
+          <div className="mb-5 flex items-center gap-3 rounded-[12px] border border-[#3A5E48]/30 bg-[#EAF3E8] px-4 py-3.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#3A5E48]">
+              <Check className="size-4 text-white" strokeWidth={2.5} aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-[#2F4A3A]">
+                Guest list approved
+              </p>
+              <p className="text-[10px] leading-snug text-[#5E6B5C]">
+                All guests are confirmed and their access links have been sent.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-5 flex items-center gap-3 rounded-[12px] border border-[#854F0B]/30 bg-[#FAEEDA] px-4 py-3.5">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#BA7517]">
+              <Clock className="size-4 text-white" strokeWidth={2.5} aria-hidden />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-[#7A4A0B]">
+                Submitted for review
+              </p>
+              <p className="text-[10px] leading-snug text-[#8A6A2F]">
+                The estate manager is reviewing your guest list. You&apos;ll be
+                notified once it&apos;s approved.
+              </p>
+            </div>
+          </div>
+        ))}
 
       {/* ─── Room availability (compact) ────────────────────────── */}
       <div className="mb-1 flex items-center justify-between">
@@ -327,28 +361,28 @@ export const ManifestPage = () => {
         </motion.div>
       )}
 
-      {/* ─── Sticky bottom bar ──────────────────────────────────── */}
-      <div className="fixed bottom-0 left-0 right-0 z-20 px-4 pb-8 pt-4 bg-gradient-to-t from-[#F0EDE6] via-[#F0EDE6]/95 to-transparent">
-        <AnimatePresence>
-          {canSubmit && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              className="mb-2"
-            >
-              <Button
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className="w-full h-12 rounded-[12px] bg-[#1A3040] text-white text-[10px] font-semibold uppercase tracking-[2px] hover:bg-[#0F1F2E] disabled:opacity-60"
+      {/* ─── Sticky action bar (only when there's an action) ────── */}
+      {!isLocked && (
+        <div className="fixed bottom-[72px] left-0 right-0 z-20 px-4 pb-3 pt-4 bg-gradient-to-t from-[#F0EDE6] via-[#F0EDE6]/95 to-transparent">
+          <AnimatePresence>
+            {canSubmit && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                className="mb-2"
               >
-                {isSubmitting ? 'Submitting…' : 'Submit guest list'}
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="w-full h-12 rounded-[12px] bg-[#1A3040] text-white text-[10px] font-semibold uppercase tracking-[2px] hover:bg-[#0F1F2E] disabled:opacity-60"
+                >
+                  {isSubmitting ? 'Submitting…' : 'Submit guest list'}
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-        {!isLocked && (
           <Button
             onClick={openAddForm}
             variant="outline"
@@ -357,15 +391,8 @@ export const ManifestPage = () => {
             <Plus className="size-4" aria-hidden />
             Add guest
           </Button>
-        )}
-
-        {isLocked && (
-          <div className="text-center text-[9px] uppercase tracking-[2px] text-[#797168]">
-            Guest list{' '}
-            {status === 'APPROVED' ? 'approved' : 'submitted for review'}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ─── Add / edit drawer ──────────────────────────────────── */}
       <GuestManifestForm
@@ -545,6 +572,93 @@ function GuestDetailCard({
           )}
         </div>
       )}
+
+      {/* Experiences ordered by this guest */}
+      {(guest.experiences?.length ?? 0) > 0 && (
+        <div className="flex flex-col gap-1.5 border-t border-[#F0EDE6] pt-2">
+          <p className="text-[8px] uppercase tracking-[2px] text-[#9A9288]">
+            Experiences
+          </p>
+          {guest.experiences!.map((exp) => {
+            const meta = experienceStatusMeta(exp.status);
+            return (
+              <div
+                key={exp.id}
+                className="flex items-center justify-between gap-2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-[10.5px] font-medium text-[#2B2824] leading-tight">
+                    {exp.name}
+                  </p>
+                  <p className="text-[8.5px] text-[#9A9288]">
+                    {formatExperienceWhen(exp)}
+                  </p>
+                </div>
+                <span
+                  className={cn(
+                    'shrink-0 rounded-full border px-2 py-0.5 text-[8px] font-medium',
+                    meta.bg,
+                    meta.border,
+                    meta.color,
+                  )}
+                >
+                  {meta.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </motion.div>
   );
+}
+
+function experienceStatusMeta(status: string) {
+  switch (status) {
+    case 'CONFIRMED':
+    case 'IN_PROGRESS':
+    case 'READY':
+      return {
+        label: status === 'READY' ? 'Ready' : 'Confirmed',
+        color: 'text-[#3A5E48]',
+        bg: 'bg-[#EEF5F0]',
+        border: 'border-[#3A5E48]/25',
+      };
+    case 'COMPLETED':
+      return {
+        label: 'Completed',
+        color: 'text-[#797168]',
+        bg: 'bg-[#F0EDE6]',
+        border: 'border-[#E3E0DA]',
+      };
+    case 'CANCELLED':
+      return {
+        label: 'Declined',
+        color: 'text-[#B42318]',
+        bg: 'bg-[#FEF6F4]',
+        border: 'border-[#B42318]/25',
+      };
+    default:
+      return {
+        label: 'Pending',
+        color: 'text-[#854F0B]',
+        bg: 'bg-[#FAEEDA]',
+        border: 'border-[#854F0B]/25',
+      };
+  }
+}
+
+function formatExperienceWhen(exp: {
+  preferredDate: string;
+  preferredTime: string;
+  confirmedDate?: string | null;
+  confirmedTime?: string | null;
+}) {
+  const dateStr = exp.confirmedDate ?? exp.preferredDate;
+  const time = exp.confirmedTime ?? exp.preferredTime;
+  try {
+    return `${format(parseISO(dateStr), 'MMM d')}${time ? ` · ${time}` : ''}`;
+  } catch {
+    return time ?? '';
+  }
 }

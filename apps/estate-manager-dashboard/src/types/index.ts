@@ -1,8 +1,12 @@
 import { BookingStatus } from '@repo/api-types';
 
-export type GuestStayStatus = 'Settled' | 'Departing' | 'Arriving';
+export type GuestStayStatus =
+  | 'Settled'
+  | 'Departing'
+  | 'Arriving'
+  | 'Departed';
 
-export type GuestListStatus = GuestStayStatus | 'Departed';
+export type GuestListStatus = GuestStayStatus;
 
 export type GuestListItem = {
   id: string;
@@ -78,6 +82,7 @@ export type ApprovalQueueItem = {
   vendor: string;
   submitted: string;
   status: ApprovalQueueStatus;
+  declineReason?: string | null;
 };
 
 export type CurrentGuest = {

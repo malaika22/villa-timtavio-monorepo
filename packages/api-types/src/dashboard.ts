@@ -10,6 +10,13 @@ export interface DashboardKpis {
   revenueVsLastWeek: number;
 }
 
+export interface DashboardReminder {
+  type: 'check-in' | 'check-out';
+  message: string;
+  count: number;
+  href: string;
+}
+
 export interface DashboardAlertBanner {
   message: string | null;
   pendingApprovals: number;
@@ -17,6 +24,7 @@ export interface DashboardAlertBanner {
   conflictMessage: string | null;
   reviewHref: string;
   alerts: SystemAlert[];
+  reminders: DashboardReminder[];
 }
 
 export interface DashboardScheduleItem {

@@ -230,6 +230,8 @@ export class DashboardService {
         ? '/inquiries'
         : '/approvals';
 
+    const reminders = await this.getStayReminders();
+
     return {
       message: parts.length > 0 ? parts.join(' · ') : null,
       pendingApprovals: pendingCount,
@@ -237,7 +239,78 @@ export class DashboardService {
       conflictMessage,
       reviewHref,
       alerts,
+      reminders,
     };
+  }
+
+  // ─── Stay reminders: nudge the EM to manually advance booking status ───────
+  // Check-in and check-out are deliberate manual actions (see
+  // BookingsScheduler). These reminders flag stays whose dates have passed but
+  // whose status hasn't been updated yet, so nothing slips through.
+
+  private async getStayReminders() {
+    const now = new Date();
+
+    const [awaitingCheckIn, awaitingCheckOut] = await Promise.all([
+      // Stay has started but the guest is still CONFIRMED (not checked in).
+      this.prisma.booking.findMany({
+        where: {
+          status: 'CONFIRMED',
+          checkIn: { lte: now },
+          checkOut: { gte: now },
+        },
+        include: { primaryGuest: true },
+        orderBy: { checkIn: 'asc' },
+      }),
+      // Checkout date has passed but the guest hasn't been checked out.
+      this.prisma.booking.findMany({
+        where: {
+          status: { in: ['CHECKED_IN', 'SETTLED', 'DEPARTURE_TODAY'] },
+          checkOut: { lt: now },
+        },
+        include: { primaryGuest: true },
+        orderBy: { checkOut: 'asc' },
+      }),
+    ]);
+
+    const reminders: {
+      type: 'check-in' | 'check-out';
+      message: string;
+      count: number;
+      href: string;
+    }[] = [];
+
+    const name = (b: {
+      primaryGuest: { firstName: string; lastName: string };
+    }) => `${b.primaryGuest.firstName} ${b.primaryGuest.lastName}`;
+
+    if (awaitingCheckIn.length > 0) {
+      const count = awaitingCheckIn.length;
+      reminders.push({
+        type: 'check-in',
+        count,
+        href: '/',
+        message:
+          count === 1
+            ? `${name(awaitingCheckIn[0]!)} has arrived but isn't checked in yet — confirm check-in.`
+            : `${count} guests have arrived but aren't checked in yet — confirm check-in.`,
+      });
+    }
+
+    if (awaitingCheckOut.length > 0) {
+      const count = awaitingCheckOut.length;
+      reminders.push({
+        type: 'check-out',
+        count,
+        href: '/',
+        message:
+          count === 1
+            ? `${name(awaitingCheckOut[0]!)}'s stay has ended — mark as checked out.`
+            : `${count} stays have ended but aren't checked out yet — mark as checked out.`,
+      });
+    }
+
+    return reminders;
   }
 
   async getTodaySchedule() {
