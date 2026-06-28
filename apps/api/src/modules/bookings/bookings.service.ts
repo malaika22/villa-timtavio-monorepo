@@ -4,6 +4,7 @@ import { MagicLinkService } from '../auth0/magic-link.service';
 import { BookingStatus } from '@prisma/client';
 import { InquiriesService } from '../inqueries/inquiries.service';
 import { PusherService } from '../pusher/pusher.service';
+import { PaymentsService } from '../payments/payments.service';
 
 @Injectable()
 export class BookingsService {
@@ -14,7 +15,13 @@ export class BookingsService {
     private magicLinkService: MagicLinkService,
     private inquiriesService: InquiriesService,
     private pusherService: PusherService,
+    private paymentsService: PaymentsService,
   ) {}
+
+  /** Place the deposit hold for a booking (EM-triggerable). */
+  createDepositHold(bookingId: string) {
+    return this.paymentsService.createDepositHold(bookingId);
+  }
 
   // ─── Get current booking for guest ───────────────────────────────────────────
 
@@ -232,6 +239,13 @@ export class BookingsService {
     if (guestEmail) {
       await this.inquiriesService.linkToBooking(guestEmail, booking.id);
     }
+
+    // Place the 50% deposit hold (best-effort, guarded — never blocks sync).
+    await this.paymentsService
+      .createDepositHold(booking.id)
+      .catch((err) =>
+        this.logger.error(`Deposit hold failed: ${String(err)}`),
+      );
 
     this.logger.log(
       `Synced booking ${booking.id} from Lodgify ${lodgifyData.id}`,

@@ -4,9 +4,10 @@ import { BookingsController } from './bookings.controller';
 import { BookingsScheduler } from './bookings.scheduler';
 import { Auth0Module } from '../auth0/auth0.module';
 import { InquiriesModule } from '../inqueries/inquiries.module';
+import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
-  imports: [forwardRef(() => Auth0Module), InquiriesModule],
+  imports: [forwardRef(() => Auth0Module), InquiriesModule, PaymentsModule],
   controllers: [BookingsController],
   providers: [BookingsService, BookingsScheduler],
   exports: [BookingsService],

@@ -34,4 +34,11 @@ export class BookingsController {
   approveManifest(@Param('id') id: string) {
     return this.bookingsService.approveManifestAndSendSecondaryLinks(id);
   }
+
+  // Place / re-attempt the 50% deposit hold (e.g. for an existing booking).
+  @Post(':id/deposit-hold')
+  @Roles('estate_manager')
+  depositHold(@Param('id') id: string) {
+    return this.bookingsService.createDepositHold(id);
+  }
 }
