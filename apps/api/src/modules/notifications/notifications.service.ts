@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import webpush from 'web-push';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationType } from '@prisma/client';
 
@@ -14,8 +15,20 @@ interface SendNotificationDto {
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
+  private readonly vapidReady: boolean;
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {
+    const pub = process.env.VAPID_PUBLIC_KEY;
+    const priv = process.env.VAPID_PRIVATE_KEY;
+    this.vapidReady = Boolean(pub && priv);
+    if (this.vapidReady) {
+      webpush.setVapidDetails(
+        process.env.VAPID_SUBJECT ?? 'mailto:estate@villatimtavio.com',
+        pub!,
+        priv!,
+      );
+    }
+  }
 
   async send(dto: SendNotificationDto) {
     const notification = await this.prisma.notification.create({
@@ -29,10 +42,51 @@ export class NotificationsService {
       },
     });
 
-    // TODO: Send web push notification here using VAPID
-    // This is handled by the push subscription stored per device
+    // Best-effort web push to the recipient's registered devices.
+    void this.sendWebPush(dto).catch((err) =>
+      this.logger.error(`Web push failed: ${String(err)}`),
+    );
 
     return notification;
+  }
+
+  private async sendWebPush(dto: SendNotificationDto) {
+    if (!this.vapidReady) return; // No VAPID keys configured — skip silently.
+
+    const subs = await this.prisma.pushSubscription.findMany({
+      where: { bookingId: dto.bookingId, guestEmail: dto.recipientEmail },
+    });
+    if (subs.length === 0) return;
+
+    const payload = JSON.stringify({
+      title: dto.title,
+      body: dto.body,
+      deepLink: dto.deepLink ?? '/',
+    });
+
+    await Promise.all(
+      subs.map(async (sub) => {
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: { p256dh: sub.p256dhKey, auth: sub.authKey },
+            },
+            payload,
+          );
+        } catch (err: unknown) {
+          // 404/410 → the subscription is dead; prune it.
+          const statusCode = (err as { statusCode?: number })?.statusCode;
+          if (statusCode === 404 || statusCode === 410) {
+            await this.prisma.pushSubscription
+              .delete({ where: { endpoint: sub.endpoint } })
+              .catch(() => undefined);
+          } else {
+            this.logger.warn(`Push to ${sub.endpoint} failed: ${String(err)}`);
+          }
+        }
+      }),
+    );
   }
 
   async getForGuest(bookingId: string, email: string) {

@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
@@ -35,5 +36,25 @@ export class NotificationsController {
   @HttpCode(HttpStatus.OK)
   markAllRead(@Param('bookingId') bookingId: string, @CurrentUser() user: any) {
     return this.notificationsService.markAllRead(bookingId, user.email);
+  }
+
+  // Guest device registers for web push (VAPID).
+  @Post('push-subscription')
+  @HttpCode(HttpStatus.OK)
+  savePushSubscription(
+    @CurrentUser() user: any,
+    @Body()
+    body: {
+      endpoint: string;
+      p256dhKey: string;
+      authKey: string;
+      userAgent?: string;
+    },
+  ) {
+    return this.notificationsService.savePushSubscription(
+      user.email,
+      user.bookingId,
+      body,
+    );
   }
 }

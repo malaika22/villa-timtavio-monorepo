@@ -10,4 +10,10 @@ export const notificationsApi = {
     api.patch<GuestNotification>(API.notifications.markRead(id)),
   markAllRead: (bookingId: string) =>
     api.post<{ count: number }>(API.notifications.markAllRead(bookingId)),
+  savePushSubscription: (body: {
+    endpoint: string;
+    p256dhKey: string;
+    authKey: string;
+    userAgent?: string;
+  }) => api.post<unknown>(API.notifications.pushSubscription, body),
 };

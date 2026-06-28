@@ -142,6 +142,7 @@ export const API = {
     markRead: (id: string) => `/api/v1/notifications/${id}/read`,
     markAllRead: (bookingId: string) =>
       `/api/v1/notifications/bookings/${bookingId}/read-all`,
+    pushSubscription: '/api/v1/notifications/push-subscription',
   },
   pusher: {
     auth: '/api/v1/pusher/auth',
