@@ -2,8 +2,10 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
   Logger,
 } from '@nestjs/common';
+import Stripe from 'stripe';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PusherService } from '../pusher/pusher.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -176,36 +178,112 @@ export class FolioService {
   // ─── Trigger checkout ─────────────────────────────────────────────────────────
 
   async checkout(bookingId: string, triggeredBy: string) {
-    const { summary, booking } = await this.getForBooking(bookingId);
+    const { summary } = await this.getForBooking(bookingId);
 
-    // Update booking status
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { primaryGuest: true },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.status === 'CHECKED_OUT') {
+      throw new BadRequestException('Booking is already checked out');
+    }
+
+    // Capture the deposit hold via Stripe when configured. In dev (no keys /
+    // no payment intent) this is a no-op so the flow still completes.
+    const captured = await this.capturePayment(
+      booking.stripePaymentIntentId,
+      summary.grandTotal,
+      bookingId,
+      triggeredBy,
+    );
+
     await this.prisma.booking.update({
       where: { id: bookingId },
       data: {
         status: 'CHECKED_OUT',
         stripeCheckoutAmount: summary.grandTotal,
         stripeCapturedAt: new Date(),
+        stripeDepositCaptured: captured || booking.stripeDepositCaptured,
       },
     });
 
     await this.prisma.auditLog.create({
       data: {
-        action: 'CHECKOUT_TRIGGERED',
+        action: captured ? 'PAYMENT_CAPTURED' : 'CHECKOUT_TRIGGERED',
         entityType: 'Booking',
         entityId: bookingId,
         performedBy: triggeredBy,
         performedByRole: 'estate_manager',
         bookingId,
-        metadata: { grandTotal: summary.grandTotal } as any,
+        metadata: { grandTotal: summary.grandTotal, captured } as any,
       },
     });
+
+    // Receipt to the primary member (in-app; email is best-effort elsewhere).
+    await this.notificationsService
+      .send({
+        bookingId,
+        recipientEmail: booking.primaryGuest.email,
+        type: 'CHARGE_ADDED',
+        title: 'Checkout complete',
+        body: `Your stay total of $${summary.grandTotal.toLocaleString()} has been settled. A receipt has been sent to your email.`,
+        deepLink: '/folio',
+      })
+      .catch((err) =>
+        this.logger.error(`Receipt notification failed: ${String(err)}`),
+      );
 
     await this.pusherService.bookingCheckedOut(bookingId, {
       grandTotal: summary.grandTotal,
       chargedAt: new Date().toISOString(),
     });
 
-    return { success: true, grandTotal: summary.grandTotal };
+    return { success: true, grandTotal: summary.grandTotal, captured };
+  }
+
+  /**
+   * Captures the booking's deposit PaymentIntent for the final total. Returns
+   * true when a real capture happened, false when Stripe isn't configured (dev).
+   * Throws on a genuine capture failure so checkout doesn't silently succeed.
+   */
+  private async capturePayment(
+    paymentIntentId: string | null,
+    grandTotal: number,
+    bookingId: string,
+    triggeredBy: string,
+  ): Promise<boolean> {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key || !paymentIntentId) {
+      this.logger.warn(
+        `Stripe not configured or no payment intent for ${bookingId} — skipping capture`,
+      );
+      return false;
+    }
+
+    try {
+      const stripe = new Stripe(key);
+      await stripe.paymentIntents.capture(paymentIntentId, {
+        amount_to_capture: Math.round(grandTotal * 100),
+      });
+      return true;
+    } catch (err) {
+      await this.prisma.auditLog.create({
+        data: {
+          action: 'PAYMENT_FAILED',
+          entityType: 'Booking',
+          entityId: bookingId,
+          performedBy: triggeredBy,
+          performedByRole: 'estate_manager',
+          bookingId,
+          metadata: { grandTotal, error: String(err) } as any,
+        },
+      });
+      this.logger.error(`Stripe capture failed for ${bookingId}: ${String(err)}`);
+      throw new BadRequestException(
+        'Payment capture failed — the card was not charged. Please retry.',
+      );
+    }
   }
 
   async getDailyRevenue() {
