@@ -25,6 +25,7 @@ import { SystemModule } from './modules/system/system.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DiningModule } from './modules/dining/dining.module';
 import { ExperienceCategoriesModule } from './modules/experience-categories/experience-categories.module';
@@ -63,6 +64,7 @@ import { ExperienceCategoriesModule } from './modules/experience-categories/expe
     AuditModule,
     InventoryModule,
     SettingsModule,
+    IntegrationsModule,
     DashboardModule,
     DiningModule,
     ExperienceCategoriesModule,
