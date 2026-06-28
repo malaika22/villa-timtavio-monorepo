@@ -35,6 +35,10 @@ const EM_ONLY_ROUTES = [
   '/content',
   '/menu',
   '/vendors',
+  '/folio',
+  '/inventory',
+  '/settings',
+  '/audit-log',
 ];
 
 function matchesRoute(pathname: string, route: string): boolean {

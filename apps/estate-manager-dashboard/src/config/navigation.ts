@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   Receipt,
   ScrollText,
+  Settings,
   Truck,
   UtensilsCrossed,
   Users,
@@ -68,7 +69,10 @@ export const managerNavSections: ManagerNavSection[] = [
   },
   {
     label: 'System',
-    items: [{ title: 'Audit Log', href: '/audit-log', icon: ScrollText }],
+    items: [
+      { title: 'Settings', href: '/settings', icon: Settings },
+      { title: 'Audit Log', href: '/audit-log', icon: ScrollText },
+    ],
   },
 ];
 
@@ -205,6 +209,11 @@ export const pageMeta: Record<string, PageMeta> = {
   '/inventory': {
     title: 'Inventory',
     subtitle: 'Stock levels, low-stock alerts & reorders',
+    showNotifications: true,
+  },
+  '/settings': {
+    title: 'Settings',
+    subtitle: 'Staff, notifications, integrations & pricing',
     showNotifications: true,
   },
   '/overview': {

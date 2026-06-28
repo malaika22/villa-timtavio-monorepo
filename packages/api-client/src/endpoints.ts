@@ -166,4 +166,10 @@ export const API = {
     adjust: (id: string) => `/api/v1/inventory/${id}/adjust`,
     reorder: (id: string) => `/api/v1/inventory/${id}/reorder`,
   },
+  settings: {
+    get: '/api/v1/settings',
+    staff: '/api/v1/settings/staff',
+    staffById: (id: string) => `/api/v1/settings/staff/${id}`,
+    integrations: '/api/v1/settings/integrations',
+  },
 } as const;
