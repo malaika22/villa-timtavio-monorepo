@@ -46,3 +46,39 @@ export function useAnalyticsOverview(period?: string) {
     staleTime: TEN_MINUTES,
   });
 }
+
+const VARIANTS = ['success', 'warning', 'info', 'peach'] as const;
+
+export function useIntelligenceAlerts() {
+  return useQuery({
+    queryKey: ['analytics', 'intelligence-alerts'],
+    queryFn: analyticsApi.intelligenceAlerts,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+    // Map the backend's string[] into the UI alert shape.
+    select: (messages) =>
+      messages.map((message, i) => ({
+        id: `alert-${i}`,
+        variant: VARIANTS[i % VARIANTS.length],
+        message,
+      })),
+  });
+}
+
+export function useRevenueTrend(year: number, compare?: number) {
+  return useQuery({
+    queryKey: ['analytics', 'revenue-trend', year, compare ?? null],
+    queryFn: () => analyticsApi.revenueTrend(year, compare),
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}
+
+export function useExperiencePerformance(period?: string) {
+  return useQuery({
+    queryKey: ['analytics', 'experiences', period ?? 'ytd'],
+    queryFn: () => analyticsApi.experiences(period),
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}

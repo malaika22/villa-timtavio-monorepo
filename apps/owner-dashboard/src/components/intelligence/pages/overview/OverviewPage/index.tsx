@@ -12,13 +12,20 @@ import {
   villaOccupancy,
 } from '@/lib/mock-data';
 import { useUpcomingGuests } from '@/hooks/useGuests';
-import { useAnalyticsOverview, overviewToMetrics } from '@/hooks/useAnalytics';
+import {
+  useAnalyticsOverview,
+  overviewToMetrics,
+  useIntelligenceAlerts,
+} from '@/hooks/useAnalytics';
 
 export const OverviewPage = () => {
   const { data: upcomingData, isLoading } = useUpcomingGuests();
   const { data: overview } = useAnalyticsOverview();
+  const { data: liveAlerts } = useIntelligenceAlerts();
   const staysToShow = upcomingData ?? upcomingStays;
   const metrics = overview ? overviewToMetrics(overview) : overviewMetrics;
+  const alerts =
+    liveAlerts && liveAlerts.length > 0 ? liveAlerts : intelligenceAlerts;
 
   return (
     <div className="space-y-6">
@@ -45,7 +52,7 @@ export const OverviewPage = () => {
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
         <RevenueTrendChart data={revenueTrendData} />
-        <IntelligenceAlerts alerts={intelligenceAlerts} />
+        <IntelligenceAlerts alerts={alerts} />
       </section>
 
       {isLoading ? (
