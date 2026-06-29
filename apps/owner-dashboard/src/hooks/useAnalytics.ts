@@ -65,12 +65,24 @@ export function useIntelligenceAlerts() {
   });
 }
 
+const MONTHS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
 export function useRevenueTrend(year: number, compare?: number) {
   return useQuery({
     queryKey: ['analytics', 'revenue-trend', year, compare ?? null],
     queryFn: () => analyticsApi.revenueTrend(year, compare),
     refetchInterval: TEN_MINUTES,
     staleTime: TEN_MINUTES,
+    // Map to the chart's RevenueMonth[] shape (values in $thousands).
+    select: (res) =>
+      res.data.map((d) => ({
+        month: MONTHS[d.month - 1],
+        y2026: Math.round(d.revenue / 1000),
+        y2025: Math.round(d.compareRevenue / 1000),
+      })),
   });
 }
 

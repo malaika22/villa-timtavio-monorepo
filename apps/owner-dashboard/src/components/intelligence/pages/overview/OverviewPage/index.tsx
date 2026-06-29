@@ -16,16 +16,22 @@ import {
   useAnalyticsOverview,
   overviewToMetrics,
   useIntelligenceAlerts,
+  useRevenueTrend,
 } from '@/hooks/useAnalytics';
 
 export const OverviewPage = () => {
   const { data: upcomingData, isLoading } = useUpcomingGuests();
   const { data: overview } = useAnalyticsOverview();
   const { data: liveAlerts } = useIntelligenceAlerts();
+  const { data: liveTrend } = useRevenueTrend(2026, 2025);
   const staysToShow = upcomingData ?? upcomingStays;
   const metrics = overview ? overviewToMetrics(overview) : overviewMetrics;
   const alerts =
     liveAlerts && liveAlerts.length > 0 ? liveAlerts : intelligenceAlerts;
+  const trend =
+    liveTrend && liveTrend.some((m) => m.y2026 || m.y2025)
+      ? liveTrend
+      : revenueTrendData;
 
   return (
     <div className="space-y-6">
@@ -51,7 +57,7 @@ export const OverviewPage = () => {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
-        <RevenueTrendChart data={revenueTrendData} />
+        <RevenueTrendChart data={trend} />
         <IntelligenceAlerts alerts={alerts} />
       </section>
 

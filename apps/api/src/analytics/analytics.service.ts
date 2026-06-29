@@ -109,26 +109,35 @@ export class AnalyticsService {
   }
 
   async getRevenueTrend(year: number, compareYear?: number) {
-    const months = Array.from({ length: 12 }, (_, i) => {
-      const start = new Date(year, i, 1);
-      const end = new Date(year, i + 1, 0, 23, 59, 59);
-      return { month: i + 1, start, end };
-    });
+    const monthlyFor = (y: number) =>
+      Promise.all(
+        Array.from({ length: 12 }, (_, i) => i).map(async (i) => {
+          const start = new Date(y, i, 1);
+          const end = new Date(y, i + 1, 0, 23, 59, 59);
+          const result = await this.prisma.folioItem.aggregate({
+            where: {
+              createdAt: { gte: start, lte: end },
+              booking: { status: 'CHECKED_OUT' },
+            },
+            _sum: { amount: true },
+          });
+          return { month: i + 1, revenue: Number(result._sum.amount || 0) };
+        }),
+      );
 
-    const monthlyRevenue = await Promise.all(
-      months.map(async ({ month, start, end }) => {
-        const result = await this.prisma.folioItem.aggregate({
-          where: {
-            createdAt: { gte: start, lte: end },
-            booking: { status: 'CHECKED_OUT' },
-          },
-          _sum: { amount: true },
-        });
-        return { month, revenue: Number(result._sum.amount || 0) };
-      }),
-    );
+    const compare = compareYear ?? year - 1;
+    const [current, prior] = await Promise.all([
+      monthlyFor(year),
+      monthlyFor(compare),
+    ]);
 
-    return { year, data: monthlyRevenue };
+    const data = current.map((c, i) => ({
+      month: c.month,
+      revenue: c.revenue,
+      compareRevenue: prior[i].revenue,
+    }));
+
+    return { year, compareYear: compare, data };
   }
 
   async getOccupancy(period?: string) {

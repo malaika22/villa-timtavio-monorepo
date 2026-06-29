@@ -12,9 +12,11 @@ export const analyticsApi = {
     api.get<string[]>(API.analytics.intelligenceAlerts),
 
   revenueTrend: (year: number, compare?: number) =>
-    api.get<{ year: number; data: { month: number; revenue: number }[] }>(
-      API.analytics.revenueTrend(year, compare),
-    ),
+    api.get<{
+      year: number;
+      compareYear: number;
+      data: { month: number; revenue: number; compareRevenue: number }[];
+    }>(API.analytics.revenueTrend(year, compare)),
   occupancy: (period?: string) =>
     api.get<{ occupancyRate: number; bookedNights: number; totalDays: number }>(
       API.analytics.occupancy(period),
