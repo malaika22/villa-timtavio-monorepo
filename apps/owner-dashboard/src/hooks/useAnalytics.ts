@@ -103,3 +103,21 @@ export function useSatisfaction() {
     staleTime: TEN_MINUTES,
   });
 }
+
+export function useVendorPerformance() {
+  return useQuery({
+    queryKey: ['analytics', 'vendors'],
+    queryFn: analyticsApi.vendors,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}
+
+export function useRevenueMix() {
+  return useQuery({
+    queryKey: ['analytics', 'revenue-mix'],
+    queryFn: analyticsApi.revenueMix,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}

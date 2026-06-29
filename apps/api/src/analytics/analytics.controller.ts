@@ -18,6 +18,18 @@ export class AnalyticsController {
     return this.analyticsService.getSatisfaction();
   }
 
+  @Get('vendors')
+  @Roles('owner')
+  getVendorPerformance() {
+    return this.analyticsService.getVendorPerformance();
+  }
+
+  @Get('revenue-mix')
+  @Roles('owner')
+  getRevenueMix() {
+    return this.analyticsService.getRevenueMix();
+  }
+
   @Get('revenue-trend')
   @Roles('owner')
   getRevenueTrend(

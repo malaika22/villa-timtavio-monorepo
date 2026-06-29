@@ -27,7 +27,22 @@ export const analyticsApi = {
   experiences: (period?: string) =>
     api.get<unknown>(API.analytics.experiences(period)),
   satisfaction: () => api.get<SatisfactionResponse>(API.analytics.satisfaction),
+  vendors: () => api.get<VendorPerfRow[]>(API.analytics.vendors),
+  revenueMix: () => api.get<RevenueMixResponse>(API.analytics.revenueMix),
 };
+
+export interface VendorPerfRow {
+  id: string;
+  name: string;
+  bookings: number;
+  revenue: number;
+  rating: number;
+}
+
+export interface RevenueMixResponse {
+  total: number;
+  slices: { key: string; label: string; value: number }[];
+}
 
 export interface SatisfactionResponse {
   overall: number;

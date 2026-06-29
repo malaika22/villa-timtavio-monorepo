@@ -52,6 +52,69 @@ export class AnalyticsService {
     };
   }
 
+  // ─── Vendor performance (owner) ───────────────────────────────────────────
+
+  async getVendorPerformance() {
+    const vendors = await this.prisma.vendor.findMany({
+      include: {
+        catalogItems: {
+          include: {
+            experienceRequests: {
+              where: {
+                status: { in: ['CONFIRMED', 'IN_PROGRESS', 'READY', 'COMPLETED'] },
+              },
+              select: { confirmedCost: true },
+            },
+          },
+        },
+      },
+    });
+
+    return vendors.map((v) => {
+      const requests = v.catalogItems.flatMap((c) => c.experienceRequests);
+      const revenue = requests.reduce(
+        (s, r) => s + Number(r.confirmedCost ?? 0),
+        0,
+      );
+      return {
+        id: v.id,
+        name: v.name,
+        bookings: requests.length,
+        revenue,
+        rating: Number(v.averageRating ?? 0),
+      };
+    });
+  }
+
+  // ─── Revenue mix (owner) ──────────────────────────────────────────────────
+
+  async getRevenueMix() {
+    const grouped = await this.prisma.folioItem.groupBy({
+      by: ['type'],
+      where: { booking: { status: 'CHECKED_OUT' } },
+      _sum: { amount: true },
+    });
+
+    const LABELS: Record<string, string> = {
+      ESTATE_BASE_RATE: 'Villa',
+      EXPERIENCE: 'Experiences',
+      INCIDENTAL: 'Incidentals',
+      PRE_STOCKED: 'Pre-stocked',
+    };
+
+    const slices = grouped
+      .map((g) => ({
+        key: g.type,
+        label: LABELS[g.type] ?? g.type,
+        value: Number(g._sum.amount ?? 0),
+      }))
+      .filter((s) => s.value > 0)
+      .sort((a, b) => b.value - a.value);
+
+    const total = slices.reduce((s, x) => s + x.value, 0);
+    return { total, slices };
+  }
+
   // ─── Satisfaction (owner) ─────────────────────────────────────────────────
 
   async getSatisfaction() {
