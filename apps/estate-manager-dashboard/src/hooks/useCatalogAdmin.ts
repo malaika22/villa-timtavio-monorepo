@@ -3,6 +3,7 @@ import { emCatalogApi } from '@/lib/api/catalog';
 import type {
   CreateCatalogItemDto,
   UpdateCatalogItemDto,
+  Recommendation,
 } from '@repo/api-types';
 
 export function useCatalogAdmin() {
@@ -18,6 +19,32 @@ export function useRecommendations() {
     queryKey: ['catalog', 'recommendations'],
     queryFn: emCatalogApi.recommendations,
     staleTime: 60_000,
+  });
+}
+
+export function useCreateRecommendation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: Partial<Recommendation>) =>
+      emCatalogApi.createRecommendation(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ['catalog', 'recommendations'],
+      });
+    },
+  });
+}
+
+export function useUpdateRecommendation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Recommendation> }) =>
+      emCatalogApi.updateRecommendation(id, data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ['catalog', 'recommendations'],
+      });
+    },
   });
 }
 

@@ -9,6 +9,10 @@ import type {
 export const emCatalogApi = {
   adminAll: () => api.get<CatalogItem[]>(API.catalog.adminAll),
   recommendations: () => api.get<Recommendation[]>(API.catalog.recommendations),
+  createRecommendation: (data: Partial<Recommendation>) =>
+    api.post<Recommendation>(API.catalog.recommendations, data),
+  updateRecommendation: (id: string, data: Partial<Recommendation>) =>
+    api.patch<Recommendation>(API.catalog.recommendationById(id), data),
   list: () => api.get<CatalogItem[]>(API.catalog.list),
   byId: (id: string) => api.get<CatalogItem>(API.catalog.byId(id)),
   toggleActive: (id: string) =>
