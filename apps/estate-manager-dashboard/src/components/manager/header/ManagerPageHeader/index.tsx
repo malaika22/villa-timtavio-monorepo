@@ -49,9 +49,15 @@ export const ManagerPageHeader = ({
         </span>
       ) : null}
       {meta.showPreviewGuestView ? (
-        <Button variant="outline" className={outlineBtn}>
-          <Eye className="size-4 text-manager-text-muted" />
-          Preview Guest View
+        <Button variant="outline" className={outlineBtn} asChild>
+          <a
+            href={`${process.env.NEXT_PUBLIC_PWA_URL ?? 'http://localhost:3000'}/experiences`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <Eye className="size-4 text-manager-text-muted" />
+            Preview Guest View
+          </a>
         </Button>
       ) : null}
       {meta.showExport ? (
