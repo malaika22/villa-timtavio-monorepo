@@ -162,12 +162,30 @@ export class AnalyticsService {
       .filter((c) => c.score < 4.5)
       .map((c) => c.label);
 
+    // Satisfaction-vs-revenue scatter: for reviews linked to a booking, plot
+    // the stay's settled folio total against the overall score.
+    const linked = reviews.filter((r) => r.bookingId);
+    const scatter = await Promise.all(
+      linked.map(async (r) => {
+        const folio = await this.prisma.folioItem.aggregate({
+          where: { bookingId: r.bookingId! },
+          _sum: { amount: true },
+        });
+        return {
+          name: `Stay ${r.bookingId!.slice(-4)}`,
+          satisfaction: r.overall,
+          revenue: Number(folio._sum.amount ?? 0),
+        };
+      }),
+    );
+
     return {
       overall: avg('overall'),
       reviewCount: count,
       categories,
       trend,
       themes: { praise, improvement },
+      scatter: scatter.filter((p) => p.revenue > 0),
     };
   }
 

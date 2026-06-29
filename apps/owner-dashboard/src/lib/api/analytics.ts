@@ -50,4 +50,5 @@ export interface SatisfactionResponse {
   categories: { key: string; label: string; score: number }[];
   trend: { month: string; score: number }[];
   themes: { praise: string[]; improvement: string[] };
+  scatter: { name: string; satisfaction: number; revenue: number }[];
 }

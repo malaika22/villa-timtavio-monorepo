@@ -1,6 +1,7 @@
 'use client';
 
 import { useSatisfaction } from '@/hooks/useAnalytics';
+import { PerformanceScatter } from '@/components/intelligence/charts/PerformanceScatter';
 
 function scoreColor(score: number): string {
   if (score >= 4.5) return '#2f8f6b'; // teal
@@ -35,8 +36,13 @@ export const SatisfactionPage = () => {
     );
   }
 
-  const { overall, reviewCount, categories, trend, themes } = data;
+  const { overall, reviewCount, categories, trend, themes, scatter } = data;
   const maxTrend = Math.max(...trend.map((t) => t.score), 5);
+  const scatterPoints = (scatter ?? []).map((p) => ({
+    name: p.name,
+    x: Math.round(p.revenue),
+    y: p.satisfaction,
+  }));
 
   return (
     <div className="space-y-6">
@@ -141,6 +147,24 @@ export const SatisfactionPage = () => {
           )}
         </div>
       </section>
+
+      {/* Satisfaction vs revenue */}
+      {scatterPoints.length > 0 ? (
+        <section className="rounded-xl border border-[#e8e4de] bg-white p-6">
+          <h2 className="mb-1 text-sm font-medium text-[#2b2824]">
+            Satisfaction vs revenue
+          </h2>
+          <p className="mb-3 text-xs text-[#9a9288]">
+            Each point is a stay — folio total against its overall score.
+          </p>
+          <PerformanceScatter
+            points={scatterPoints}
+            xLabel="Revenue ($)"
+            yLabel="Score"
+            yRef={4.5}
+          />
+        </section>
+      ) : null}
     </div>
   );
 };

@@ -16,20 +16,34 @@ const ROWS = [
 ];
 
 async function main() {
-  const existing = await prisma.satisfactionReview.count();
-  if (existing > 0) {
-    console.log(`Satisfaction already has ${existing} reviews — skipping.`);
-    return;
-  }
+  // Re-seedable so reviews can be (re)linked to bookings for the scatter.
+  await prisma.satisfactionReview.deleteMany({});
+
+  const bookings = await prisma.booking.findMany({
+    select: { id: true },
+    orderBy: { checkIn: 'desc' },
+    take: 12,
+  });
+
   const now = new Date();
-  for (const r of ROWS) {
+  ROWS.forEach(() => {});
+  for (let i = 0; i < ROWS.length; i++) {
+    const r = ROWS[i]!;
     const createdAt = new Date(now);
     createdAt.setMonth(createdAt.getMonth() - r.monthsAgo);
     const { monthsAgo: _omit, ...data } = r;
     void _omit;
-    await prisma.satisfactionReview.create({ data: { ...data, createdAt } });
+    // Round-robin link to a real booking so the scatter has points.
+    const bookingId = bookings.length
+      ? bookings[i % bookings.length]!.id
+      : null;
+    await prisma.satisfactionReview.create({
+      data: { ...data, bookingId, createdAt },
+    });
   }
-  console.log(`Seeded ${ROWS.length} satisfaction reviews.`);
+  console.log(
+    `Seeded ${ROWS.length} satisfaction reviews (linked to ${bookings.length} bookings).`,
+  );
 }
 
 main()
