@@ -73,6 +73,38 @@ export const ApprovalsQueueTable = ({ rows }: { rows: ApprovalQueueItem[] }) => 
     );
   };
 
+  // ─── Batch selection ──────────────────────────────────────────────────────
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const actionableIds = rows
+    .filter((r) => isActionable(r.status))
+    .map((r) => r.id);
+  const toggleSelected = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  const allSelected =
+    actionableIds.length > 0 && actionableIds.every((id) => selected.has(id));
+  const toggleAll = () =>
+    setSelected(allSelected ? new Set() : new Set(actionableIds));
+
+  const bulkApprove = () => {
+    const ids = [...selected].filter((id) => actionableIds.includes(id));
+    ids.forEach((id) => approve.mutate({ id, dto: {} }));
+    toast.success(`Approving ${ids.length} request(s)`);
+    setSelected(new Set());
+  };
+  const bulkDecline = () => {
+    const ids = [...selected].filter((id) => actionableIds.includes(id));
+    if (!confirm(`Decline ${ids.length} selected request(s)?`)) return;
+    ids.forEach((id) =>
+      decline.mutate({ id, dto: { declineReason: 'Declined in bulk' } }),
+    );
+    toast.success(`Declining ${ids.length} request(s)`);
+    setSelected(new Set());
+  };
+
   const submitDecline = () => {
     if (!decliningId) return;
     decline.mutate(
@@ -89,6 +121,28 @@ export const ApprovalsQueueTable = ({ rows }: { rows: ApprovalQueueItem[] }) => 
   };
 
   const columns: DataTableColumn<ApprovalQueueItem>[] = [
+    {
+      key: 'select',
+      header: (
+        <input
+          type="checkbox"
+          aria-label="Select all"
+          checked={allSelected}
+          onChange={toggleAll}
+          className="size-4 accent-manager-accent"
+        />
+      ) as unknown as string,
+      cell: (row) =>
+        isActionable(row.status) ? (
+          <input
+            type="checkbox"
+            aria-label={`Select ${row.guestName}`}
+            checked={selected.has(row.id)}
+            onChange={() => toggleSelected(row.id)}
+            className="size-4 accent-manager-accent"
+          />
+        ) : null,
+    },
     {
       key: 'guest',
       header: 'Guest',
@@ -216,6 +270,40 @@ export const ApprovalsQueueTable = ({ rows }: { rows: ApprovalQueueItem[] }) => 
 
   return (
     <>
+      {selected.size > 0 ? (
+        <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-manager-accent/30 bg-manager-accent/5 px-4 py-2.5">
+          <span className="text-sm font-medium text-manager-text">
+            {selected.size} selected
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              className={primaryBtn}
+              disabled={approve.isPending}
+              onClick={bulkApprove}
+            >
+              Approve all
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className={outlineBtn}
+              disabled={decline.isPending}
+              onClick={bulkDecline}
+            >
+              Decline all
+            </Button>
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="text-sm text-manager-text-muted hover:text-manager-text"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <DataTable columns={columns} rows={rows} variant="manager" striped={false} />
 
       <Dialog
