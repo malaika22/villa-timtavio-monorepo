@@ -51,6 +51,10 @@ export function mapGuestProfileToDNA(profile: GuestProfile): GuestDNAProfile {
   const beverage = profile.beveragePreferences
     ? profile.beveragePreferences.split('\n').filter(Boolean)
     : [];
+  // The active stay = first booking that hasn't ended.
+  const activeBooking = profile.primaryBookings.find(
+    (b) => b.status !== 'CHECKED_OUT' && b.status !== 'CANCELLED',
+  );
 
   return {
     id: profile.id,
@@ -77,5 +81,13 @@ export function mapGuestProfileToDNA(profile: GuestProfile): GuestDNAProfile {
       : { text: 'No staff notes yet.', author: '—', date: '—' },
     stayActivity: [],
     stayHistory: [],
+    activeBookingId: activeBooking?.id ?? null,
+    bookingStatus: activeBooking?.status,
+    totalVisits: profile.stats.totalVisits,
+    lifetimeSpend: profile.stats.lifetimeSpend,
+    specialOccasions: profile.specialOccasions,
+    preStock: profile.preStockSuggestions
+      .filter((s) => s.type !== 'ROOM_SETUP')
+      .map((s) => ({ description: s.description, source: s.source })),
   };
 }

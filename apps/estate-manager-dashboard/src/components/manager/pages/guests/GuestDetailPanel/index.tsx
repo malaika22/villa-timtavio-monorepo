@@ -1,4 +1,5 @@
 import { GuestDetailHeader } from '@/components/manager/pages/guests/GuestDetailHeader';
+import { GuestDnaExtras } from '@/components/manager/pages/guests/GuestDnaExtras';
 import { GuestPreferencesSection } from '@/components/manager/pages/guests/GuestPreferencesSection';
 import { GuestStaffNotes } from '@/components/manager/pages/guests/GuestStaffNotes';
 import { GuestStayActivityTable } from '@/components/manager/pages/guests/GuestStayActivityTable';
@@ -17,6 +18,8 @@ export const GuestDetailPanel = ({ profile }: { profile: GuestDNAProfile }) => (
           <GuestStayActivityTable profile={profile} />
         </div>
       </div>
+
+      <GuestDnaExtras profile={profile} />
 
       <GuestStayHistoryTable profile={profile} />
     </div>

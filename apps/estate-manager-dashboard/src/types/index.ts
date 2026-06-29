@@ -49,6 +49,12 @@ export type GuestDNAProfile = {
     experiences: string;
     folioTotal: string;
   }[];
+  activeBookingId?: string | null;
+  bookingStatus?: BookingStatus;
+  totalVisits?: number;
+  lifetimeSpend?: number;
+  specialOccasions?: string | null;
+  preStock?: { description: string; source: string }[];
 };
 
 export type ApprovalStatus = 'Pending' | 'Conflict';
