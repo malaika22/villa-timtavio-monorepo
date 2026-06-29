@@ -53,7 +53,11 @@ export class BreezeWayService {
     return response.data;
   }
 
-  validateWebhookSignature(payload: string, signature: string): boolean {
+  validateWebhookSignature(
+    payload: string | Buffer,
+    signature: string,
+  ): boolean {
+    if (!signature) return false;
     const crypto = require('crypto');
     const expected = crypto
       .createHmac('sha256', this.config.get('BREEZEWAY_WEBHOOK_SECRET'))

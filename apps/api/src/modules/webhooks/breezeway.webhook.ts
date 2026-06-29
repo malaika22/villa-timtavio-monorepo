@@ -1,13 +1,13 @@
 import {
   Controller,
   Post,
-  Body,
   Headers,
   HttpCode,
   Logger,
   RawBodyRequest,
   Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { Public } from '../auth/decorators/public.decorator';
 import { BreezeWayService } from '../breezeway/breezeway.service';
 import { RequestsService } from '../requests/requests.service';
@@ -24,16 +24,31 @@ export class BreezeWayWebhookController {
   @Post()
   @Public()
   @HttpCode(200)
-  async handle(@Body() body: any, @Headers() headers: any) {
+  async handle(
+    @Req() req: RawBodyRequest<Request>,
+    @Headers() headers: any,
+  ) {
     const signature = headers['x-breezeway-signature'];
 
+    if (!req.rawBody?.length) {
+      this.logger.warn('Breezeway webhook missing raw body — cannot verify');
+      return { received: false };
+    }
+
+    // Verify HMAC over the RAW body bytes (re-serializing changes whitespace
+    // and breaks the signature).
     if (
-      !this.breezeWayService.validateWebhookSignature(
-        JSON.stringify(body),
-        signature,
-      )
+      !this.breezeWayService.validateWebhookSignature(req.rawBody, signature)
     ) {
       this.logger.warn('Invalid Breezeway webhook signature');
+      return { received: false };
+    }
+
+    let body: any;
+    try {
+      body = JSON.parse(req.rawBody.toString('utf8'));
+    } catch {
+      this.logger.warn('Breezeway webhook body is not valid JSON');
       return { received: false };
     }
 

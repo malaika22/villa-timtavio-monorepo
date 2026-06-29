@@ -285,15 +285,52 @@ export class BookingsService {
   }
 
   async updateFromLodgify(lodgifyData: any) {
-    return this.prisma.booking.update({
+    const baseRate =
+      lodgifyData.total_price != null
+        ? Number(lodgifyData.total_price)
+        : undefined;
+
+    const booking = await this.prisma.booking.update({
       where: { lodgifyId: String(lodgifyData.id) },
       data: {
         checkIn: new Date(lodgifyData.arrival),
         checkOut: new Date(lodgifyData.departure),
         nights: lodgifyData.nights,
+        ...(baseRate != null ? { baseRate } : {}),
         lodgifyRawData: lodgifyData,
       },
     });
+
+    // Keep the base-rate folio line in sync with the (possibly changed) total.
+    if (baseRate != null) {
+      const existing = await this.prisma.folioItem.findFirst({
+        where: { bookingId: booking.id, type: 'ESTATE_BASE_RATE' },
+      });
+      if (existing) {
+        await this.prisma.folioItem.update({
+          where: { id: existing.id },
+          data: {
+            amount: baseRate,
+            description: `Casa TimTavio Estate — ${booking.nights} nights`,
+          },
+        });
+      } else {
+        await this.prisma.folioItem.create({
+          data: {
+            bookingId: booking.id,
+            type: 'ESTATE_BASE_RATE',
+            description: `Casa TimTavio Estate — ${booking.nights} nights`,
+            amount: baseRate,
+            quantity: 1,
+            loggedBy: 'system',
+            loggedAt: new Date(),
+            editableUntil: new Date(Date.now() + 30 * 60 * 1000),
+          },
+        });
+      }
+    }
+
+    return booking;
   }
 
   async cancelFromLodgify(lodgifyData: any) {
