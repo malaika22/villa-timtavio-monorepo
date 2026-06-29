@@ -5,6 +5,7 @@ import { MetricCardGrid } from '@repo/dashboard-ui';
 import { OperationsAlertBanner } from '@/components/manager/alerts/OperationsAlertBanner';
 import { CurrentGuestsTable } from '@/components/manager/pages/dashboard/CurrentGuestsTable';
 import { PendingApprovalsTable } from '@/components/manager/pages/dashboard/PendingApprovalsTable';
+import { SystemAlertsCard } from '@/components/manager/pages/dashboard/SystemAlertsCard';
 import { TodaySchedulePanel } from '@/components/manager/pages/dashboard/TodaySchedulePanel';
 import { useDashboard } from '@/hooks/useDashboard';
 import { mapApprovalItemToPending } from '@/lib/mappers/dashboard';
@@ -83,11 +84,14 @@ export const DashboardPage = () => {
         )}
       </section>
 
-      {isLoading ? (
-        <div className="h-48 animate-pulse rounded-xl bg-manager-border" />
-      ) : (
-        <PendingApprovalsTable approvals={pendingTableRows} />
-      )}
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        {isLoading ? (
+          <div className="h-48 animate-pulse rounded-xl bg-manager-border" />
+        ) : (
+          <PendingApprovalsTable approvals={pendingTableRows} />
+        )}
+        <SystemAlertsCard />
+      </div>
 
       {error && (
         <p className="text-sm text-red-500">
