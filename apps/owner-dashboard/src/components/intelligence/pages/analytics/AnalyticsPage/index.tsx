@@ -3,21 +3,25 @@ import { AnalyticsMonthlyRevenueChart } from '@/components/intelligence/pages/an
 import { EstateOccupancyChart } from '@/components/intelligence/pages/analytics/EstateOccupancyChart';
 import { GuestDemographicsSection } from '@/components/intelligence/pages/analytics/GuestDemographicsSection';
 import { RevenueByVillaCard } from '@/components/intelligence/pages/analytics/RevenueByVillaCard';
+import { RevenueMixDonut } from '@/components/intelligence/pages/analytics/RevenueMixDonut';
 import { analyticsMetrics } from '@/lib/mock-data';
 import { MockDataBanner } from '@/components/intelligence/ui/MockDataBanner';
 
 export const AnalyticsPage = () => (
   <div className="space-y-6">
-    <MockDataBanner />
+    <MockDataBanner message="Revenue Mix is live; other charts show sample data." />
     <MetricCardGrid metrics={analyticsMetrics} />
 
     <AnalyticsMonthlyRevenueChart />
 
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] xl:items-stretch">
       <EstateOccupancyChart />
-      <RevenueByVillaCard />
+      <RevenueMixDonut />
     </div>
 
-    <GuestDemographicsSection />
+    <div className="grid gap-5 xl:grid-cols-2 xl:items-stretch">
+      <RevenueByVillaCard />
+      <GuestDemographicsSection />
+    </div>
   </div>
 );
