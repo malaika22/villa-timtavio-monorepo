@@ -1,12 +1,16 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@repo/ui';
 import { DataTable } from '@repo/dashboard-ui';
 import type { DataTableColumn } from '@repo/dashboard-ui';
 import { cn } from '@repo/ui/lib/utils';
+import { toast } from 'sonner';
 
 import { SectionLinkHeader } from '@/components/manager/ui/SectionLinkHeader';
 import { SectionEmptyState } from '@/components/manager/ui/SectionEmptyState';
 import { GuestAvatar } from '@/components/manager/ui/GuestAvatar';
+import { useApproveRequest, useDeclineRequest } from '@/hooks/useApprovals';
 import type { PendingApproval } from '@/types';
 
 const ApprovalStatusPill = ({
@@ -39,6 +43,9 @@ export const PendingApprovalsTable = ({
   approvals: PendingApproval[];
   showSectionHeader?: boolean;
 }) => {
+  const approve = useApproveRequest();
+  const decline = useDeclineRequest();
+
   const columns: DataTableColumn<PendingApproval>[] = [
     {
       key: 'guest',
@@ -88,19 +95,49 @@ export const PendingApprovalsTable = ({
       key: 'action',
       header: '',
       cell: (row) => (
-        <Button
-          asChild
-          size="sm"
-          variant={row.status === 'Conflict' ? 'default' : 'outline'}
-          className={cn(
-            'h-9 min-w-[80px] rounded-md px-4 text-sm font-medium',
-            row.status === 'Conflict'
-              ? 'border-0 bg-manager-accent text-white shadow-none hover:bg-manager-accent-muted'
-              : 'border-manager-border bg-manager-card text-manager-text shadow-none hover:bg-manager-main',
-          )}
-        >
-          <Link href={`/approvals?request=${row.id}`}>Review</Link>
-        </Button>
+        <div className="flex items-center justify-end gap-1.5">
+          <Button
+            size="sm"
+            className="h-8 rounded-md border-0 bg-manager-accent px-3 text-xs font-medium text-white shadow-none hover:bg-manager-accent-muted"
+            disabled={approve.isPending}
+            onClick={() =>
+              approve.mutate(
+                { id: row.id, dto: {} },
+                {
+                  onSuccess: () => toast.success('Confirmed'),
+                  onError: (e) => toast.error((e as Error).message),
+                },
+              )
+            }
+          >
+            Approve
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 rounded-md border-manager-border px-3 text-xs font-medium text-manager-text shadow-none hover:bg-manager-main"
+            disabled={decline.isPending}
+            onClick={() =>
+              decline.mutate(
+                { id: row.id, dto: { declineReason: undefined } },
+                {
+                  onSuccess: () => toast.success('Declined'),
+                  onError: (e) => toast.error((e as Error).message),
+                },
+              )
+            }
+          >
+            Decline
+          </Button>
+          <Button
+            asChild
+            size="sm"
+            variant="ghost"
+            className="h-8 px-2 text-xs text-manager-text-muted hover:text-manager-text"
+          >
+            <Link href={`/approvals?request=${row.id}`}>Review</Link>
+          </Button>
+        </div>
       ),
     },
   ];
