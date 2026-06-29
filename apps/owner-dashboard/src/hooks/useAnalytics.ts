@@ -104,6 +104,15 @@ export function useSatisfaction() {
   });
 }
 
+export function useHeatMap(category?: string) {
+  return useQuery({
+    queryKey: ['analytics', 'heat-map', category ?? 'all'],
+    queryFn: () => analyticsApi.heatMap(undefined, undefined, category),
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}
+
 export function useVendorPerformance() {
   return useQuery({
     queryKey: ['analytics', 'vendors'],

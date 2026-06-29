@@ -22,7 +22,9 @@ export const analyticsApi = {
       API.analytics.occupancy(period),
     ),
   heatMap: (date?: string, range?: string, category?: string) =>
-    api.get<unknown>(API.analytics.heatMap(date, range, category)),
+    api.get<{ space: string; timeBlock: string; activityScore: number }[]>(
+      API.analytics.heatMap(date, range, category),
+    ),
   peakHours: (date?: string) => api.get<unknown>(API.analytics.peakHours(date)),
   experiences: (period?: string) =>
     api.get<unknown>(API.analytics.experiences(period)),
