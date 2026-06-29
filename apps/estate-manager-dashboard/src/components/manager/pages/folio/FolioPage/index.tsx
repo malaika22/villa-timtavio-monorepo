@@ -21,6 +21,7 @@ import { useCurrentGuests } from '@/hooks/useGuests';
 import {
   useFolioEM,
   useAddFolioCharge,
+  useUpdateFolioCharge,
   useCheckout,
 } from '@/hooks/useFolioEM';
 
@@ -49,10 +50,36 @@ export const FolioPage = () => {
 
   const { data: folio, isLoading: folioLoading } = useFolioEM(bookingId);
   const addCharge = useAddFolioCharge(bookingId);
+  const updateCharge = useUpdateFolioCharge();
   const checkout = useCheckout(bookingId);
 
   const [chargeOpen, setChargeOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [editItem, setEditItem] = useState<{
+    id: string;
+    description: string;
+    amount: number;
+    quantity: number;
+  } | null>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editQty, setEditQty] = useState('1');
+
+  const submitEdit = () => {
+    if (!editItem) return;
+    const amount = Number(editAmount);
+    const quantity = Number(editQty) || 1;
+    if (!amount || amount <= 0) return;
+    updateCharge.mutate(
+      { itemId: editItem.id, dto: { amount, quantity } },
+      {
+        onSuccess: () => {
+          toast.success('Charge updated');
+          setEditItem(null);
+        },
+        onError: (e) => toast.error((e as Error).message),
+      },
+    );
+  };
 
   return (
     <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
@@ -167,9 +194,29 @@ export const FolioPage = () => {
                         {editable ? ' · editable 30m' : ''}
                       </p>
                     </div>
-                    <span className="shrink-0 text-sm font-semibold tabular-nums text-manager-text">
-                      {money(item.amount * item.quantity)}
-                    </span>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span className="text-sm font-semibold tabular-nums text-manager-text">
+                        {money(item.amount * item.quantity)}
+                      </span>
+                      {editable ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditItem({
+                              id: item.id,
+                              description: item.description,
+                              amount: item.amount,
+                              quantity: item.quantity,
+                            });
+                            setEditAmount(String(item.amount));
+                            setEditQty(String(item.quantity));
+                          }}
+                          className="text-xs font-medium text-manager-accent hover:underline"
+                        >
+                          Edit
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 );
               })}
@@ -214,6 +261,56 @@ export const FolioPage = () => {
           })
         }
       />
+
+      <Dialog open={!!editItem} onOpenChange={(o) => !o && setEditItem(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit charge</DialogTitle>
+            <DialogDescription>
+              {editItem?.description} · editable within 30 minutes of logging.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <label className="block text-xs font-medium text-manager-text-muted">
+              Amount (USD)
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={editAmount}
+                onChange={(e) => setEditAmount(e.target.value)}
+                className="mt-1"
+              />
+            </label>
+            <label className="block text-xs font-medium text-manager-text-muted">
+              Quantity
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                value={editQty}
+                onChange={(e) => setEditQty(e.target.value)}
+                className="mt-1"
+              />
+            </label>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditItem(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-manager-accent text-white hover:bg-manager-accent-muted"
+              disabled={updateCharge.isPending || !Number(editAmount)}
+              onClick={submitEdit}
+            >
+              {updateCharge.isPending ? (
+                <Loader2 className="mr-1.5 size-4 animate-spin" />
+              ) : null}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
         <DialogContent className="sm:max-w-md">
