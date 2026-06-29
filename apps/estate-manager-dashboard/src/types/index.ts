@@ -162,6 +162,7 @@ export type VendorProfile = {
   totalBookings: number;
   avgRating: number;
   avgBooking: string;
+  status?: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
 };
 
 export type BookingTab = 'current' | 'upcoming' | 'past' | 'manifest';

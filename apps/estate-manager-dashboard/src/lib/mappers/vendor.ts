@@ -42,5 +42,6 @@ export function mapVendorToProfile(vendor: Vendor): VendorProfile {
     totalBookings: vendor.totalBookings,
     avgRating: Number(vendor.averageRating ?? 0),
     avgBooking: '—',
+    status: vendor.status,
   };
 }

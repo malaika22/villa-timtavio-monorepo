@@ -1,7 +1,27 @@
-import { Button } from '@repo/ui';
+'use client';
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@repo/ui';
+import { ChevronDown, Check } from 'lucide-react';
+import { cn } from '@repo/ui/lib/utils';
+import { toast } from 'sonner';
+import type { VendorStatus } from '@repo/api-types';
 
 import { VendorStarRating } from '@/components/manager/pages/vendors/VendorStarRating';
+import { useUpdateVendorStatus } from '@/hooks/useVendors';
 import type { VendorProfile } from '@/types';
+
+const STATUS_META: Record<VendorStatus, { label: string; cls: string }> = {
+  ACTIVE: { label: 'Active', cls: 'bg-[#e8f3ec] text-[#1e7e34]' },
+  ON_LEAVE: { label: 'On leave', cls: 'bg-[#fdf3e2] text-[#b45309]' },
+  INACTIVE: { label: 'Inactive', cls: 'bg-[#f0eeec] text-[#78716c]' },
+};
+
+const STATUSES: VendorStatus[] = ['ACTIVE', 'ON_LEAVE', 'INACTIVE'];
 
 function formatStatValue(label: string, value: string | number): string | number {
   if (label === 'Avg rating' && typeof value === 'number') {
@@ -19,11 +39,54 @@ const VendorStat = ({ label, value }: { label: string; value: string | number })
   </div>
 );
 
-export const VendorCard = ({ vendor }: { vendor: VendorProfile }) => (
+export const VendorCard = ({ vendor }: { vendor: VendorProfile }) => {
+  const updateStatus = useUpdateVendorStatus();
+  const status = vendor.status ?? 'ACTIVE';
+  const meta = STATUS_META[status];
+
+  return (
   <article className="flex flex-col rounded-xl border border-[#e8e4de] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,20,0.06)]">
-    <p className="font-inter text-[10px] font-medium tracking-[0.14em] text-manager-text-muted uppercase">
-      {vendor.categoryLabel}
-    </p>
+    <div className="flex items-start justify-between gap-2">
+      <p className="font-inter text-[10px] font-medium tracking-[0.14em] text-manager-text-muted uppercase">
+        {vendor.categoryLabel}
+      </p>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium',
+              meta.cls,
+            )}
+          >
+            {meta.label}
+            <ChevronDown className="size-3" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-36">
+          {STATUSES.map((s) => (
+            <DropdownMenuItem
+              key={s}
+              onSelect={(e) => {
+                e.preventDefault();
+                if (s !== status)
+                  updateStatus.mutate(
+                    { id: vendor.id, status: s },
+                    {
+                      onSuccess: () => toast.success('Vendor status updated'),
+                      onError: (err) => toast.error((err as Error).message),
+                    },
+                  );
+              }}
+              className="flex items-center justify-between text-sm"
+            >
+              {STATUS_META[s].label}
+              {s === status ? <Check className="size-3.5" /> : null}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
     <h3 className="mt-1 font-cormorant text-[22px] font-medium leading-tight text-manager-text">
       {vendor.name}
     </h3>
@@ -52,16 +115,6 @@ export const VendorCard = ({ vendor }: { vendor: VendorProfile }) => (
       <VendorStat label="Avg booking" value={vendor.avgBooking} />
     </div>
 
-    <div className="mt-4 flex items-center gap-2">
-      <Button className="font-inter h-10 flex-1 rounded-lg border-0 bg-manager-accent text-sm font-medium text-white shadow-none hover:bg-manager-accent-muted">
-        Book
-      </Button>
-      <Button
-        variant="ghost"
-        className="font-inter h-10 shrink-0 px-4 text-sm font-medium text-manager-text shadow-none hover:bg-transparent hover:text-manager-accent"
-      >
-        Profile
-      </Button>
-    </div>
   </article>
-);
+  );
+};
