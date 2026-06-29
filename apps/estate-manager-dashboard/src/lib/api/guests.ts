@@ -10,6 +10,8 @@ import { API, api } from '@/lib/api';
 export const guestsApi = {
   getCurrent: () => api.get<GuestWithBookings[]>(API.guests.current),
 
+  getUpcoming: () => api.get<GuestWithBookings[]>(API.guests.upcoming),
+
   getPast: (search?: string) => {
     const query = search ? `?search=${encodeURIComponent(search)}` : '';
     return api.get<GuestSummary[]>(`${API.guests.past}${query}`);

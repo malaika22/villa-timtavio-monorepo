@@ -23,6 +23,13 @@ export function useCurrentGuests() {
   });
 }
 
+export function useUpcomingGuests() {
+  return useQuery({
+    queryKey: ['guests', 'upcoming'],
+    queryFn: guestsApi.getUpcoming,
+  });
+}
+
 export function usePastGuests(search?: string) {
   return useQuery({
     queryKey: ['guests', 'past', search],

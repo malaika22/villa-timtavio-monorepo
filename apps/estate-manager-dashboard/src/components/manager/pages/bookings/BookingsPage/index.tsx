@@ -9,9 +9,15 @@ import { GuestManifestCard } from '@/components/manager/pages/bookings/GuestMani
 import { PreArrivalChecklist } from '@/components/manager/pages/bookings/PreArrivalChecklist';
 import { RequestedExperiencesCard } from '@/components/manager/pages/bookings/RequestedExperiencesCard';
 import { DiningSittingsCard } from '@/components/manager/pages/bookings/DiningSittingsCard';
+import { BookingsListTab } from '@/components/manager/pages/bookings/BookingsListTab';
 import { mapToCurrentBooking } from '@/lib/mappers/booking';
 import type { BookingTab } from '@/types';
 import { useCurrentActiveBooking } from '@/hooks/useBookings';
+import {
+  useUpcomingGuests,
+  useCurrentGuestsRaw,
+  usePastGuests,
+} from '@/hooks/useGuests';
 import { useManifest } from '@/hooks/useManifest';
 
 const EmptyState = ({ message }: { message: string }) => (
@@ -25,20 +31,72 @@ export const BookingsPage = () => {
 
   const { data: detail, isLoading } = useCurrentActiveBooking();
   const { data: manifest } = useManifest(detail?.id ?? null);
+  const upcoming = useUpcomingGuests();
+  const currentRaw = useCurrentGuestsRaw();
+  const past = usePastGuests();
 
-  if (activeTab !== 'current') {
+  if (activeTab === 'upcoming') {
     return (
       <div className="space-y-5">
         <BookingsTabs activeTab={activeTab} onTabChange={setActiveTab} />
-        <EmptyState
-          message={
-            activeTab === 'upcoming'
-              ? 'Upcoming bookings will appear here once synced from Lodgify.'
-              : activeTab === 'past'
-                ? 'Past bookings will appear here.'
-                : 'The manifest review queue will appear here.'
-          }
+        <BookingsListTab
+          guests={upcoming.data ?? []}
+          isLoading={upcoming.isLoading}
+          mode="upcoming"
         />
+      </div>
+    );
+  }
+
+  if (activeTab === 'manifest') {
+    return (
+      <div className="space-y-5">
+        <BookingsTabs activeTab={activeTab} onTabChange={setActiveTab} />
+        <BookingsListTab
+          guests={currentRaw.data ?? []}
+          isLoading={currentRaw.isLoading}
+          mode="manifest-review"
+        />
+      </div>
+    );
+  }
+
+  if (activeTab === 'past') {
+    return (
+      <div className="space-y-5">
+        <BookingsTabs activeTab={activeTab} onTabChange={setActiveTab} />
+        <div className="overflow-hidden rounded-xl border border-[#ebe6df] bg-white">
+          {past.isLoading ? (
+            <div className="space-y-2 p-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-12 animate-pulse rounded bg-manager-border" />
+              ))}
+            </div>
+          ) : (past.data ?? []).length === 0 ? (
+            <p className="p-8 text-center text-sm text-manager-text-muted">
+              No past bookings yet.
+            </p>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="border-b border-[#ebe6df] bg-[#faf9f7] text-left text-xs uppercase tracking-wide text-manager-text-muted">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Guest</th>
+                  <th className="px-4 py-3 font-medium">Dates</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(past.data ?? []).map((g) => (
+                  <tr key={g.id} className="border-b border-[#f1ece4] last:border-0">
+                    <td className="px-4 py-3 font-medium text-manager-text">{g.name}</td>
+                    <td className="px-4 py-3 text-manager-text-muted">{g.dates}</td>
+                    <td className="px-4 py-3 text-manager-text-muted">{g.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
     );
   }
