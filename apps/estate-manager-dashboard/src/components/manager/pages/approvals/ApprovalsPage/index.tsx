@@ -3,8 +3,10 @@
 import { useMemo, useState } from 'react';
 
 import { ApprovalsFilterBar } from '@/components/manager/pages/approvals/ApprovalsFilterBar';
+import { ApprovalsKanban } from '@/components/manager/pages/approvals/ApprovalsKanban';
 import { ApprovalsQueueTable } from '@/components/manager/pages/approvals/ApprovalsQueueTable';
 import { ConflictDetectedBanner } from '@/components/manager/pages/approvals/ConflictDetectedBanner';
+import { LayoutList, LayoutGrid } from 'lucide-react';
 import {
   approvalQueueItems,
   conflictDetectedMessage,
@@ -61,16 +63,37 @@ export const ApprovalsPage = () => {
 
   const hasConflict = allItems.some((i) => i.status === 'Conflict');
   const isLoading = queueLoading || activeLoading;
+  const [view, setView] = useState<'list' | 'board'>('list');
 
   return (
     <div className="space-y-5">
-      <ApprovalsFilterBar
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        search={search}
-        onSearchChange={setSearch}
-        counts={counts}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <ApprovalsFilterBar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          search={search}
+          onSearchChange={setSearch}
+          counts={counts}
+        />
+        <div className="inline-flex rounded-lg border border-manager-border bg-manager-card p-0.5">
+          <button
+            type="button"
+            onClick={() => setView('list')}
+            aria-label="List view"
+            className={`flex size-8 items-center justify-center rounded-md ${view === 'list' ? 'bg-manager-accent text-white' : 'text-manager-text-muted'}`}
+          >
+            <LayoutList className="size-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('board')}
+            aria-label="Board view"
+            className={`flex size-8 items-center justify-center rounded-md ${view === 'board' ? 'bg-manager-accent text-white' : 'text-manager-text-muted'}`}
+          >
+            <LayoutGrid className="size-4" />
+          </button>
+        </div>
+      </div>
 
       {hasConflict ? (
         <ConflictDetectedBanner message={conflictDetectedMessage} />
@@ -85,6 +108,8 @@ export const ApprovalsPage = () => {
             />
           ))}
         </div>
+      ) : view === 'board' ? (
+        <ApprovalsKanban rows={filteredRows} />
       ) : (
         <ApprovalsQueueTable rows={filteredRows} />
       )}
