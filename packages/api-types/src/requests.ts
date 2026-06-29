@@ -68,6 +68,7 @@ export interface ConfirmRequestDto {
 
 export interface ConfirmCostDto {
   confirmedCost: number;
+  emNotes?: string;
 }
 
 export interface DeclineRequestDto {

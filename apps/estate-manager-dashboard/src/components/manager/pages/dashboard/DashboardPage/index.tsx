@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { MetricCardGrid } from '@repo/dashboard-ui';
 import { OperationsAlertBanner } from '@/components/manager/alerts/OperationsAlertBanner';
 import { CurrentGuestsTable } from '@/components/manager/pages/dashboard/CurrentGuestsTable';
@@ -26,23 +27,31 @@ export const DashboardPage = () => {
     .slice(0, 5)
     .map(mapApprovalItemToPending);
 
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const dismiss = (key: string) =>
+    setDismissed((prev) => new Set(prev).add(key));
+
   return (
     <div className="space-y-5">
-      {alertBanner?.message ? (
+      {alertBanner?.message && !dismissed.has('main') ? (
         <OperationsAlertBanner
           message={alertBanner.message}
           reviewHref={alertBanner.reviewHref}
+          onDismiss={() => dismiss('main')}
         />
       ) : null}
 
-      {alertBanner?.reminders?.map((reminder) => (
-        <OperationsAlertBanner
-          key={reminder.type}
-          message={reminder.message}
-          reviewHref="#current-guests"
-          reviewLabel="Update status →"
-        />
-      ))}
+      {alertBanner?.reminders
+        ?.filter((r) => !dismissed.has(r.type))
+        .map((reminder) => (
+          <OperationsAlertBanner
+            key={reminder.type}
+            message={reminder.message}
+            reviewHref="#current-guests"
+            reviewLabel="Update status →"
+            onDismiss={() => dismiss(reminder.type)}
+          />
+        ))}
 
       {isLoading ? (
         <div className="grid grid-cols-4 gap-4">

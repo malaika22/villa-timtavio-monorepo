@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
   Textarea,
+  Input,
 } from '@repo/ui';
 import { DataTable } from '@repo/dashboard-ui';
 import type { DataTableColumn } from '@repo/dashboard-ui';
@@ -18,7 +19,11 @@ import { Loader2 } from 'lucide-react';
 
 import { GuestAvatar } from '@/components/manager/ui/GuestAvatar';
 import { ApprovalStatusPill } from '@/components/manager/pages/approvals/ApprovalStatusPill';
-import { useApproveRequest, useDeclineRequest } from '@/hooks/useApprovals';
+import {
+  useApproveRequest,
+  useDeclineRequest,
+  useConfirmCost,
+} from '@/hooks/useApprovals';
 import { toast } from 'sonner';
 import type { ApprovalQueueItem, ApprovalQueueStatus } from '@/types';
 
@@ -33,9 +38,30 @@ const isActionable = (status: ApprovalQueueStatus) =>
 export const ApprovalsQueueTable = ({ rows }: { rows: ApprovalQueueItem[] }) => {
   const approve = useApproveRequest();
   const decline = useDeclineRequest();
+  const confirmCost = useConfirmCost();
 
   const [decliningId, setDecliningId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
+  const [costId, setCostId] = useState<string | null>(null);
+  const [costAmount, setCostAmount] = useState('');
+  const [costNotes, setCostNotes] = useState('');
+
+  const submitCost = () => {
+    const amount = Number(costAmount);
+    if (!costId || !amount || amount <= 0) return;
+    confirmCost.mutate(
+      { id: costId, dto: { confirmedCost: amount, emNotes: costNotes.trim() || undefined } },
+      {
+        onSuccess: () => {
+          toast.success('Cost logged to folio');
+          setCostId(null);
+          setCostAmount('');
+          setCostNotes('');
+        },
+        onError: (e) => toast.error((e as Error).message),
+      },
+    );
+  };
 
   const handleApprove = (id: string) => {
     approve.mutate(
@@ -128,6 +154,25 @@ export const ApprovalsQueueTable = ({ rows }: { rows: ApprovalQueueItem[] }) => 
       header: 'Actions',
       cell: (row) => {
         if (!isActionable(row.status)) {
+          // Manager Quote Loop: log the confirmed cost to the folio for
+          // confirmed/in-progress experiences.
+          if (row.status === 'Confirmed' || row.status === 'In Progress') {
+            return (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className={outlineBtn}
+                onClick={() => {
+                  setCostAmount('');
+                  setCostNotes('');
+                  setCostId(row.id);
+                }}
+              >
+                Log cost
+              </Button>
+            );
+          }
           return <span className="text-[15px] text-manager-text-muted">—</span>;
         }
         const busy =
@@ -217,6 +262,66 @@ export const ApprovalsQueueTable = ({ rows }: { rows: ApprovalQueueItem[] }) => 
                 <Loader2 className="mr-1.5 size-3.5 animate-spin" />
               ) : null}
               Decline request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!costId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCostId(null);
+            setCostAmount('');
+            setCostNotes('');
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Log confirmed cost</DialogTitle>
+            <DialogDescription>
+              Adds an experience charge to the primary member’s folio.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              value={costAmount}
+              onChange={(e) => setCostAmount(e.target.value)}
+              placeholder="Amount (USD)"
+            />
+            <Textarea
+              value={costNotes}
+              onChange={(e) => setCostNotes(e.target.value)}
+              placeholder="Internal note (optional)…"
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setCostId(null);
+                setCostAmount('');
+                setCostNotes('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className={primaryBtn}
+              disabled={confirmCost.isPending || !Number(costAmount)}
+              onClick={submitCost}
+            >
+              {confirmCost.isPending ? (
+                <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+              ) : null}
+              Add to folio
             </Button>
           </DialogFooter>
         </DialogContent>

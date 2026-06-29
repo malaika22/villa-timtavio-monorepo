@@ -1,14 +1,16 @@
 import Link from 'next/link';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
 
 export const OperationsAlertBanner = ({
   message,
   reviewHref,
   reviewLabel = 'Review →',
+  onDismiss,
 }: {
   message: string;
   reviewHref?: string;
   reviewLabel?: string;
+  onDismiss?: () => void;
 }) => (
   <div
     className="flex items-start justify-between gap-3 rounded-lg border border-[#e8d4b8] bg-[#fef6eb] px-4 py-3"
@@ -21,13 +23,25 @@ export const OperationsAlertBanner = ({
       />
       <p className="text-sm leading-snug text-manager-text">{message}</p>
     </div>
-    {reviewHref ? (
-      <Link
-        href={reviewHref}
-        className="shrink-0 text-sm font-medium text-manager-accent hover:underline"
-      >
-        {reviewLabel}
-      </Link>
-    ) : null}
+    <div className="flex shrink-0 items-center gap-3">
+      {reviewHref ? (
+        <Link
+          href={reviewHref}
+          className="text-sm font-medium text-manager-accent hover:underline"
+        >
+          {reviewLabel}
+        </Link>
+      ) : null}
+      {onDismiss ? (
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label="Dismiss"
+          className="rounded p-0.5 text-[#b45309]/70 transition-colors hover:bg-[#f5e6cf] hover:text-[#b45309]"
+        >
+          <X className="size-4" />
+        </button>
+      ) : null}
+    </div>
   </div>
 );
