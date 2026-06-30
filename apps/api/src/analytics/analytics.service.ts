@@ -52,6 +52,84 @@ export class AnalyticsService {
     };
   }
 
+  // ─── 30-day occupancy calendar (owner) ────────────────────────────────────
+
+  async getOccupancyCalendar() {
+    const days = 30;
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + days);
+
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        status: { not: 'CANCELLED' },
+        checkIn: { lt: end },
+        checkOut: { gt: start },
+      },
+      select: { checkIn: true, checkOut: true, totalGuests: true },
+    });
+
+    const result: {
+      date: string;
+      bookings: number;
+      guests: number;
+      occupied: boolean;
+    }[] = [];
+
+    for (let i = 0; i < days; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      const next = new Date(d);
+      next.setDate(next.getDate() + 1);
+      const overlapping = bookings.filter(
+        (b) => b.checkIn < next && b.checkOut > d,
+      );
+      result.push({
+        date: d.toISOString().slice(0, 10),
+        bookings: overlapping.length,
+        guests: overlapping.reduce((s, b) => s + b.totalGuests, 0),
+        occupied: overlapping.length > 0,
+      });
+    }
+
+    return result;
+  }
+
+  // ─── 52-week experience seasonality (owner) ───────────────────────────────
+
+  async getExperienceSeasonality() {
+    const weeks = 52;
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(start.getDate() - weeks * 7);
+
+    const requests = await this.prisma.experienceRequest.findMany({
+      where: { createdAt: { gte: start } },
+      include: { catalogItem: { select: { category: true } } },
+    });
+
+    // bucket by ISO-ish week index from start
+    const buckets = new Map<number, Map<string, number>>();
+    for (const r of requests) {
+      const wk = Math.floor(
+        (r.createdAt.getTime() - start.getTime()) / (7 * 24 * 3600 * 1000),
+      );
+      const cat = r.catalogItem.category;
+      const m = buckets.get(wk) ?? new Map<string, number>();
+      m.set(cat, (m.get(cat) ?? 0) + 1);
+      buckets.set(wk, m);
+    }
+
+    const data = Array.from({ length: weeks }, (_, wk) => {
+      const m = buckets.get(wk) ?? new Map();
+      const total = [...m.values()].reduce((s, n) => s + n, 0);
+      return { week: wk + 1, total, byCategory: Object.fromEntries(m) };
+    });
+
+    return data;
+  }
+
   // ─── Heat-map cell drill-down (owner) ─────────────────────────────────────
 
   async getHeatMapCell(space: string, timeBlock: string, date?: string) {

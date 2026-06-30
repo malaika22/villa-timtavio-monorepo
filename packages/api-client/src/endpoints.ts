@@ -122,6 +122,8 @@ export const API = {
     satisfaction: '/api/v1/analytics/satisfaction',
     vendors: '/api/v1/analytics/vendors',
     revenueMix: '/api/v1/analytics/revenue-mix',
+    occupancyCalendar: '/api/v1/analytics/occupancy-calendar',
+    experienceSeasonality: '/api/v1/analytics/experience-seasonality',
     heatMapCell: (space: string, timeBlock: string, date?: string) => {
       const p = new URLSearchParams({ space, timeBlock });
       if (date) p.set('date', date);

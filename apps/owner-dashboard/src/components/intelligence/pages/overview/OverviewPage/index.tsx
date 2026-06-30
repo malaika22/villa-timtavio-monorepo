@@ -1,6 +1,6 @@
 'use client';
 import { MetricCardGrid } from '@/components/intelligence/cards/MetricCardGrid';
-import { VillaOccupancyCard } from '@/components/intelligence/cards/VillaOccupancyCard';
+import { OccupancyCalendar } from '@/components/intelligence/pages/overview/OccupancyCalendar';
 import { RevenueTrendChart } from '@/components/intelligence/charts/RevenueTrendChart';
 import { IntelligenceAlerts } from '@/components/intelligence/alerts/IntelligenceAlerts';
 import { UpcomingStaysTable } from '@/components/intelligence/tables/UpcomingStaysTable';
@@ -9,7 +9,6 @@ import {
   overviewMetrics,
   revenueTrendData,
   upcomingStays,
-  villaOccupancy,
 } from '@/lib/mock-data';
 import { useUpcomingGuests } from '@/hooks/useGuests';
 import {
@@ -37,24 +36,7 @@ export const OverviewPage = () => {
     <div className="space-y-6">
       <MetricCardGrid metrics={metrics} />
 
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-intel-text">
-            Villa Occupancy — March 2026
-          </h2>
-          <a
-            href="/analytics"
-            className="text-xs text-intel-maroon transition-colors hover:underline"
-          >
-            Detailed analytics →
-          </a>
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {villaOccupancy.map((v) => (
-            <VillaOccupancyCard key={v.id} villa={v} />
-          ))}
-        </div>
-      </section>
+      <OccupancyCalendar />
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
         <RevenueTrendChart data={trend} />

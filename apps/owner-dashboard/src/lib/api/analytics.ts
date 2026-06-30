@@ -33,7 +33,24 @@ export const analyticsApi = {
   satisfaction: () => api.get<SatisfactionResponse>(API.analytics.satisfaction),
   vendors: () => api.get<VendorPerfRow[]>(API.analytics.vendors),
   revenueMix: () => api.get<RevenueMixResponse>(API.analytics.revenueMix),
+  occupancyCalendar: () =>
+    api.get<OccupancyDay[]>(API.analytics.occupancyCalendar),
+  experienceSeasonality: () =>
+    api.get<SeasonalityWeek[]>(API.analytics.experienceSeasonality),
 };
+
+export interface OccupancyDay {
+  date: string;
+  bookings: number;
+  guests: number;
+  occupied: boolean;
+}
+
+export interface SeasonalityWeek {
+  week: number;
+  total: number;
+  byCategory: Record<string, number>;
+}
 
 export interface VendorPerfRow {
   id: string;

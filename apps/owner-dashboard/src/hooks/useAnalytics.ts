@@ -113,6 +113,24 @@ export function useHeatMap(category?: string) {
   });
 }
 
+export function useOccupancyCalendar() {
+  return useQuery({
+    queryKey: ['analytics', 'occupancy-calendar'],
+    queryFn: analyticsApi.occupancyCalendar,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}
+
+export function useExperienceSeasonality() {
+  return useQuery({
+    queryKey: ['analytics', 'experience-seasonality'],
+    queryFn: analyticsApi.experienceSeasonality,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}
+
 export function useHeatMapCell(
   cell: { space: string; timeBlock: string } | null,
 ) {

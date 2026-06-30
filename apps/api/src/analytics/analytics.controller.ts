@@ -18,6 +18,18 @@ export class AnalyticsController {
     return this.analyticsService.getSatisfaction();
   }
 
+  @Get('occupancy-calendar')
+  @Roles('owner')
+  getOccupancyCalendar() {
+    return this.analyticsService.getOccupancyCalendar();
+  }
+
+  @Get('experience-seasonality')
+  @Roles('owner')
+  getExperienceSeasonality() {
+    return this.analyticsService.getExperienceSeasonality();
+  }
+
   @Get('heat-map/cell')
   @Roles('owner')
   getHeatMapCell(
