@@ -888,3 +888,17 @@ model SatisfactionReview {
 
   @@index([createdAt])
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HEALTH SAMPLE — heartbeat telemetry (accumulates real uptime/latency history)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model HealthSample {
+  id        String   @id @default(cuid())
+  checkedAt DateTime @default(now())
+  ok        Boolean
+  latencyMs Int
+  note      String?
+
+  @@index([checkedAt])
+}
