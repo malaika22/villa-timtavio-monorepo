@@ -25,7 +25,8 @@ export const analyticsApi = {
     api.get<{ space: string; timeBlock: string; activityScore: number }[]>(
       API.analytics.heatMap(date, range, category),
     ),
-  peakHours: (date?: string) => api.get<unknown>(API.analytics.peakHours(date)),
+  peakHours: (date?: string) =>
+    api.get<PeakHourBar[]>(API.analytics.peakHours(date)),
   heatMapCell: (space: string, timeBlock: string) =>
     api.get<HeatMapCellResponse>(API.analytics.heatMapCell(space, timeBlock)),
   experiences: (period?: string) =>
@@ -49,6 +50,13 @@ export const analyticsApi = {
     api.get<{ insights: string[] }>(API.analytics.experienceInsights),
   vendorForecast: () => api.get<VendorForecastRow[]>(API.analytics.vendorForecast),
 };
+
+export interface PeakHourBar {
+  hour: string;
+  index: number;
+  count: number;
+  peak: boolean;
+}
 
 export interface VendorForecastRow {
   id: string;

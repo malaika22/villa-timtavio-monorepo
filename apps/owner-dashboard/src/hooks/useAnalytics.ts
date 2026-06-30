@@ -113,6 +113,15 @@ export function useHeatMap(category?: string) {
   });
 }
 
+export function usePeakHours(date?: string) {
+  return useQuery({
+    queryKey: ['analytics', 'peak-hours', date ?? 'today'],
+    queryFn: () => analyticsApi.peakHours(date),
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}
+
 export function useEquipmentAnalysis() {
   return useQuery({
     queryKey: ['analytics', 'equipment'],

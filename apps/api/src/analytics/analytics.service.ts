@@ -722,21 +722,43 @@ export class AnalyticsService {
     }));
   }
 
+  // Hourly activity for the Peak Hours chart (6am–11pm window). Buckets real
+  // ServiceEvent timestamps by hour-of-day, normalises to a 0–100 index against
+  // the busiest hour, and flags the top tier as "peak".
   async getPeakHours(date?: string) {
     const targetDate = date ? new Date(date) : new Date();
-    const dayStart = new Date(targetDate.setHours(0, 0, 0, 0));
-    const dayEnd = new Date(targetDate.setHours(23, 59, 59, 999));
+    const dayStart = new Date(targetDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(targetDate);
+    dayEnd.setHours(23, 59, 59, 999);
 
-    const events = await this.prisma.serviceEvent.groupBy({
-      by: ['timeBlock'],
+    const events = await this.prisma.serviceEvent.findMany({
       where: { occurredAt: { gte: dayStart, lte: dayEnd } },
-      _count: { id: true },
+      select: { occurredAt: true },
     });
 
-    return events.map((e) => ({
-      timeBlock: e.timeBlock,
-      activityIndex: e._count.id,
-    }));
+    // Count events per hour of day.
+    const counts = new Array(24).fill(0) as number[];
+    for (const e of events) {
+      counts[new Date(e.occurredAt).getHours()] += 1;
+    }
+
+    const START_HOUR = 6;
+    const END_HOUR = 23;
+    const window = counts.slice(START_HOUR, END_HOUR + 1);
+    const max = Math.max(1, ...window);
+
+    const label = (h: number) => {
+      const period = h < 12 ? 'am' : 'pm';
+      const hour12 = h % 12 === 0 ? 12 : h % 12;
+      return `${hour12}${period}`;
+    };
+
+    return window.map((count, i) => {
+      const hour = START_HOUR + i;
+      const index = Math.round((count / max) * 100);
+      return { hour: label(hour), index, count, peak: index >= 70 };
+    });
   }
 
   async getExperiencePerformance(period?: string) {
