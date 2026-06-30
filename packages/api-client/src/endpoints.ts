@@ -128,6 +128,9 @@ export const API = {
     experienceSeasonality: '/api/v1/analytics/experience-seasonality',
     equipment: '/api/v1/analytics/equipment',
     unmetDemand: '/api/v1/analytics/unmet-demand',
+    heatMapInsights: '/api/v1/analytics/heat-map/insights',
+    experienceInsights: '/api/v1/analytics/experience-insights',
+    vendorForecast: '/api/v1/analytics/vendor-forecast',
     heatMapCell: (space: string, timeBlock: string, date?: string) => {
       const p = new URLSearchParams({ space, timeBlock });
       if (date) p.set('date', date);

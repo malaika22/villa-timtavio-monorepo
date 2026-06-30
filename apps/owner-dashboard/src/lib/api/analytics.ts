@@ -43,7 +43,21 @@ export const analyticsApi = {
     api.get<SeasonalityWeek[]>(API.analytics.experienceSeasonality),
   equipment: () => api.get<EquipmentAnalysis>(API.analytics.equipment),
   unmetDemand: () => api.get<UnmetDemandResponse>(API.analytics.unmetDemand),
+  heatMapInsights: () =>
+    api.get<{ insights: string[] }>(API.analytics.heatMapInsights),
+  experienceInsights: () =>
+    api.get<{ insights: string[] }>(API.analytics.experienceInsights),
+  vendorForecast: () => api.get<VendorForecastRow[]>(API.analytics.vendorForecast),
 };
+
+export interface VendorForecastRow {
+  id: string;
+  name: string;
+  last90: number;
+  monthlyRate: number;
+  projectedNextQuarter: number;
+  recommendation: string;
+}
 
 export interface UnmetDemandResponse {
   count: number;

@@ -306,6 +306,142 @@ export class AnalyticsService {
     return data;
   }
 
+  // ─── Heat-map insights (owner) — computed, not stored ─────────────────────
+
+  async getHeatMapInsights() {
+    const targetDate = new Date();
+    const dayStart = new Date(new Date(targetDate).setHours(0, 0, 0, 0));
+    const dayEnd = new Date(new Date(targetDate).setHours(23, 59, 59, 999));
+
+    const events = await this.prisma.serviceEvent.findMany({
+      where: { occurredAt: { gte: dayStart, lte: dayEnd } },
+      select: { estateSpace: true, timeBlock: true, hasCost: true },
+    });
+
+    if (events.length === 0) {
+      return { insights: ['No service activity recorded today yet.'] };
+    }
+
+    const bySpace = new Map<string, number>();
+    const byBlock = new Map<string, number>();
+    let billable = 0;
+    for (const e of events) {
+      bySpace.set(e.estateSpace, (bySpace.get(e.estateSpace) ?? 0) + 1);
+      byBlock.set(e.timeBlock, (byBlock.get(e.timeBlock) ?? 0) + 1);
+      if (e.hasCost) billable += 1;
+    }
+    const topSpace = [...bySpace.entries()].sort((a, b) => b[1] - a[1])[0];
+    const topBlock = [...byBlock.entries()].sort((a, b) => b[1] - a[1])[0];
+    const quietSpace = [...bySpace.entries()].sort((a, b) => a[1] - b[1])[0];
+    const billablePct = Math.round((billable / events.length) * 100);
+
+    const insights = [
+      `${topSpace[0]} is the busiest space today (${topSpace[1]} events).`,
+      `Peak activity is around ${topBlock[0]} (${topBlock[1]} events).`,
+      `${billablePct}% of activity is billable — an upsell signal.`,
+      `${quietSpace[0]} is quietest — a window for maintenance or a featured offer.`,
+    ];
+    return { insights };
+  }
+
+  // ─── Experience demand insights (owner) — computed ────────────────────────
+
+  async getExperienceInsights() {
+    const now = new Date();
+    const last30 = new Date(now.getTime() - 30 * 24 * 3600 * 1000);
+    const prev30 = new Date(now.getTime() - 60 * 24 * 3600 * 1000);
+
+    const reqs = await this.prisma.experienceRequest.findMany({
+      where: { createdAt: { gte: prev30 } },
+      include: { catalogItem: { select: { name: true } } },
+    });
+
+    if (reqs.length === 0) {
+      return { insights: ['Not enough experience requests yet for insights.'] };
+    }
+
+    const recent = new Map<string, number>();
+    const prior = new Map<string, number>();
+    const declined = new Map<string, number>();
+    for (const r of reqs) {
+      const name = r.catalogItem.name;
+      if (r.createdAt >= last30)
+        recent.set(name, (recent.get(name) ?? 0) + 1);
+      else prior.set(name, (prior.get(name) ?? 0) + 1);
+      if (r.status === 'CANCELLED')
+        declined.set(name, (declined.get(name) ?? 0) + 1);
+    }
+
+    const topRecent = [...recent.entries()].sort((a, b) => b[1] - a[1])[0];
+    const topDeclined = [...declined.entries()].sort((a, b) => b[1] - a[1])[0];
+
+    // Biggest mover vs prior 30 days.
+    let mover: { name: string; delta: number } | null = null;
+    for (const [name, n] of recent) {
+      const delta = n - (prior.get(name) ?? 0);
+      if (!mover || delta > mover.delta) mover = { name, delta };
+    }
+
+    const insights: string[] = [];
+    if (topRecent)
+      insights.push(
+        `${topRecent[0]} is the most requested experience this month (${topRecent[1]}).`,
+      );
+    if (mover && mover.delta > 0)
+      insights.push(
+        `${mover.name} demand is up ${mover.delta} vs the prior 30 days — consider pre-staging.`,
+      );
+    if (topDeclined)
+      insights.push(
+        `${topDeclined[0]} has the most declines — review pricing or availability.`,
+      );
+    if (insights.length === 0)
+      insights.push('Demand is steady across experiences this month.');
+    return { insights };
+  }
+
+  // ─── Vendor demand forecast (owner) — computed from run-rate ──────────────
+
+  async getVendorForecast() {
+    const ninetyAgo = new Date(Date.now() - 90 * 24 * 3600 * 1000);
+    const vendors = await this.prisma.vendor.findMany({
+      include: {
+        catalogItems: {
+          include: {
+            experienceRequests: {
+              where: {
+                createdAt: { gte: ninetyAgo },
+                status: { in: ['CONFIRMED', 'IN_PROGRESS', 'READY', 'COMPLETED'] },
+              },
+              select: { id: true },
+            },
+          },
+        },
+      },
+    });
+
+    return vendors
+      .map((v) => {
+        const last90 = v.catalogItems.flatMap((c) => c.experienceRequests).length;
+        // Run-rate → projected next quarter (~90 days).
+        const projectedNextQuarter = Math.round(last90);
+        const monthlyRate = Math.round((last90 / 3) * 10) / 10;
+        let recommendation: string;
+        if (last90 >= 12) recommendation = 'High demand — secure capacity';
+        else if (last90 >= 4) recommendation = 'Steady — maintain availability';
+        else recommendation = 'Low — review or rotate';
+        return {
+          id: v.id,
+          name: v.name,
+          last90,
+          monthlyRate,
+          projectedNextQuarter,
+          recommendation,
+        };
+      })
+      .sort((a, b) => b.projectedNextQuarter - a.projectedNextQuarter);
+  }
+
   // ─── Heat-map cell drill-down (owner) ─────────────────────────────────────
 
   async getHeatMapCell(space: string, timeBlock: string, date?: string) {

@@ -1,8 +1,11 @@
+'use client';
+
 import { cn } from '@repo/ui/lib/utils';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
 import { experienceDemandInsights } from '@/lib/mock-data';
+import { useExperienceInsights } from '@/hooks/useAnalytics';
 import type { ExperienceInsight } from '@/types';
 
 const styles = {
@@ -43,17 +46,31 @@ const InsightItem = ({ insight }: { insight: ExperienceInsight }) => {
   );
 };
 
-export const DemandInsightsPanel = () => (
-  <section className="flex h-full min-h-0 flex-col">
-    <h3 className="mb-3 shrink-0 text-center font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">
-      Demand Insights
-    </h3>
-    <IntelCard className="flex flex-1 flex-col rounded-xl p-4">
-      <ul className="flex flex-col gap-2.5">
-        {experienceDemandInsights.map((insight) => (
-          <InsightItem key={insight.id} insight={insight} />
-        ))}
-      </ul>
-    </IntelCard>
-  </section>
-);
+export const DemandInsightsPanel = () => {
+  const { data } = useExperienceInsights();
+  const live = data?.insights ?? [];
+  const items: ExperienceInsight[] =
+    live.length > 0
+      ? live.map((message, i) => ({
+          id: `live-${i}`,
+          variant: i === 0 ? 'success' : i === 1 ? 'info' : 'warning',
+          title: '',
+          message,
+        }))
+      : experienceDemandInsights;
+
+  return (
+    <section className="flex h-full min-h-0 flex-col">
+      <h3 className="mb-3 shrink-0 text-center font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">
+        Demand Insights
+      </h3>
+      <IntelCard className="flex flex-1 flex-col rounded-xl p-4">
+        <ul className="flex flex-col gap-2.5">
+          {items.map((insight) => (
+            <InsightItem key={insight.id} insight={insight} />
+          ))}
+        </ul>
+      </IntelCard>
+    </section>
+  );
+};

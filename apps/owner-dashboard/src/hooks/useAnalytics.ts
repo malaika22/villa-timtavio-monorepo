@@ -175,6 +175,33 @@ export function useUpcomingStaysAbbrev() {
   });
 }
 
+export function useHeatMapInsights() {
+  return useQuery({
+    queryKey: ['analytics', 'heat-map-insights'],
+    queryFn: analyticsApi.heatMapInsights,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}
+
+export function useExperienceInsights() {
+  return useQuery({
+    queryKey: ['analytics', 'experience-insights'],
+    queryFn: analyticsApi.experienceInsights,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}
+
+export function useVendorForecast() {
+  return useQuery({
+    queryKey: ['analytics', 'vendor-forecast'],
+    queryFn: analyticsApi.vendorForecast,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}
+
 export function useUnmetDemand() {
   return useQuery({
     queryKey: ['analytics', 'unmet-demand'],

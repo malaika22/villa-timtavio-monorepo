@@ -48,6 +48,24 @@ export class AnalyticsController {
     return this.analyticsService.getExperienceSeasonality();
   }
 
+  @Get('heat-map/insights')
+  @Roles('owner')
+  getHeatMapInsights() {
+    return this.analyticsService.getHeatMapInsights();
+  }
+
+  @Get('experience-insights')
+  @Roles('owner')
+  getExperienceInsights() {
+    return this.analyticsService.getExperienceInsights();
+  }
+
+  @Get('vendor-forecast')
+  @Roles('owner')
+  getVendorForecast() {
+    return this.analyticsService.getVendorForecast();
+  }
+
   @Get('heat-map/cell')
   @Roles('owner')
   getHeatMapCell(
