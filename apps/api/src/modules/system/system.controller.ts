@@ -12,6 +12,12 @@ export class SystemController {
     return this.systemService.getLodgifySyncStatus();
   }
 
+  @Get('system/health')
+  @Roles('owner', 'estate_manager')
+  getHealth() {
+    return this.systemService.getHealth();
+  }
+
   @Get('system-alerts')
   @Roles('estate_manager', 'owner')
   getSystemAlerts(

@@ -95,6 +95,7 @@ export const API = {
   },
   system: {
     lodgifySyncStatus: '/api/v1/system/lodgify-sync-status',
+    health: '/api/v1/system/health',
     alerts: '/api/v1/system-alerts',
     dismissAlert: (id: string) => `/api/v1/system-alerts/${id}/dismiss`,
   },
