@@ -18,6 +18,12 @@ export class AnalyticsController {
     return this.analyticsService.getSatisfaction();
   }
 
+  @Get('equipment')
+  @Roles('owner')
+  getEquipmentAnalysis() {
+    return this.analyticsService.getEquipmentAnalysis();
+  }
+
   @Get('occupancy-calendar')
   @Roles('owner')
   getOccupancyCalendar() {

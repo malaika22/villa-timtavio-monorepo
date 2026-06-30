@@ -113,6 +113,15 @@ export function useHeatMap(category?: string) {
   });
 }
 
+export function useEquipmentAnalysis() {
+  return useQuery({
+    queryKey: ['analytics', 'equipment'],
+    queryFn: analyticsApi.equipment,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}
+
 export function useOccupancyCalendar() {
   return useQuery({
     queryKey: ['analytics', 'occupancy-calendar'],

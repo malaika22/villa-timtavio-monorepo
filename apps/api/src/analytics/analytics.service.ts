@@ -52,6 +52,62 @@ export class AnalyticsService {
     };
   }
 
+  // ─── Capital: equipment buy-vs-rent (owner) ───────────────────────────────
+
+  async getEquipmentAnalysis() {
+    const items = await this.prisma.equipment.findMany({
+      orderBy: { totalUses: 'desc' },
+    });
+
+    const rows = items.map((e) => {
+      const rentalPerUse = Number(e.rentalCostPerUse ?? 0);
+      const purchase = Number(e.purchasePrice ?? 0);
+      const maintenance = Number(e.estimatedAnnualMaintenanceCost ?? 0);
+      const usesPerYear = e.totalUses; // treat seeded totalUses as annual cadence
+
+      const annualRental = rentalPerUse * usesPerYear;
+      const twoYearRental = annualRental * 2;
+      const twoYearOwn = purchase + maintenance * 2;
+      const savings = Math.round(twoYearRental - twoYearOwn);
+      const breakEvenUses =
+        rentalPerUse > 0 ? Math.ceil(purchase / rentalPerUse) : null;
+
+      let recommendation: 'BUY' | 'MONITOR' | 'RENT';
+      if (savings > purchase * 0.25) recommendation = 'BUY';
+      else if (savings > 0) recommendation = 'MONITOR';
+      else recommendation = 'RENT';
+
+      // 24-month cumulative cost projection (rental vs own).
+      const projection = Array.from({ length: 25 }, (_, m) => ({
+        month: m,
+        rent: Math.round((annualRental / 12) * m),
+        own: Math.round(purchase + (maintenance / 12) * m),
+      }));
+
+      return {
+        id: e.id,
+        name: e.name,
+        category: e.category,
+        rentalCostPerUse: rentalPerUse,
+        purchasePrice: purchase,
+        usesPerYear,
+        annualRental: Math.round(annualRental),
+        breakEvenUses,
+        twoYearSavings: savings,
+        recommendation,
+        seasonalNotes: e.seasonalNotes ?? null,
+        annualMaintenance: maintenance,
+        projection,
+      };
+    });
+
+    const totalSavings = rows
+      .filter((r) => r.recommendation === 'BUY')
+      .reduce((s, r) => s + Math.max(0, r.twoYearSavings), 0);
+
+    return { totalProjectedSavings: totalSavings, items: rows };
+  }
+
   // ─── 30-day occupancy calendar (owner) ────────────────────────────────────
 
   async getOccupancyCalendar() {

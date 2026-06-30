@@ -37,7 +37,29 @@ export const analyticsApi = {
     api.get<OccupancyDay[]>(API.analytics.occupancyCalendar),
   experienceSeasonality: () =>
     api.get<SeasonalityWeek[]>(API.analytics.experienceSeasonality),
+  equipment: () => api.get<EquipmentAnalysis>(API.analytics.equipment),
 };
+
+export interface EquipmentRow {
+  id: string;
+  name: string;
+  category: string;
+  rentalCostPerUse: number;
+  purchasePrice: number;
+  usesPerYear: number;
+  annualRental: number;
+  breakEvenUses: number | null;
+  twoYearSavings: number;
+  recommendation: 'BUY' | 'MONITOR' | 'RENT';
+  seasonalNotes: string | null;
+  annualMaintenance: number;
+  projection: { month: number; rent: number; own: number }[];
+}
+
+export interface EquipmentAnalysis {
+  totalProjectedSavings: number;
+  items: EquipmentRow[];
+}
 
 export interface OccupancyDay {
   date: string;
