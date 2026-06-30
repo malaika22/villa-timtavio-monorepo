@@ -94,8 +94,16 @@ export class LodgifyService {
     const secret = this.getWebhookSecret();
 
     if (!secret) {
+      // In production a missing secret must REJECT — never accept unverified
+      // webhooks. Only skip in non-production for local testing.
+      if (process.env.NODE_ENV === 'production') {
+        this.logger.error(
+          'LODGIFY_WEBHOOK_SECRET is not set — rejecting webhook in production',
+        );
+        return false;
+      }
       this.logger.warn(
-        'LODGIFY_WEBHOOK_SECRET is not set — skipping validation',
+        'LODGIFY_WEBHOOK_SECRET is not set — skipping validation (non-production only)',
       );
       return true;
     }

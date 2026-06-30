@@ -57,12 +57,32 @@ export class BreezeWayService {
     payload: string | Buffer,
     signature: string,
   ): boolean {
+    const secret = this.config.get<string>('BREEZEWAY_WEBHOOK_SECRET');
+    if (!secret) {
+      // Missing secret rejects in production; skips only for local testing.
+      if (process.env.NODE_ENV === 'production') {
+        this.logger.error(
+          'BREEZEWAY_WEBHOOK_SECRET is not set — rejecting webhook in production',
+        );
+        return false;
+      }
+      this.logger.warn(
+        'BREEZEWAY_WEBHOOK_SECRET is not set — skipping validation (non-production only)',
+      );
+      return true;
+    }
     if (!signature) return false;
+
     const crypto = require('crypto');
     const expected = crypto
-      .createHmac('sha256', this.config.get('BREEZEWAY_WEBHOOK_SECRET'))
+      .createHmac('sha256', secret)
       .update(payload)
       .digest('hex');
-    return signature === expected;
+
+    // Timing-safe comparison (avoids leaking signature via response timing).
+    const a = Buffer.from(signature);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
   }
 }

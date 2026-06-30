@@ -17,6 +17,31 @@ import {
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
+/**
+ * Strip internal/ops fields from guest-facing request reads, and pricing for
+ * secondary guests. Internal callers use the service directly and are
+ * unaffected.
+ */
+function redactForGuest(req: any, tier?: string) {
+  if (!req) return req;
+  const {
+    emNotes: _emNotes,
+    breezeWayTaskId: _bwId,
+    breezeWayTaskCreatedAt: _bwAt,
+    staffMemberName: _staff,
+    ...rest
+  } = req;
+  void _emNotes;
+  void _bwId;
+  void _bwAt;
+  void _staff;
+  // Secondary guests never see pricing.
+  if (tier === 'secondary' || tier === 'SECONDARY') {
+    delete rest.confirmedCost;
+  }
+  return rest;
+}
+
 @Controller('api/v1/requests')
 export class RequestsController {
   constructor(private requestsService: RequestsService) {}
@@ -37,11 +62,13 @@ export class RequestsController {
 
   // Guest — get requests for booking
   @Get('bookings/:bookingId')
-  findByBooking(
+  async findByBooking(
     @Param('bookingId') bookingId: string,
+    @CurrentUser() user: any,
     @Query('filter') filter?: 'active' | 'all' | 'today',
   ) {
-    return this.requestsService.findByBooking(bookingId, filter);
+    const requests = await this.requestsService.findByBooking(bookingId, filter);
+    return requests.map((r) => redactForGuest(r, user?.guestTier));
   }
 
   // Primary member — get upgrade requests awaiting approval
@@ -76,8 +103,9 @@ export class RequestsController {
 
   // Guest — get single request
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.requestsService.findOne(id);
+  async findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    const req = await this.requestsService.findOne(id);
+    return redactForGuest(req, user?.guestTier);
   }
 
   // EM routes
