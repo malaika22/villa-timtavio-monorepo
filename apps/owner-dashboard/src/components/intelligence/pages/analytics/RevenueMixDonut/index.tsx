@@ -13,6 +13,7 @@ export const RevenueMixDonut = () => {
   const { data, isLoading } = useRevenueMix();
   const slices = data?.slices ?? [];
   const total = data?.total ?? 0;
+  const topItems = data?.topItems ?? [];
 
   return (
     <IntelCard className="flex h-full flex-col">
@@ -84,6 +85,33 @@ export const RevenueMixDonut = () => {
           </ul>
         </div>
       )}
+
+      {topItems.length > 0 ? (
+        <div className="mt-4 border-t border-intel-border pt-3">
+          <h4 className="mb-2 text-[11px] font-medium uppercase tracking-wide text-intel-text-muted">
+            Top line items
+          </h4>
+          <ul className="space-y-1">
+            {topItems.map((it, i) => (
+              <li
+                key={it.description}
+                className="flex items-center justify-between text-sm"
+              >
+                <span className="truncate text-intel-text">
+                  <span className="mr-1.5 text-intel-text-muted">{i + 1}.</span>
+                  {it.description}
+                  {it.count > 1 ? (
+                    <span className="text-intel-text-muted"> ×{it.count}</span>
+                  ) : null}
+                </span>
+                <span className="shrink-0 tabular-nums text-intel-text-muted">
+                  {money(it.total)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </IntelCard>
   );
 };

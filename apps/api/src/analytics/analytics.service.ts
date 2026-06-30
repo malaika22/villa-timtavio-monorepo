@@ -329,7 +329,27 @@ export class AnalyticsService {
       .sort((a, b) => b.value - a.value);
 
     const total = slices.reduce((s, x) => s + x.value, 0);
-    return { total, slices };
+
+    // Top-10 line items by description (excludes the base villa rate).
+    const items = await this.prisma.folioItem.groupBy({
+      by: ['description'],
+      where: {
+        booking: { status: 'CHECKED_OUT' },
+        type: { not: 'ESTATE_BASE_RATE' },
+      },
+      _sum: { amount: true },
+      _count: { id: true },
+      orderBy: { _sum: { amount: 'desc' } },
+      take: 10,
+    });
+
+    const topItems = items.map((i) => ({
+      description: i.description,
+      total: Number(i._sum.amount ?? 0),
+      count: i._count.id,
+    }));
+
+    return { total, slices, topItems };
   }
 
   // ─── Satisfaction (owner) ─────────────────────────────────────────────────

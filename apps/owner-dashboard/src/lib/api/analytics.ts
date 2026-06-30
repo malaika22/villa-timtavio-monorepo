@@ -91,6 +91,7 @@ export interface VendorPerfRow {
 export interface RevenueMixResponse {
   total: number;
   slices: { key: string; label: string; value: number }[];
+  topItems: { description: string; total: number; count: number }[];
 }
 
 export interface HeatMapCellResponse {
