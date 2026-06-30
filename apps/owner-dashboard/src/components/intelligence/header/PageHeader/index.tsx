@@ -48,7 +48,13 @@ export const PageHeader = ({ meta }: { meta: PageMeta }) => {
             <ChevronDown className="size-3.5 text-intel-text-muted" />
           </Button>
         ) : null}
-        <Button variant="outline" className={outlineBtn}>
+        <Button
+          variant="outline"
+          className={outlineBtn}
+          onClick={() => {
+            if (typeof window !== 'undefined') window.print();
+          }}
+        >
           {isSystemHealth ? (
             <>
               <Download className="size-3.5 text-intel-text-muted" />
