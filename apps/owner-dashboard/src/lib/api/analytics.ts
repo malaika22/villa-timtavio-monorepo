@@ -26,6 +26,8 @@ export const analyticsApi = {
       API.analytics.heatMap(date, range, category),
     ),
   peakHours: (date?: string) => api.get<unknown>(API.analytics.peakHours(date)),
+  heatMapCell: (space: string, timeBlock: string) =>
+    api.get<HeatMapCellResponse>(API.analytics.heatMapCell(space, timeBlock)),
   experiences: (period?: string) =>
     api.get<unknown>(API.analytics.experiences(period)),
   satisfaction: () => api.get<SatisfactionResponse>(API.analytics.satisfaction),
@@ -44,6 +46,16 @@ export interface VendorPerfRow {
 export interface RevenueMixResponse {
   total: number;
   slices: { key: string; label: string; value: number }[];
+}
+
+export interface HeatMapCellResponse {
+  space: string;
+  timeBlock: string;
+  total: number;
+  withCost: number;
+  withoutCost: number;
+  byType: { type: string; count: number }[];
+  timeline: { time: string; serviceType: string; hasCost: boolean }[];
 }
 
 export interface SatisfactionResponse {

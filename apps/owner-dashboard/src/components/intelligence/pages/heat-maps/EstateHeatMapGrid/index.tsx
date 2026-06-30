@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
+import { HeatMapCellModal } from '@/components/intelligence/pages/heat-maps/HeatMapCellModal';
 import { useHeatMap } from '@/hooks/useAnalytics';
 
 const BLOCKS = ['6 AM', '8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM', '10 PM'];
@@ -25,6 +26,9 @@ export const EstateHeatMapGrid = ({ category }: { category?: string }) => {
     block: string;
     score: number;
   } | null>(null);
+  const [drill, setDrill] = useState<{ space: string; timeBlock: string } | null>(
+    null,
+  );
 
   const { spaces, lookup, max } = useMemo(() => {
     const spaceSet = new Set<string>();
@@ -91,14 +95,17 @@ export const EstateHeatMapGrid = ({ category }: { category?: string }) => {
                     const score = lookup.get(`${space}__${b}`) ?? 0;
                     return (
                       <td key={b} className="p-0">
-                        <div
+                        <button
+                          type="button"
+                          onClick={() => setDrill({ space, timeBlock: b })}
                           onMouseEnter={() =>
                             setHover({ space, block: b, score })
                           }
                           onMouseLeave={() => setHover(null)}
-                          className="h-9 cursor-pointer rounded-[3px] border border-[#efe9e0] transition-transform hover:scale-105"
+                          className="h-9 w-full cursor-pointer rounded-[3px] border border-[#efe9e0] transition-transform hover:scale-105"
                           style={{ background: cellColor(score, max) }}
                           title={`${space} · ${b}: ${score} events`}
+                          aria-label={`${space} ${b}, ${score} events — open detail`}
                         />
                       </td>
                     );
@@ -120,6 +127,8 @@ export const EstateHeatMapGrid = ({ category }: { category?: string }) => {
           ) : null}
         </div>
       )}
+
+      <HeatMapCellModal cell={drill} onClose={() => setDrill(null)} />
     </IntelCard>
   );
 };

@@ -52,6 +52,46 @@ export class AnalyticsService {
     };
   }
 
+  // ─── Heat-map cell drill-down (owner) ─────────────────────────────────────
+
+  async getHeatMapCell(space: string, timeBlock: string, date?: string) {
+    const targetDate = date ? new Date(date) : new Date();
+    const dayStart = new Date(targetDate.setHours(0, 0, 0, 0));
+    const dayEnd = new Date(targetDate.setHours(23, 59, 59, 999));
+
+    const events = await this.prisma.serviceEvent.findMany({
+      where: {
+        estateSpace: space,
+        timeBlock,
+        occurredAt: { gte: dayStart, lte: dayEnd },
+      },
+      orderBy: { occurredAt: 'asc' },
+    });
+
+    const byType = new Map<string, number>();
+    let withCost = 0;
+    for (const e of events) {
+      byType.set(e.serviceType, (byType.get(e.serviceType) ?? 0) + 1);
+      if (e.hasCost) withCost += 1;
+    }
+
+    return {
+      space,
+      timeBlock,
+      total: events.length,
+      withCost,
+      withoutCost: events.length - withCost,
+      byType: [...byType.entries()]
+        .map(([type, count]) => ({ type, count }))
+        .sort((a, b) => b.count - a.count),
+      timeline: events.map((e) => ({
+        time: e.occurredAt.toISOString(),
+        serviceType: e.serviceType,
+        hasCost: e.hasCost,
+      })),
+    };
+  }
+
   // ─── Vendor performance (owner) ───────────────────────────────────────────
 
   async getVendorPerformance() {

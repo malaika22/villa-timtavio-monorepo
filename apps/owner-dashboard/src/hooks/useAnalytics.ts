@@ -113,6 +113,17 @@ export function useHeatMap(category?: string) {
   });
 }
 
+export function useHeatMapCell(
+  cell: { space: string; timeBlock: string } | null,
+) {
+  return useQuery({
+    queryKey: ['analytics', 'heat-map-cell', cell?.space, cell?.timeBlock],
+    queryFn: () => analyticsApi.heatMapCell(cell!.space, cell!.timeBlock),
+    enabled: !!cell,
+    staleTime: TEN_MINUTES,
+  });
+}
+
 export function useVendorPerformance() {
   return useQuery({
     queryKey: ['analytics', 'vendors'],

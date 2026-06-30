@@ -122,6 +122,11 @@ export const API = {
     satisfaction: '/api/v1/analytics/satisfaction',
     vendors: '/api/v1/analytics/vendors',
     revenueMix: '/api/v1/analytics/revenue-mix',
+    heatMapCell: (space: string, timeBlock: string, date?: string) => {
+      const p = new URLSearchParams({ space, timeBlock });
+      if (date) p.set('date', date);
+      return `/api/v1/analytics/heat-map/cell?${p.toString()}`;
+    },
   },
   dashboard: {
     kpis: '/api/v1/dashboard/kpis',

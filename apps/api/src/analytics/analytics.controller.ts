@@ -18,6 +18,16 @@ export class AnalyticsController {
     return this.analyticsService.getSatisfaction();
   }
 
+  @Get('heat-map/cell')
+  @Roles('owner')
+  getHeatMapCell(
+    @Query('space') space: string,
+    @Query('timeBlock') timeBlock: string,
+    @Query('date') date?: string,
+  ) {
+    return this.analyticsService.getHeatMapCell(space, timeBlock, date);
+  }
+
   @Get('vendors')
   @Roles('owner')
   getVendorPerformance() {
