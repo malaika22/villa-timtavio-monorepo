@@ -1,6 +1,7 @@
 'use client';
 import { MetricCardGrid } from '@/components/intelligence/cards/MetricCardGrid';
 import { OccupancyCalendar } from '@/components/intelligence/pages/overview/OccupancyCalendar';
+import { OverviewTeasers } from '@/components/intelligence/pages/overview/OverviewTeasers';
 import { RevenueTrendChart } from '@/components/intelligence/charts/RevenueTrendChart';
 import { IntelligenceAlerts } from '@/components/intelligence/alerts/IntelligenceAlerts';
 import { UpcomingStaysTable } from '@/components/intelligence/tables/UpcomingStaysTable';
@@ -35,6 +36,8 @@ export const OverviewPage = () => {
   return (
     <div className="space-y-6">
       <MetricCardGrid metrics={metrics} />
+
+      <OverviewTeasers />
 
       <OccupancyCalendar />
 
