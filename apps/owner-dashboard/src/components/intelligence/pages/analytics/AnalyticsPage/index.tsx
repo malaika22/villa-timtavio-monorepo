@@ -4,6 +4,7 @@ import { EstateOccupancyChart } from '@/components/intelligence/pages/analytics/
 import { GuestDemographicsSection } from '@/components/intelligence/pages/analytics/GuestDemographicsSection';
 import { RevenueByVillaCard } from '@/components/intelligence/pages/analytics/RevenueByVillaCard';
 import { RevenueMixDonut } from '@/components/intelligence/pages/analytics/RevenueMixDonut';
+import { UnmetDemandCard } from '@/components/intelligence/pages/analytics/UnmetDemandCard';
 import { analyticsMetrics } from '@/lib/mock-data';
 import { MockDataBanner } from '@/components/intelligence/ui/MockDataBanner';
 
@@ -18,6 +19,8 @@ export const AnalyticsPage = () => (
       <EstateOccupancyChart />
       <RevenueMixDonut />
     </div>
+
+    <UnmetDemandCard />
 
     <div className="grid gap-5 xl:grid-cols-2 xl:items-stretch">
       <RevenueByVillaCard />

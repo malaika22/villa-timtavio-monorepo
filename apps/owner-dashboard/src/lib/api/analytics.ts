@@ -42,7 +42,21 @@ export const analyticsApi = {
   experienceSeasonality: () =>
     api.get<SeasonalityWeek[]>(API.analytics.experienceSeasonality),
   equipment: () => api.get<EquipmentAnalysis>(API.analytics.equipment),
+  unmetDemand: () => api.get<UnmetDemandResponse>(API.analytics.unmetDemand),
 };
+
+export interface UnmetDemandResponse {
+  count: number;
+  estimatedLostRevenue: number;
+  items: {
+    id: string;
+    from: string;
+    to: string;
+    nights: number;
+    guestCount: number | null;
+    estimatedRevenue: number;
+  }[];
+}
 
 export interface EquipmentRow {
   id: string;

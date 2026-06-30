@@ -24,6 +24,12 @@ export class AnalyticsController {
     return this.analyticsService.getEquipmentAnalysis();
   }
 
+  @Get('unmet-demand')
+  @Roles('owner')
+  getUnmetDemand() {
+    return this.analyticsService.getUnmetDemand();
+  }
+
   @Get('occupancy-calendar')
   @Roles('owner')
   getOccupancyCalendar() {

@@ -175,6 +175,15 @@ export function useUpcomingStaysAbbrev() {
   });
 }
 
+export function useUnmetDemand() {
+  return useQuery({
+    queryKey: ['analytics', 'unmet-demand'],
+    queryFn: analyticsApi.unmetDemand,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}
+
 export function useOccupancyMonthly() {
   return useQuery({
     queryKey: ['analytics', 'occupancy-monthly'],

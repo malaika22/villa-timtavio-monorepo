@@ -52,6 +52,67 @@ export class AnalyticsService {
     };
   }
 
+  // ─── Unmet demand (owner) ─────────────────────────────────────────────────
+  // Inquiries whose requested dates overlapped an existing booking (estate was
+  // unavailable) and never converted — i.e. demand we couldn't serve.
+
+  async getUnmetDemand() {
+    const [inquiries, bookings] = await Promise.all([
+      this.prisma.inquiry.findMany({
+        where: {
+          convertedToBookingId: null,
+          preferredFrom: { not: null },
+          preferredTo: { not: null },
+        },
+        select: {
+          id: true,
+          preferredFrom: true,
+          preferredTo: true,
+          guestCount: true,
+          status: true,
+        },
+      }),
+      this.prisma.booking.findMany({
+        where: { status: { not: 'CANCELLED' } },
+        select: { checkIn: true, checkOut: true, baseRate: true, nights: true },
+      }),
+    ]);
+
+    const totalBase = bookings.reduce((s, b) => s + Number(b.baseRate), 0);
+    const totalNights = bookings.reduce((s, b) => s + b.nights, 0);
+    const avgNightly = totalNights > 0 ? totalBase / totalNights : 0;
+
+    const unmet = inquiries
+      .filter((i) =>
+        bookings.some(
+          (b) => b.checkIn < i.preferredTo! && b.checkOut > i.preferredFrom!,
+        ),
+      )
+      .map((i) => {
+        const nights = Math.max(
+          1,
+          Math.round(
+            (i.preferredTo!.getTime() - i.preferredFrom!.getTime()) /
+              (24 * 3600 * 1000),
+          ),
+        );
+        return {
+          id: i.id,
+          from: i.preferredFrom!.toISOString().slice(0, 10),
+          to: i.preferredTo!.toISOString().slice(0, 10),
+          nights,
+          guestCount: i.guestCount ?? null,
+          estimatedRevenue: Math.round(nights * avgNightly),
+        };
+      });
+
+    return {
+      count: unmet.length,
+      estimatedLostRevenue: unmet.reduce((s, u) => s + u.estimatedRevenue, 0),
+      items: unmet,
+    };
+  }
+
   // ─── Capital: equipment buy-vs-rent (owner) ───────────────────────────────
 
   async getEquipmentAnalysis() {
