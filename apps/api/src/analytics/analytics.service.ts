@@ -253,6 +253,8 @@ export class AnalyticsService {
       return {
         id: v.id,
         name: v.name,
+        category: v.catalogItems[0]?.category ?? 'GENERAL',
+        status: v.status,
         bookings: requests.length,
         revenue,
         rating: Number(v.averageRating ?? 0),

@@ -77,6 +77,8 @@ export interface SeasonalityWeek {
 export interface VendorPerfRow {
   id: string;
   name: string;
+  category: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'ON_LEAVE';
   bookings: number;
   revenue: number;
   rating: number;
