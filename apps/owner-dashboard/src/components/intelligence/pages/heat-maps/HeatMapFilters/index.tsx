@@ -4,11 +4,23 @@ import { cn } from '@repo/ui/lib/utils';
 import { useState } from 'react';
 
 const timeFilters = ['Today', 'This Week', 'This Month', 'Custom'] as const;
-const categoryFilters = ['All Activity', 'Experiences', 'Staff', 'Arrivals'] as const;
 
-export const HeatMapFilters = () => {
+const categoryFilters: { label: string; value?: string }[] = [
+  { label: 'All Activity', value: undefined },
+  { label: 'Wellness', value: 'WELLNESS' },
+  { label: 'Culinary', value: 'CULINARY_AGAVE' },
+  { label: 'Ocean', value: 'OCEAN_ADVENTURE' },
+  { label: 'Private', value: 'PRIVATE' },
+];
+
+export const HeatMapFilters = ({
+  category,
+  onCategoryChange,
+}: {
+  category?: string;
+  onCategoryChange?: (value?: string) => void;
+}) => {
   const [time, setTime] = useState<(typeof timeFilters)[number]>('Today');
-  const [category, setCategory] = useState<(typeof categoryFilters)[number]>('All Activity');
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -33,19 +45,19 @@ export const HeatMapFilters = () => {
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-xs text-intel-text-muted">Category:</span>
           <div className="inline-flex rounded-md border border-intel-border bg-intel-card p-0.5 shadow-[0_1px_2px_rgba(26,22,20,0.04)]">
-            {categoryFilters.map((label) => (
+            {categoryFilters.map((c) => (
               <button
-                key={label}
+                key={c.label}
                 type="button"
-                onClick={() => setCategory(label)}
+                onClick={() => onCategoryChange?.(c.value)}
                 className={cn(
                   'rounded px-2.5 py-1.5 text-xs transition-colors',
-                  category === label
+                  category === c.value
                     ? 'bg-intel-maroon text-white'
                     : 'text-intel-text-muted hover:text-intel-text',
                 )}
               >
-                {label}
+                {c.label}
               </button>
             ))}
           </div>
