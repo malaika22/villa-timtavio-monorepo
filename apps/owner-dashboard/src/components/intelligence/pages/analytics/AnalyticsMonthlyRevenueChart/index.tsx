@@ -13,6 +13,7 @@ import { ANALYTICS_CHART } from '@/components/intelligence/pages/analytics/chart
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
 import { IntelPillToggle } from '@/components/intelligence/ui/IntelPillToggle';
 import { analyticsRevenueByMonth } from '@/lib/mock-data';
+import { useRevenueTrend } from '@/hooks/useAnalytics';
 
 const chartConfig = {
   y2026: { label: '2026 Actual', color: ANALYTICS_CHART.revenue2026.stroke },
@@ -22,20 +23,20 @@ const chartConfig = {
 type MetricView = 'revenue' | 'per-villa' | 'per-night';
 type YearView = '2026' | '2025' | 'both';
 
-const LAST_INDEX = analyticsRevenueByMonth.length - 1;
-
 function EndPointDot({
   color,
   cx,
   cy,
   index,
+  lastIndex,
 }: {
   color: string;
   cx?: number;
   cy?: number;
   index?: number;
+  lastIndex: number;
 }) {
-  if (index !== LAST_INDEX || cx == null || cy == null) return null;
+  if (index !== lastIndex || cx == null || cy == null) return null;
   return (
     <circle
       cx={cx}
@@ -49,22 +50,30 @@ function EndPointDot({
 }
 
 const endPointDot =
-  (color: string) => (props: { cx?: number; cy?: number; index?: number }) =>
-    EndPointDot({ color, ...props });
+  (color: string, lastIndex: number) =>
+  (props: { cx?: number; cy?: number; index?: number }) =>
+    EndPointDot({ color, lastIndex, ...props });
 
 export const AnalyticsMonthlyRevenueChart = () => {
   const [metric, setMetric] = useState<MetricView>('revenue');
   const [yearView, setYearView] = useState<YearView>('2026');
+  const { data: liveTrend } = useRevenueTrend(2026, 2025);
+
+  const source =
+    liveTrend && liveTrend.some((m) => m.y2026 || m.y2025)
+      ? liveTrend
+      : analyticsRevenueByMonth;
+  const lastIndex = source.length - 1;
 
   const chartData = useMemo(() => {
     const scale =
       metric === 'per-villa' ? 0.72 : metric === 'per-night' ? 0.38 : 1;
-    return analyticsRevenueByMonth.map((row) => ({
+    return source.map((row) => ({
       ...row,
       y2026: Math.round(row.y2026 * scale),
       y2025: Math.round(row.y2025 * scale),
     }));
-  }, [metric]);
+  }, [metric, source]);
 
   const show2026 = yearView === '2026' || yearView === 'both';
   const show2025 =
@@ -164,7 +173,7 @@ export const AnalyticsMonthlyRevenueChart = () => {
               strokeWidth={1.5}
               fill="url(#analytics2025Fill)"
               fillOpacity={1}
-              dot={endPointDot(ANALYTICS_CHART.revenue2025.stroke)}
+              dot={endPointDot(ANALYTICS_CHART.revenue2025.stroke, lastIndex)}
               activeDot={false}
               isAnimationActive={false}
             />
@@ -178,7 +187,7 @@ export const AnalyticsMonthlyRevenueChart = () => {
               strokeWidth={2}
               fill="url(#analytics2026Fill)"
               fillOpacity={1}
-              dot={endPointDot(ANALYTICS_CHART.revenue2026.stroke)}
+              dot={endPointDot(ANALYTICS_CHART.revenue2026.stroke, lastIndex)}
               activeDot={false}
               isAnimationActive={false}
             />
