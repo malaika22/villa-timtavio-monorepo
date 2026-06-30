@@ -30,3 +30,29 @@ export function useMarkNoteStale(guestId: string) {
     },
   });
 }
+
+export function useAddBeveragePreference(guestId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (item: string) =>
+      crmApi.addBeveragePreference(guestId, { category: 'GENERAL', item }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['guests', guestId, 'profile'],
+      });
+    },
+  });
+}
+
+export function useAddDietaryRestriction(guestId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (restriction: string) =>
+      crmApi.addDietaryRestriction(guestId, restriction),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['guests', guestId, 'profile'],
+      });
+    },
+  });
+}
