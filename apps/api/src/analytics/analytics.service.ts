@@ -8,35 +8,53 @@ export class AnalyticsService {
 
   async getOverview(period?: string) {
     const now = new Date();
-    const yearStart = new Date(now.getFullYear(), 0, 1);
+    // Resolve the requested window. Defaults to YTD.
+    const start = (() => {
+      switch (period) {
+        case '30d':
+          return new Date(now.getTime() - 30 * 24 * 3600 * 1000);
+        case '90d':
+          return new Date(now.getTime() - 90 * 24 * 3600 * 1000);
+        case 'mtd':
+          return new Date(now.getFullYear(), now.getMonth(), 1);
+        case 'qtd':
+          return new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+        case 'ytd':
+        default:
+          return new Date(now.getFullYear(), 0, 1);
+      }
+    })();
+    const windowDays = Math.max(
+      1,
+      Math.round((now.getTime() - start.getTime()) / (24 * 3600 * 1000)),
+    );
 
     const [bookings, experiences, revenue] = await Promise.all([
       this.prisma.booking.findMany({
         where: {
-          checkIn: { gte: yearStart },
+          checkIn: { gte: start },
           status: { not: 'CANCELLED' },
         },
         select: { id: true, checkIn: true, checkOut: true, nights: true },
       }),
       this.prisma.experienceRequest.count({
         where: {
-          createdAt: { gte: yearStart },
+          createdAt: { gte: start },
           status: 'COMPLETED',
         },
       }),
       this.prisma.folioItem.aggregate({
         where: {
-          createdAt: { gte: yearStart },
+          createdAt: { gte: start },
           booking: { status: 'CHECKED_OUT' },
         },
         _sum: { amount: true },
       }),
     ]);
 
-    // Calculate occupancy — booked nights / available nights
+    // Calculate occupancy — booked nights / available nights in the window
     const totalNights = bookings.reduce((s, b) => s + b.nights, 0);
-    const daysInYear = 365;
-    const occupancyRate = Math.round((totalNights / daysInYear) * 100);
+    const occupancyRate = Math.round((totalNights / windowDays) * 100);
 
     const sat = await this.prisma.satisfactionReview.aggregate({
       _avg: { overall: true },
