@@ -35,6 +35,10 @@ export const analyticsApi = {
   revenueMix: () => api.get<RevenueMixResponse>(API.analytics.revenueMix),
   occupancyCalendar: () =>
     api.get<OccupancyDay[]>(API.analytics.occupancyCalendar),
+  occupancyMonthly: () =>
+    api.get<{ month: string; y2026: number; y2025: number }[]>(
+      API.analytics.occupancyMonthly,
+    ),
   experienceSeasonality: () =>
     api.get<SeasonalityWeek[]>(API.analytics.experienceSeasonality),
   equipment: () => api.get<EquipmentAnalysis>(API.analytics.equipment),

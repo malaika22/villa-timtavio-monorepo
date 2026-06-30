@@ -152,6 +152,47 @@ export class AnalyticsService {
     return result;
   }
 
+  // ─── Monthly occupancy %, current vs prior year (owner) ───────────────────
+
+  async getOccupancyMonthly() {
+    const year = new Date().getFullYear();
+    const compare = year - 1;
+
+    const monthFor = async (y: number, m: number) => {
+      const start = new Date(y, m, 1);
+      const end = new Date(y, m + 1, 0, 23, 59, 59);
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const bookings = await this.prisma.booking.findMany({
+        where: {
+          status: { not: 'CANCELLED' },
+          checkIn: { lte: end },
+          checkOut: { gte: start },
+        },
+        select: { checkIn: true, checkOut: true },
+      });
+      // Count distinct occupied days in the month.
+      const occupied = new Set<number>();
+      for (const b of bookings) {
+        for (let d = 1; d <= daysInMonth; d++) {
+          const day = new Date(y, m, d);
+          const next = new Date(y, m, d + 1);
+          if (b.checkIn < next && b.checkOut > day) occupied.add(d);
+        }
+      }
+      return Math.round((occupied.size / daysInMonth) * 100);
+    };
+
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const data = await Promise.all(
+      MONTHS.map(async (label, m) => ({
+        month: label,
+        y2026: await monthFor(year, m),
+        y2025: await monthFor(compare, m),
+      })),
+    );
+    return data;
+  }
+
   // ─── 52-week experience seasonality (owner) ───────────────────────────────
 
   async getExperienceSeasonality() {

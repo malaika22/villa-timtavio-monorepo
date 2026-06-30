@@ -9,7 +9,7 @@ import { MockDataBanner } from '@/components/intelligence/ui/MockDataBanner';
 
 export const AnalyticsPage = () => (
   <div className="space-y-6">
-    <MockDataBanner message="Revenue Mix is live; other charts show sample data." />
+    <MockDataBanner message="Revenue trend, occupancy and revenue mix are live; KPI tiles + demographics show sample data." />
     <MetricCardGrid metrics={analyticsMetrics} />
 
     <AnalyticsMonthlyRevenueChart />

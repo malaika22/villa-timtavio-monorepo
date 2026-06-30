@@ -30,6 +30,12 @@ export class AnalyticsController {
     return this.analyticsService.getOccupancyCalendar();
   }
 
+  @Get('occupancy-monthly')
+  @Roles('owner')
+  getOccupancyMonthly() {
+    return this.analyticsService.getOccupancyMonthly();
+  }
+
   @Get('experience-seasonality')
   @Roles('owner')
   getExperienceSeasonality() {

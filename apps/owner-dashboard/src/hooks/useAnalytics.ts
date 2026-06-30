@@ -131,6 +131,15 @@ export function useOccupancyCalendar() {
   });
 }
 
+export function useOccupancyMonthly() {
+  return useQuery({
+    queryKey: ['analytics', 'occupancy-monthly'],
+    queryFn: analyticsApi.occupancyMonthly,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}
+
 export function useExperienceSeasonality() {
   return useQuery({
     queryKey: ['analytics', 'experience-seasonality'],
