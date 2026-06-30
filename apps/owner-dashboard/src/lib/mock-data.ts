@@ -9,7 +9,6 @@ import type {
   ExperienceInsight,
   ExperiencePerformanceRow,
   VendorRecommendation,
-  VendorRoiBar,
   VendorRoiRow,
   IntelligenceAlert,
   MetricCard,
@@ -555,20 +554,6 @@ export const vendorRoiRows: VendorRoiRow[] = [
     declined: 2,
     declinedPercent: 9,
     status: 'Active',
-  },
-];
-
-export const vendorRoiBars: VendorRoiBar[] = [
-  { id: 'sommelier', label: 'Estate Sommelier', roi: 8.0, roiLabel: '8.0x ROI' },
-  { id: 'atelier', label: 'Atelier Experiences', roi: 4.1, roiLabel: '4.1x ROI' },
-  { id: 'cocina', label: 'Cocina del Mar', roi: 3.5, roiLabel: '3.5x ROI' },
-  { id: 'tierra', label: 'Tierra Spa', roi: 3.2, roiLabel: '3.2x ROI' },
-  {
-    id: 'pacifico',
-    label: 'Pacifico Yachts',
-    roi: 1.6,
-    roiLabel: '1.6x ROI',
-    lowPerformance: true,
   },
 ];
 

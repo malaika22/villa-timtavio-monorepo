@@ -107,14 +107,6 @@ export type VendorRoiRow = {
   status: 'Active' | 'Review';
 };
 
-export type VendorRoiBar = {
-  id: string;
-  label: string;
-  roi: number;
-  roiLabel: string;
-  lowPerformance?: boolean;
-};
-
 export type VendorRecommendation = {
   id: string;
   variant: 'warning' | 'success' | 'info';
