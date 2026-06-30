@@ -10,16 +10,16 @@ import {
   revenueTrendData,
   upcomingStays,
 } from '@/lib/mock-data';
-import { useUpcomingGuests } from '@/hooks/useGuests';
 import {
   useAnalyticsOverview,
   overviewToMetrics,
   useIntelligenceAlerts,
   useRevenueTrend,
+  useUpcomingStaysAbbrev,
 } from '@/hooks/useAnalytics';
 
 export const OverviewPage = () => {
-  const { data: upcomingData, isLoading } = useUpcomingGuests();
+  const { data: upcomingData, isLoading } = useUpcomingStaysAbbrev();
   const { data: overview } = useAnalyticsOverview();
   const { data: liveAlerts } = useIntelligenceAlerts();
   const { data: liveTrend } = useRevenueTrend(2026, 2025);

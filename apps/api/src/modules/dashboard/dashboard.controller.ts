@@ -14,9 +14,9 @@ export class DashboardController {
     return this.dashboardService.getKpis();
   }
 
-  // Alert banner
+  // Alert banner — contains guest names; estate_manager only.
   @Get('alert-banner')
-  @Roles('estate_manager', 'owner')
+  @Roles('estate_manager')
   getAlertBanner() {
     return this.dashboardService.getAlertBanner();
   }
@@ -28,9 +28,9 @@ export class DashboardController {
     return this.dashboardService.getCalendar(start);
   }
 
-  // Today's schedule (merged experiences + manual items)
+  // Today's schedule — contains guest names; estate_manager only.
   @Get('schedule/today')
-  @Roles('estate_manager', 'owner')
+  @Roles('estate_manager')
   getTodaySchedule() {
     return this.dashboardService.getTodaySchedule();
   }

@@ -131,6 +131,50 @@ export function useOccupancyCalendar() {
   });
 }
 
+const STAY_MONTHS = (iso: string) => {
+  try {
+    return new Date(iso).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  } catch {
+    return iso;
+  }
+};
+
+// Privacy-safe upcoming stays for the owner (abbreviated names from analytics).
+export function useUpcomingStaysAbbrev() {
+  return useQuery({
+    queryKey: ['analytics', 'upcoming-stays'],
+    queryFn: analyticsApi.upcomingStays,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+    select: (rows) =>
+      rows.map((s) => {
+        const today = new Date().toISOString().slice(0, 10);
+        const arrivingToday = s.checkIn.slice(0, 10) === today;
+        return {
+          id: s.id,
+          guestName: s.guestAbbreviated,
+          guestInitials: s.guestInitials,
+          guestMeta: `${s.nights} night${s.nights === 1 ? '' : 's'}`,
+          villas: 'Villa TimTavio',
+          arrival: STAY_MONTHS(s.checkIn),
+          departure: STAY_MONTHS(s.checkOut),
+          nights: s.nights,
+          party: s.totalGuests,
+          source: 'Direct',
+          estRevenue: `$${Math.round(s.estimatedRevenue).toLocaleString()}`,
+          status: (arrivingToday ? 'arriving-today' : 'confirmed') as
+            | 'arriving-today'
+            | 'confirmed'
+            | 'pending-review',
+        };
+      }),
+  });
+}
+
 export function useOccupancyMonthly() {
   return useQuery({
     queryKey: ['analytics', 'occupancy-monthly'],

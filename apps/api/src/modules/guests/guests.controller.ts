@@ -8,26 +8,28 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 export class GuestsController {
   constructor(private guestsService: GuestsService) {}
 
+  // Raw guest records carry full PII — estate_manager only. The owner sees
+  // abbreviated data via the analytics endpoints (privacy spec 4.7).
   @Get('current')
-  @Roles('estate_manager', 'owner')
+  @Roles('estate_manager')
   findCurrent() {
     return this.guestsService.findCurrent();
   }
 
   @Get('upcoming')
-  @Roles('estate_manager', 'owner')
+  @Roles('estate_manager')
   findUpcoming() {
     return this.guestsService.findUpcoming();
   }
 
   @Get('past')
-  @Roles('estate_manager', 'owner')
+  @Roles('estate_manager')
   findPast(@Query('search') search?: string) {
     return this.guestsService.findPast(search);
   }
 
   @Get(':id/profile')
-  @Roles('estate_manager', 'owner')
+  @Roles('estate_manager')
   getProfile(@Param('id') id: string) {
     return this.guestsService.getProfile(id);
   }
