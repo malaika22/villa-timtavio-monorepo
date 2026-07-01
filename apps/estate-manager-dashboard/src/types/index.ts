@@ -219,30 +219,11 @@ export type CalendarEvent = {
   type: 'Experience' | 'Vendor' | 'Guest';
 };
 
-export type CalendarViewMode = 'day' | 'week' | 'month';
-
 export type CalendarTimelineEventType =
   | 'occupancy'
   | 'experience'
   | 'arrival'
   | 'departure';
-
-export type CalendarWeekDay = {
-  key: string;
-  weekday: string;
-  dateLabel: string;
-};
-
-export type CalendarTimelineEvent = {
-  id: string;
-  villa: number;
-  startDay: number;
-  span: number;
-  label: string;
-  type: CalendarTimelineEventType;
-  /** Second row when events overlap the same day */
-  lane?: 0 | 1;
-};
 
 export type ContentCatalogTab = 'experiences' | 'menus' | 'recommendations';
 
