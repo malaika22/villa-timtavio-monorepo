@@ -104,6 +104,66 @@ export function useSatisfaction() {
   });
 }
 
+function trend(percent: number | null, suffix: string): Partial<MetricCard> {
+  if (percent === null) return {};
+  const up = percent >= 0;
+  return {
+    trend: `${up ? '↑' : '↓'} ${Math.abs(percent)}% ${suffix}`,
+    trendDirection: up ? 'up' : 'down',
+  };
+}
+
+export function useRevenueSummary() {
+  return useQuery({
+    queryKey: ['analytics', 'revenue-summary'],
+    queryFn: analyticsApi.revenueSummary,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+    // Map the summary into the 4 headline KPI tiles.
+    select: (s): MetricCard[] => {
+      const prevYear = s.year - 1;
+      const stayPts = Math.round((s.avgStayNights - s.priorAvgStayNights) * 10) / 10;
+      const repeatPts = s.repeatRatePercent - s.priorRepeatRatePercent;
+      return [
+        {
+          id: 'ytd-revenue',
+          label: `REVENUE — YTD ${s.year}`,
+          value: formatCompact(s.revenue),
+          ...trend(s.revenueYoyPercent, `vs ${prevYear}`),
+        },
+        {
+          id: 'revpav',
+          label: 'REVPAV (PER AVAILABLE VILLA-NIGHT)',
+          value: formatCompact(s.revPav),
+          ...trend(s.revPavYoyPercent, `vs ${prevYear}`),
+        },
+        {
+          id: 'stay-duration',
+          label: 'AVG STAY DURATION',
+          value: `${s.avgStayNights} nights`,
+          ...(s.priorAvgStayNights > 0
+            ? {
+                trend: `${stayPts >= 0 ? '↑' : '↓'} ${Math.abs(stayPts)} vs ${s.priorAvgStayNights} in ${prevYear}`,
+                trendDirection: stayPts >= 0 ? ('up' as const) : ('down' as const),
+              }
+            : {}),
+        },
+        {
+          id: 'repeat-rate',
+          label: 'REPEAT GUEST RATE',
+          value: `${s.repeatRatePercent}%`,
+          ...(s.priorRepeatRatePercent > 0
+            ? {
+                trend: `${repeatPts >= 0 ? '↑' : '↓'} ${Math.abs(repeatPts)} pts vs ${prevYear}`,
+                trendDirection: repeatPts >= 0 ? ('up' as const) : ('down' as const),
+              }
+            : {}),
+        },
+      ];
+    },
+  });
+}
+
 export function useHeatMap(category?: string) {
   return useQuery({
     queryKey: ['analytics', 'heat-map', category ?? 'all'],

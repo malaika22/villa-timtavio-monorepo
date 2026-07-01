@@ -32,6 +32,8 @@ export const analyticsApi = {
   experiences: (period?: string) =>
     api.get<unknown>(API.analytics.experiences(period)),
   satisfaction: () => api.get<SatisfactionResponse>(API.analytics.satisfaction),
+  revenueSummary: () =>
+    api.get<RevenueSummaryResponse>(API.analytics.revenueSummary),
   vendors: () => api.get<VendorPerfRow[]>(API.analytics.vendors),
   revenueMix: () => api.get<RevenueMixResponse>(API.analytics.revenueMix),
   occupancyCalendar: () =>
@@ -50,6 +52,20 @@ export const analyticsApi = {
     api.get<{ insights: string[] }>(API.analytics.experienceInsights),
   vendorForecast: () => api.get<VendorForecastRow[]>(API.analytics.vendorForecast),
 };
+
+export interface RevenueSummaryResponse {
+  year: number;
+  revenue: number;
+  revenueYoyPercent: number | null;
+  revenueMomPercent: number | null;
+  priorYearRevenue: number;
+  revPav: number;
+  revPavYoyPercent: number | null;
+  avgStayNights: number;
+  priorAvgStayNights: number;
+  repeatRatePercent: number;
+  priorRepeatRatePercent: number;
+}
 
 export interface PeakHourBar {
   hour: string;

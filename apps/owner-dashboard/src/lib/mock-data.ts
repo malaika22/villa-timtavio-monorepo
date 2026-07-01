@@ -1,7 +1,6 @@
 import type {
   ActiveSession,
   BuyRentAnalysisItem,
-  DemographicRow,
   SystemIncident,
   SystemServiceRow,
   UptimeSegmentStatus,
@@ -16,7 +15,6 @@ import type {
   RevenueMonth,
   UpcomingStay,
   VillaOccupancy,
-  VillaRevenueRow,
 } from '@/types';
 
 export const overviewMetrics: MetricCard[] = [
@@ -277,37 +275,6 @@ export const estateOccupancyByMonth: OccupancyMonth[] = [
   { month: 'Oct', y2026: 62, y2025: 56 },
   { month: 'Nov', y2026: 52, y2025: 46 },
   { month: 'Dec', y2026: 50, y2025: 44 },
-];
-
-export const revenueByVillaYtd: VillaRevenueRow[] = [
-  { id: 'v3', label: 'Villa 3', amount: '$52,400', percent: 25 },
-  { id: 'v1', label: 'Villa 1', amount: '$48,200', percent: 23 },
-  { id: 'v4', label: 'Villa 4', amount: '$41,600', percent: 20 },
-  { id: 'v2', label: 'Villa 2', amount: '$38,400', percent: 18 },
-  { id: 'v56', label: 'Villa 5 & 6', amount: '$27,400', percent: 13 },
-];
-
-export const bookingSourceBreakdown: DemographicRow[] = [
-  { id: 'direct', label: 'Direct inquiry', percent: 52 },
-  { id: 'member', label: 'Member referral', percent: 28 },
-  { id: 'agent', label: 'Agent network', percent: 14 },
-  { id: 'web', label: 'Website inquiry', percent: 6 },
-];
-
-export const guestOriginBreakdown: DemographicRow[] = [
-  { id: 'us', label: 'United States', percent: 48 },
-  { id: 'mx', label: 'Mexico', percent: 18 },
-  { id: 'eu', label: 'Europe', percent: 16 },
-  { id: 'me', label: 'Middle East', percent: 10 },
-  { id: 'other', label: 'Other', percent: 8 },
-];
-
-export const guestProfileBreakdown: DemographicRow[] = [
-  { id: 'founders', label: 'Founders / CEOs', percent: 44 },
-  { id: 'family', label: 'Family offices', percent: 24 },
-  { id: 'entertainers', label: 'Entertainers', percent: 16 },
-  { id: 'diplomats', label: 'Diplomats', percent: 10 },
-  { id: 'uhnw', label: 'Other UHNW', percent: 6 },
 ];
 
 export const experienceIntelligenceMetrics: MetricCard[] = [

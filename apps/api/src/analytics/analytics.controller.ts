@@ -12,6 +12,12 @@ export class AnalyticsController {
     return this.analyticsService.getOverview(period);
   }
 
+  @Get('revenue')
+  @Roles('owner')
+  getRevenueSummary() {
+    return this.analyticsService.getRevenueSummary();
+  }
+
   @Get('satisfaction')
   @Roles('owner')
   getSatisfaction() {

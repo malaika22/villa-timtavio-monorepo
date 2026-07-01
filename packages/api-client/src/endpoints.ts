@@ -121,6 +121,7 @@ export const API = {
     upcomingStays: '/api/v1/analytics/upcoming-stays',
     intelligenceAlerts: '/api/v1/analytics/intelligence-alerts',
     satisfaction: '/api/v1/analytics/satisfaction',
+    revenueSummary: '/api/v1/analytics/revenue',
     vendors: '/api/v1/analytics/vendors',
     revenueMix: '/api/v1/analytics/revenue-mix',
     occupancyCalendar: '/api/v1/analytics/occupancy-calendar',

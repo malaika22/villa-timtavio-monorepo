@@ -51,19 +51,6 @@ export type OccupancyMonth = {
   y2025: number;
 };
 
-export type VillaRevenueRow = {
-  id: string;
-  label: string;
-  amount: string;
-  percent: number;
-};
-
-export type DemographicRow = {
-  id: string;
-  label: string;
-  percent: number;
-};
-
 export type ExperienceDemandMonth = {
   month: string;
   chefsTable: number;

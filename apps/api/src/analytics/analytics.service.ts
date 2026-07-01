@@ -673,6 +673,97 @@ export class AnalyticsService {
     return { year, compareYear: compare, data };
   }
 
+  // Revenue summary header: real MoM + YoY comparisons plus a few headline
+  // operating metrics, all computed from folio + booking data. Single-estate,
+  // so RevPAV uses one available villa (available nights = days elapsed).
+  async getRevenueSummary() {
+    const now = new Date();
+    const DAY = 24 * 3600 * 1000;
+
+    const revenueBetween = async (start: Date, end: Date) => {
+      const r = await this.prisma.folioItem.aggregate({
+        where: {
+          createdAt: { gte: start, lte: end },
+          booking: { status: 'CHECKED_OUT' },
+        },
+        _sum: { amount: true },
+      });
+      return Number(r._sum.amount || 0);
+    };
+
+    // YTD window this year vs the same span last year.
+    const yearStart = new Date(now.getFullYear(), 0, 1);
+    const priorYearStart = new Date(now.getFullYear() - 1, 0, 1);
+    const priorYearSamePoint = new Date(now.getTime() - 365 * DAY);
+    const daysElapsed = Math.max(1, Math.round((now.getTime() - yearStart.getTime()) / DAY));
+
+    // Month-over-month.
+    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+
+    const [revenue, priorRevenue, momCurrent, momPrior, allBookings] =
+      await Promise.all([
+        revenueBetween(yearStart, now),
+        revenueBetween(priorYearStart, priorYearSamePoint),
+        revenueBetween(thisMonthStart, now),
+        revenueBetween(lastMonthStart, lastMonthEnd),
+        this.prisma.booking.findMany({
+          where: { status: { not: 'CANCELLED' } },
+          select: { checkIn: true, nights: true, primaryGuestId: true },
+        }),
+      ]);
+
+    // Lifetime booking count per guest → drives repeat-guest rate.
+    const lifetime = new Map<string, number>();
+    for (const b of allBookings) {
+      lifetime.set(b.primaryGuestId, (lifetime.get(b.primaryGuestId) ?? 0) + 1);
+    }
+
+    const inWindow = (start: Date, end: Date) =>
+      allBookings.filter((b) => b.checkIn >= start && b.checkIn <= end);
+    const current = inWindow(yearStart, now);
+    const prior = inWindow(priorYearStart, priorYearSamePoint);
+
+    const avgNights = (rows: typeof allBookings) =>
+      rows.length === 0
+        ? 0
+        : rows.reduce((s, b) => s + b.nights, 0) / rows.length;
+    const repeatRate = (rows: typeof allBookings) =>
+      rows.length === 0
+        ? 0
+        : Math.round(
+            (rows.filter((b) => (lifetime.get(b.primaryGuestId) ?? 0) > 1).length /
+              rows.length) *
+              100,
+          );
+
+    const pct = (cur: number, base: number): number | null =>
+      base > 0 ? Math.round(((cur - base) / base) * 100) : null;
+
+    // RevPAV — revenue per available villa-night (one villa in this estate).
+    const revPav = Math.round(revenue / daysElapsed);
+    const priorDays = Math.max(
+      1,
+      Math.round((priorYearSamePoint.getTime() - priorYearStart.getTime()) / DAY),
+    );
+    const priorRevPav = Math.round(priorRevenue / priorDays);
+
+    return {
+      year: now.getFullYear(),
+      revenue,
+      revenueYoyPercent: pct(revenue, priorRevenue),
+      revenueMomPercent: pct(momCurrent, momPrior),
+      priorYearRevenue: priorRevenue,
+      revPav,
+      revPavYoyPercent: pct(revPav, priorRevPav),
+      avgStayNights: Math.round(avgNights(current) * 10) / 10,
+      priorAvgStayNights: Math.round(avgNights(prior) * 10) / 10,
+      repeatRatePercent: repeatRate(current),
+      priorRepeatRatePercent: repeatRate(prior),
+    };
+  }
+
   async getOccupancy(period?: string) {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
