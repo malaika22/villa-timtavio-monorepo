@@ -18,6 +18,12 @@ export class SystemController {
     return this.systemService.getHealth();
   }
 
+  @Get('system/active-sessions')
+  @Roles('owner', 'estate_manager')
+  getActiveSessions() {
+    return this.systemService.getActiveSessions();
+  }
+
   @Get('system-alerts')
   @Roles('estate_manager', 'owner')
   getSystemAlerts(

@@ -33,6 +33,40 @@ export class SystemService {
     });
   }
 
+  // Active guest PWA sessions: manifest guests who have opened their link and
+  // whose stay is currently in-house. Privacy-safe — abbreviated names only,
+  // no email. Device/screen aren't collected, so they're not returned.
+  async getActiveSessions() {
+    const guests = await this.prisma.manifestGuest.findMany({
+      where: {
+        pwaLinkOpened: true,
+        booking: { status: { in: ['CHECKED_IN', 'SETTLED', 'DEPARTURE_TODAY'] } },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        pwaLinkOpenedAt: true,
+        booking: { select: { primaryGuest: { select: { email: true } } } },
+      },
+      orderBy: { pwaLinkOpenedAt: 'desc' },
+    });
+
+    return guests.map((g) => {
+      const lastInitial = g.lastName ? `${g.lastName[0]}.` : '';
+      const isPrimary = g.email === g.booking.primaryGuest?.email;
+      return {
+        id: g.id,
+        name: `${g.firstName} ${lastInitial}`.trim(),
+        initials:
+          `${g.firstName[0] ?? ''}${g.lastName[0] ?? ''}`.toUpperCase(),
+        role: isPrimary ? 'Primary member' : 'Guest',
+        sessionStartAt: g.pwaLinkOpenedAt?.toISOString() ?? null,
+      };
+    });
+  }
+
   // ─── Live platform health (owner) ─────────────────────────────────────────
 
   async getHealth() {
