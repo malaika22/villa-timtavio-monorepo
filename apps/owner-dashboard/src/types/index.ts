@@ -51,14 +51,6 @@ export type OccupancyMonth = {
   y2025: number;
 };
 
-export type ExperienceDemandMonth = {
-  month: string;
-  chefsTable: number;
-  poolExclusive: number;
-  spaWellness: number;
-  yachtCharter: number;
-};
-
 export type ExperiencePerformanceRow = {
   id: string;
   name: string;

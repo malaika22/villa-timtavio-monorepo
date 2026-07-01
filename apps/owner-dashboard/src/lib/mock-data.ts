@@ -4,7 +4,6 @@ import type {
   SystemIncident,
   SystemServiceRow,
   UptimeSegmentStatus,
-  ExperienceDemandMonth,
   ExperienceInsight,
   ExperiencePerformanceRow,
   VendorRecommendation,
@@ -305,16 +304,6 @@ export const experienceIntelligenceMetrics: MetricCard[] = [
     trend: '↑ 2 pts — capacity pressure',
     trendDirection: 'warning',
   },
-];
-
-export const experienceDemandByMonth: ExperienceDemandMonth[] = [
-  { month: 'Jan', chefsTable: 8, poolExclusive: 6, spaWellness: 5, yachtCharter: 4 },
-  { month: 'Feb', chefsTable: 10, poolExclusive: 7, spaWellness: 6, yachtCharter: 5 },
-  { month: 'Mar', chefsTable: 12, poolExclusive: 9, spaWellness: 8, yachtCharter: 6 },
-  { month: 'Apr', chefsTable: 14, poolExclusive: 11, spaWellness: 10, yachtCharter: 8 },
-  { month: 'May', chefsTable: 16, poolExclusive: 13, spaWellness: 12, yachtCharter: 10 },
-  { month: 'Jun', chefsTable: 18, poolExclusive: 15, spaWellness: 14, yachtCharter: 12 },
-  { month: 'Jul', chefsTable: 22, poolExclusive: 18, spaWellness: 16, yachtCharter: 14 },
 ];
 
 export const experiencePerformanceRows: ExperiencePerformanceRow[] = [

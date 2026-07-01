@@ -852,21 +852,81 @@ export class AnalyticsService {
     });
   }
 
+  // Per-experience performance rows built from real requests: completed
+  // bookings, revenue (confirmed cost, falling back to base price), guest
+  // rating, cancellation rate and a 90-day-over-90-day booking trend.
   async getExperiencePerformance(period?: string) {
-    return this.prisma.catalogItem.findMany({
+    const items = await this.prisma.catalogItem.findMany({
       where: { isActive: true },
-      include: {
-        _count: {
+      select: {
+        id: true,
+        name: true,
+        basePrice: true,
+        experienceRequests: {
           select: {
-            experienceRequests: {
-              where: { status: 'COMPLETED' },
-            },
+            status: true,
+            confirmedCost: true,
+            createdAt: true,
+            vendorRating: { select: { rating: true } },
           },
         },
-        vendor: { select: { name: true, averageRating: true } },
       },
-      orderBy: { experienceRequests: { _count: 'desc' } },
     });
+
+    const now = Date.now();
+    const D90 = 90 * 24 * 3600 * 1000;
+    const base = (p: unknown) => Number(p ?? 0);
+
+    const rows = items.map((item) => {
+      const reqs = item.experienceRequests;
+      const completed = reqs.filter((r) => r.status === 'COMPLETED');
+      const cancelled = reqs.filter((r) => r.status === 'CANCELLED');
+      const bookings = completed.length;
+
+      const revenue = completed.reduce(
+        (s, r) => s + (r.confirmedCost != null ? Number(r.confirmedCost) : base(item.basePrice)),
+        0,
+      );
+
+      const ratings = reqs
+        .map((r) => r.vendorRating?.rating)
+        .filter((v): v is number => typeof v === 'number');
+      const rating =
+        ratings.length > 0
+          ? Math.round((ratings.reduce((s, v) => s + v, 0) / ratings.length) * 10) / 10
+          : 0;
+
+      const declineBase = bookings + cancelled.length;
+      const declinedPercent =
+        declineBase > 0 ? Math.round((cancelled.length / declineBase) * 100) : 0;
+
+      const last90 = completed.filter(
+        (r) => now - new Date(r.createdAt).getTime() < D90,
+      ).length;
+      const prior90 = completed.filter((r) => {
+        const age = now - new Date(r.createdAt).getTime();
+        return age >= D90 && age < 2 * D90;
+      }).length;
+      const trendPercent =
+        prior90 > 0
+          ? Math.round(((last90 - prior90) / prior90) * 100)
+          : last90 > 0
+            ? 100
+            : null;
+
+      return {
+        id: item.id,
+        name: item.name,
+        bookings,
+        revenue,
+        rating,
+        declined: cancelled.length,
+        declinedPercent,
+        trendPercent,
+      };
+    });
+
+    return rows.sort((a, b) => b.bookings - a.bookings);
   }
 
   async getUpcomingStays() {

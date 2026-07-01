@@ -1,14 +1,11 @@
-import { MetricCardGrid } from '@/components/intelligence/cards/MetricCardGrid';
 import { DemandInsightsPanel } from '@/components/intelligence/pages/experiences/DemandInsightsPanel';
 import { ExperienceSeasonality } from '@/components/intelligence/pages/experiences/ExperienceSeasonality';
 import { ExperiencePerformanceTable } from '@/components/intelligence/pages/experiences/ExperiencePerformanceTable';
-import { experienceIntelligenceMetrics } from '@/lib/mock-data';
-import { MockDataBanner } from '@/components/intelligence/ui/MockDataBanner';
+import { LiveExperienceKpis } from '@/components/intelligence/pages/experiences/LiveExperienceKpis';
 
 export const ExperiencesPage = () => (
   <div className="space-y-6">
-    <MockDataBanner message="Performance counts and the 52-week seasonality are live; revenue figures show sample data." />
-    <MetricCardGrid metrics={experienceIntelligenceMetrics} />
+    <LiveExperienceKpis />
 
     <ExperienceSeasonality />
 

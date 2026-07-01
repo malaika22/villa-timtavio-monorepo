@@ -6,7 +6,7 @@ import { cn } from '@repo/ui/lib/utils';
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
 import { experiencePerformanceRows } from '@/lib/mock-data';
 import type { ExperiencePerformanceRow } from '@/types';
-import { useCatalogAsPerformanceRows } from '@/hooks/useCatalog';
+import { useExperiencePerformance } from '@/hooks/useAnalytics';
 import {
   COLUMNS,
   DECLINED_HIGH,
@@ -32,9 +32,13 @@ const SORTABLE: Record<string, (r: ExperiencePerformanceRow) => number> = {
 const parseRevenue = (s: string) => Number(String(s).replace(/[^0-9.]/g, '')) || 0;
 
 export const ExperiencePerformanceTable = () => {
-  const { data: apiRows } = useCatalogAsPerformanceRows();
+  const { data: apiRows } = useExperiencePerformance();
+  // Use live rows once at least one experience has activity; otherwise show the
+  // sample shape rather than an all-zero table.
   const baseRows: ExperiencePerformanceRow[] =
-    apiRows ?? experiencePerformanceRows;
+    apiRows && apiRows.some((r) => r.bookings > 0)
+      ? apiRows
+      : experiencePerformanceRows;
 
   const [sortKey, setSortKey] = useState<SortKey>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');

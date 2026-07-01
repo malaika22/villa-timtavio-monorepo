@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { AnalyticsOverview } from '@repo/api-types';
 
 import { analyticsApi } from '@/lib/api/analytics';
-import type { MetricCard } from '@/types';
+import type { ExperiencePerformanceRow, MetricCard } from '@/types';
 
 // Owner dashboard refreshes every 10 minutes (no real-time).
 const TEN_MINUTES = 10 * 60 * 1000;
@@ -86,12 +86,75 @@ export function useRevenueTrend(year: number, compare?: number) {
   });
 }
 
+const moneyFull = (n: number) => `$${Math.round(n).toLocaleString()}`;
+
 export function useExperiencePerformance(period?: string) {
   return useQuery({
     queryKey: ['analytics', 'experiences', period ?? 'ytd'],
     queryFn: () => analyticsApi.experiences(period),
     refetchInterval: TEN_MINUTES,
     staleTime: TEN_MINUTES,
+    // Map API rows into the table's ExperiencePerformanceRow shape.
+    select: (rows): ExperiencePerformanceRow[] =>
+      rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        bookings: r.bookings,
+        revenue: r.revenue > 0 ? moneyFull(r.revenue) : '—',
+        rating: r.rating,
+        declined: r.declined,
+        declinedPercent: r.declinedPercent,
+        trend:
+          r.trendPercent === null
+            ? '—'
+            : `${r.trendPercent >= 0 ? '↑' : '↓'} ${Math.abs(r.trendPercent)}%`,
+        trendDirection:
+          r.trendPercent === null
+            ? 'neutral'
+            : r.trendPercent >= 0
+              ? 'up'
+              : 'down',
+      })),
+  });
+}
+
+export function useExperienceKpis() {
+  return useQuery({
+    queryKey: ['analytics', 'experiences', 'ytd'],
+    queryFn: () => analyticsApi.experiences(),
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+    // Aggregate the raw rows into the four headline experience tiles.
+    select: (rows): MetricCard[] => {
+      const booked = rows.reduce((s, r) => s + r.bookings, 0);
+      const revenue = rows.reduce((s, r) => s + r.revenue, 0);
+      const declined = rows.reduce((s, r) => s + r.declined, 0);
+      const avgPer = booked > 0 ? Math.round(revenue / booked) : 0;
+      const declineBase = booked + declined;
+      const declineRate =
+        declineBase > 0
+          ? Math.round((declined / declineBase) * 1000) / 10
+          : 0;
+      return [
+        { id: 'exp-booked', label: 'TOTAL BOOKED YTD', value: String(booked) },
+        {
+          id: 'exp-revenue',
+          label: 'REVENUE FROM EXPERIENCES',
+          value: formatCompact(revenue),
+        },
+        {
+          id: 'exp-avg',
+          label: 'AVG PER EXPERIENCE',
+          value: avgPer > 0 ? moneyFull(avgPer) : '—',
+        },
+        {
+          id: 'exp-decline',
+          label: 'DECLINE / CONFLICT RATE',
+          value: `${declineRate}%`,
+          trendDirection: declineRate > 10 ? 'warning' : 'neutral',
+        },
+      ];
+    },
   });
 }
 

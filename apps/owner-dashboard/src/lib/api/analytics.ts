@@ -30,7 +30,7 @@ export const analyticsApi = {
   heatMapCell: (space: string, timeBlock: string) =>
     api.get<HeatMapCellResponse>(API.analytics.heatMapCell(space, timeBlock)),
   experiences: (period?: string) =>
-    api.get<unknown>(API.analytics.experiences(period)),
+    api.get<ExperiencePerfApiRow[]>(API.analytics.experiences(period)),
   satisfaction: () => api.get<SatisfactionResponse>(API.analytics.satisfaction),
   revenueSummary: () =>
     api.get<RevenueSummaryResponse>(API.analytics.revenueSummary),
@@ -52,6 +52,17 @@ export const analyticsApi = {
     api.get<{ insights: string[] }>(API.analytics.experienceInsights),
   vendorForecast: () => api.get<VendorForecastRow[]>(API.analytics.vendorForecast),
 };
+
+export interface ExperiencePerfApiRow {
+  id: string;
+  name: string;
+  bookings: number;
+  revenue: number;
+  rating: number;
+  declined: number;
+  declinedPercent: number;
+  trendPercent: number | null;
+}
 
 export interface RevenueSummaryResponse {
   year: number;

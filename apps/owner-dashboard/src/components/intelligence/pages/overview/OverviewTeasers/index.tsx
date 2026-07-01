@@ -4,13 +4,15 @@ import Link from 'next/link';
 import { Grid3x3, Star, PiggyBank, ArrowRight } from 'lucide-react';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
-import { useCatalogAsPerformanceRows } from '@/hooks/useCatalog';
-import { useEquipmentAnalysis } from '@/hooks/useAnalytics';
+import {
+  useExperiencePerformance,
+  useEquipmentAnalysis,
+} from '@/hooks/useAnalytics';
 
 const money = (n: number) => `$${Math.round(n).toLocaleString()}`;
 
 export const OverviewTeasers = () => {
-  const { data: perfRows } = useCatalogAsPerformanceRows();
+  const { data: perfRows } = useExperiencePerformance();
   const { data: equipment } = useEquipmentAnalysis();
 
   const top3 = [...(perfRows ?? [])]
