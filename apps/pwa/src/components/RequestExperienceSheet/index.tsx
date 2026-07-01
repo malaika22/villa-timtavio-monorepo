@@ -14,9 +14,14 @@ import { GuestStepper } from './GuestStepper';
 import { ExperienceSheetProps } from './types';
 import { CalenderPicker } from '../CalenderPicker';
 import { SubmitRequestButton } from './SubmitRequestButton';
-import { useCreateRequest } from '@/hooks/useRequests';
+import { useCreateRequest, isQueuedResult } from '@/hooks/useRequests';
 import { useAuth } from '@/hooks/useAuth';
 import { format } from 'date-fns';
+
+const ONLINE_CONFIRMATION =
+  "We'll confirm your request within the hour. You'll be notified.";
+const QUEUED_CONFIRMATION =
+  "You're offline — we've saved this request and will submit it automatically as soon as you're back online.";
 
 export function RequestExperienceSheet({
   open,
@@ -31,6 +36,7 @@ export function RequestExperienceSheet({
   );
   const [guestCount, setGuestCount] = useState(1);
   const [specialRequests, setSpecialRequests] = useState('');
+  const [queuedOffline, setQueuedOffline] = useState(false);
 
   const maxGuests = detail.maxGuests ?? 8;
   const base = detail.basePrice ?? 0;
@@ -48,13 +54,14 @@ export function RequestExperienceSheet({
       ? format(selectedDate, 'yyyy-MM-dd')
       : format(new Date(), 'yyyy-MM-dd');
 
-    await createRequest.mutateAsync({
+    const result = await createRequest.mutateAsync({
       catalogItemId: experience.id,
       preferredDate,
       preferredTime,
       guestCount,
       specialRequests: specialRequests || undefined,
     });
+    setQueuedOffline(isQueuedResult(result));
   };
   const thumbImage =
     detail.images && detail.images.length > 0
@@ -214,7 +221,9 @@ export function RequestExperienceSheet({
         {/* ── Sticky CTA ── */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#FAF8F4] from-70% to-transparent px-5 pb-8 pt-8">
           <SubmitRequestButton
-            confirmationMessage="We'll confirm your request within the hour. You'll be notified."
+            confirmationMessage={
+              queuedOffline ? QUEUED_CONFIRMATION : ONLINE_CONFIRMATION
+            }
             onSubmit={handleSubmitRequest}
           />
         </div>

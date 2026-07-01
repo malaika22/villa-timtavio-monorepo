@@ -34,6 +34,7 @@ export const metadata: Metadata = {
   description:
     'Your private villa concierge — experiences, folio, and guest manifest.',
   applicationName: 'Villa TimTavio',
+  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

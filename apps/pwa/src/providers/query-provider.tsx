@@ -1,6 +1,14 @@
 'use client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, ReactNode } from 'react';
+import { useOfflineRequestSync } from '@/hooks/useOfflineRequestSync';
+
+// Lives inside the provider so it can use the query client. Drains any
+// experience requests queued while offline once connectivity returns.
+function OfflineRequestSync() {
+  useOfflineRequestSync();
+  return null;
+}
 
 export function QueryProvider({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -19,6 +27,9 @@ export function QueryProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <OfflineRequestSync />
+      {children}
+    </QueryClientProvider>
   );
 }
