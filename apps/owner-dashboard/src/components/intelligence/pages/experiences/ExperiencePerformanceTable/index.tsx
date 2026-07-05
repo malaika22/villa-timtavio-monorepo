@@ -8,6 +8,7 @@ import { experiencePerformanceRows } from '@/lib/mock-data';
 import type { ExperiencePerformanceRow } from '@/types';
 import { useExperiencePerformance } from '@/hooks/useAnalytics';
 import { usePeriod } from '@/providers/period-provider';
+import { ExportMenu } from '@/components/intelligence/ui/ExportMenu';
 import {
   COLUMNS,
   DECLINED_HIGH,
@@ -63,11 +64,24 @@ export const ExperiencePerformanceTable = () => {
     }
   };
 
+  const csvRows = rows.map((r) => ({
+    Experience: r.name,
+    Bookings: r.bookings,
+    Revenue: r.revenue,
+    Rating: r.rating,
+    Declined: r.declined,
+    'Declined %': r.declinedPercent,
+    Trend: r.trend,
+  }));
+
   return (
     <section className="flex h-full min-h-0 flex-col">
-      <h3 className="mb-3 shrink-0 text-center font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">
-        Experience Performance — YTD 2026
-      </h3>
+      <div className="mb-3 flex shrink-0 items-center justify-center gap-2">
+        <h3 className="text-center font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">
+          Experience Performance — YTD 2026
+        </h3>
+        <ExportMenu filename="experience-performance" csvRows={csvRows} />
+      </div>
       <IntelCard
         padding={false}
         className="flex flex-1 flex-col overflow-hidden rounded-xl"

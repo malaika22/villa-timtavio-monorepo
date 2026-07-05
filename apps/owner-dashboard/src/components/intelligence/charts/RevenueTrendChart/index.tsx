@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ChartContainer,
   ChartTooltip,
@@ -18,6 +18,7 @@ import {
 import { cn } from '@repo/ui/lib/utils';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
+import { ExportMenu } from '@/components/intelligence/ui/ExportMenu';
 import type { RevenueMonth } from '@/types';
 
 const chartConfig = {
@@ -27,6 +28,7 @@ const chartConfig = {
 
 export const RevenueTrendChart = ({ data }: { data: RevenueMonth[] }) => {
   const [period, setPeriod] = useState<'monthly' | 'quarterly'>('monthly');
+  const chartRef = useRef<HTMLDivElement>(null);
   const chartData =
     period === 'monthly'
       ? data
@@ -48,6 +50,7 @@ export const RevenueTrendChart = ({ data }: { data: RevenueMonth[] }) => {
             Monthly revenue in USD thousands
           </p>
         </div>
+        <div className="flex items-center gap-2">
         <div className="inline-flex rounded-md border border-intel-border bg-intel-main p-0.5">
           {(['monthly', 'quarterly'] as const).map((p) => (
             <button
@@ -65,7 +68,14 @@ export const RevenueTrendChart = ({ data }: { data: RevenueMonth[] }) => {
             </button>
           ))}
         </div>
+        <ExportMenu
+          filename="revenue-trend"
+          csvRows={chartData as unknown as Record<string, unknown>[]}
+          pngTarget={chartRef}
+        />
+        </div>
       </div>
+      <div ref={chartRef}>
       <ChartContainer config={chartConfig} className="mt-4 h-[240px] w-full">
         <ComposedChart
           data={chartData}
@@ -129,6 +139,7 @@ export const RevenueTrendChart = ({ data }: { data: RevenueMonth[] }) => {
           />
         </ComposedChart>
       </ChartContainer>
+      </div>
       <div className="mt-2 flex gap-5 text-xs text-intel-text-muted">
         <span className="flex items-center gap-1.5">
           <span className="size-2 rounded-full bg-intel-maroon" />

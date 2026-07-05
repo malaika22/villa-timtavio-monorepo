@@ -3,6 +3,7 @@ import { Star } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
+import { ExportMenu } from '@/components/intelligence/ui/ExportMenu';
 import { vendorRoiRows } from '@/lib/mock-data';
 import type { VendorRoiRow } from '@/types';
 import { useVendorsAsRoiRows } from '@/hooks/useVendors';
@@ -54,11 +55,26 @@ export const VendorRoiAnalysisTable = () => {
   const { data: apiRows } = useVendorsAsRoiRows();
   const rows: VendorRoiRow[] = apiRows ?? vendorRoiRows;
 
+  const csvRows = rows.map((r) => ({
+    Vendor: r.name,
+    Category: r.category,
+    Bookings: r.bookings,
+    'Gross Revenue': r.grossRevenue,
+    'Vendor Cost': r.vendorCost,
+    'Net Margin': r.netMargin,
+    ROI: r.roiLabel,
+    Rating: r.rating,
+    Status: r.status,
+  }));
+
   return (
   <section>
-    <h3 className="mb-3 font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">
-      Vendor ROI Analysis — YTD 2026
-    </h3>
+    <div className="mb-3 flex items-center gap-2">
+      <h3 className="font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">
+        Vendor ROI Analysis — YTD 2026
+      </h3>
+      <ExportMenu filename="vendor-roi-analysis" csvRows={csvRows} />
+    </div>
     <IntelCard padding={false} className="overflow-hidden rounded-xl">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[960px] text-sm">
