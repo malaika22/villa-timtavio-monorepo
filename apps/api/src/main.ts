@@ -16,14 +16,21 @@ async function bootstrap() {
     }),
   );
 
+  // Allow the three frontends (Guest PWA, Owner + Estate Manager dashboards).
+  // DASHBOARD_URL is kept as a backward-compatible alias for a single dashboard
+  // origin. Undefined entries are filtered so unset vars don't allow "undefined".
+  const allowedOrigins = [
+    process.env.PWA_URL,
+    process.env.OWNER_DASHBOARD_URL,
+    process.env.EM_DASHBOARD_URL,
+    process.env.DASHBOARD_URL,
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:3002',
+  ].filter((o): o is string => !!o);
+
   app.enableCors({
-    origin: [
-      process.env.PWA_URL,
-      process.env.DASHBOARD_URL,
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-    ],
+    origin: allowedOrigins,
     credentials: true,
   });
 
