@@ -7,15 +7,48 @@ import axios, { AxiosInstance } from 'axios';
 export class BreezeWayService {
   private readonly logger = new Logger(BreezeWayService.name);
   private client: AxiosInstance;
+  private accessToken: string | null = null;
+  private tokenExpiresAt = 0;
 
   constructor(private config: ConfigService) {
     this.client = axios.create({
       baseURL: 'https://api.breezeway.io/v1',
-      headers: {
-        Authorization: `Bearer ${config.get('BREEZEWAY_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
     });
+
+    // Inject a fresh Bearer token before every request.
+    this.client.interceptors.request.use(async (cfg) => {
+      const token = await this.getToken();
+      cfg.headers = cfg.headers ?? {};
+      cfg.headers['Authorization'] = `Bearer ${token}`;
+      cfg.headers['Content-Type'] = 'application/json';
+      return cfg;
+    });
+  }
+
+  private async getToken(): Promise<string> {
+    if (this.accessToken && Date.now() < this.tokenExpiresAt - 60_000) {
+      return this.accessToken;
+    }
+
+    const clientId = this.config.get<string>('BREEZEWAY_CLIENT_ID');
+    const clientSecret = this.config.get<string>('BREEZEWAY_CLIENT_SECRET');
+
+    if (!clientId || !clientSecret) {
+      throw new Error('BREEZEWAY_CLIENT_ID / BREEZEWAY_CLIENT_SECRET not set');
+    }
+
+    const res = await axios.post(
+      'https://auth.breezeway.io/oauth/token',
+      { grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret },
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+
+    this.accessToken = res.data.access_token as string;
+    // expires_in is in seconds; fall back to 23 h if not provided.
+    const expiresIn: number = res.data.expires_in ?? 82_800;
+    this.tokenExpiresAt = Date.now() + expiresIn * 1_000;
+    this.logger.log('Breezeway token refreshed');
+    return this.accessToken;
   }
 
   async createTask(data: {

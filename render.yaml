@@ -97,7 +97,9 @@ services:
         sync: false
 
       # ── Breezeway ──
-      - key: BREEZEWAY_API_KEY
+      - key: BREEZEWAY_CLIENT_ID
+        sync: false
+      - key: BREEZEWAY_CLIENT_SECRET
         sync: false
       - key: BREEZEWAY_ORG_ID
         sync: false
