@@ -55,7 +55,7 @@ export class BreezeWayService {
     title: string;
     description: string;
     propertyId: string;
-    teamId: string;
+    assigneeId: string;
     dueDate: string;
     requirePhoto: boolean;
     templateId?: string;
@@ -65,7 +65,7 @@ export class BreezeWayService {
       name: data.title,
       description: data.description,
       property_id: data.propertyId,
-      team_id: data.teamId,
+      assigned_to: data.assigneeId,
       due_date: data.dueDate,
       require_photo: data.requirePhoto,
       template_id: data.templateId,
@@ -79,11 +79,34 @@ export class BreezeWayService {
     return response.data;
   }
 
-  async getTeams() {
-    const response = await this.client.get(
-      `/organizations/${this.config.get('BREEZEWAY_ORG_ID')}/teams`,
+  /**
+   * Lists staff (people) so the EM can pick who a given experience routes to.
+   * Uses the public inventory people API (absolute URL — the interceptor still
+   * injects the Bearer token). Returns only active people, newest last.
+   */
+  async getStaff(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      department: string | null;
+      email: string | null;
+    }>
+  > {
+    const res = await this.client.get(
+      'https://api.breezeway.io/public/inventory/v1/people',
     );
-    return response.data;
+    const people: any[] = Array.isArray(res.data)
+      ? res.data
+      : (res.data?.data ?? res.data?.results ?? []);
+
+    return people
+      .filter((p) => p?.active !== false)
+      .map((p) => ({
+        id: String(p.id),
+        name: `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim() || `#${p.id}`,
+        department: p.type_departments?.[0] ?? p.type_role ?? null,
+        email: p.emails?.[0] ?? null,
+      }));
   }
 
   validateWebhookSignature(

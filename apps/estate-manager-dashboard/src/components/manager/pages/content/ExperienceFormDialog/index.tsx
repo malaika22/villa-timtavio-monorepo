@@ -37,6 +37,7 @@ import {
 } from '@/hooks/useCatalogAdmin';
 import { useExperienceCategories } from '@/hooks/useExperienceCategories';
 import { useVendors } from '@/hooks/useVendors';
+import { useBreezewayStaff } from '@/hooks/useBreezewayStaff';
 import {
   formatDurationLabel,
   slugToCatalogCategory,
@@ -56,6 +57,7 @@ export const ExperienceFormDialog = ({
   const isEditing = Boolean(experience?.id);
   const { data: categories = [] } = useExperienceCategories();
   const { data: vendors = [] } = useVendors();
+  const { data: staff = [] } = useBreezewayStaff();
   const createItem = useCreateCatalogItem();
   const updateItem = useUpdateCatalogItem();
   const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
@@ -74,6 +76,7 @@ export const ExperienceFormDialog = ({
       basePrice: undefined,
       isIncluded: false,
       vendorId: '',
+      breezeWayTeamId: '',
       primaryPhotoUrl: '',
       maxGuestCount: undefined,
       included: '',
@@ -106,6 +109,7 @@ export const ExperienceFormDialog = ({
         basePrice: experience.basePrice ?? undefined,
         isIncluded: experience.pricing === 'included',
         vendorId: experience.vendorId ?? '',
+        breezeWayTeamId: experience.breezeWayTeamId ?? '',
         primaryPhotoUrl: experience.primaryPhotoUrl ?? '',
         maxGuestCount: experience.maxGuestCount ?? undefined,
         included: (experience.included ?? []).join('\n'),
@@ -127,6 +131,7 @@ export const ExperienceFormDialog = ({
       basePrice: undefined,
       isIncluded: false,
       vendorId: '',
+      breezeWayTeamId: '',
       primaryPhotoUrl: '',
       maxGuestCount: undefined,
       included: '',
@@ -157,6 +162,7 @@ export const ExperienceFormDialog = ({
       basePrice: values.isIncluded ? undefined : values.basePrice,
       isIncluded: values.isIncluded,
       vendorId: values.vendorId || undefined,
+      breezeWayTeamId: values.breezeWayTeamId || undefined,
       primaryPhotoUrl: values.primaryPhotoUrl || undefined,
       maxGuestCount: values.maxGuestCount,
       included: (values.included ?? '')
@@ -432,6 +438,45 @@ export const ExperienceFormDialog = ({
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="breezeWayTeamId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Assigned staff (Breezeway)</FormLabel>
+                    <Select
+                      onValueChange={(value) =>
+                        field.onChange(value === '__default__' ? '' : value)
+                      }
+                      value={field.value ? field.value : '__default__'}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Category default" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="__default__">
+                          Category default (unassigned)
+                        </SelectItem>
+                        {staff.map((person) => (
+                          <SelectItem key={person.id} value={person.id}>
+                            {person.name}
+                            {person.department ? ` · ${person.department}` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Who Breezeway assigns this experience&apos;s setup task to.
+                      Leave as default to use the category&apos;s fallback
+                      assignee.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

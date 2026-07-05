@@ -47,6 +47,8 @@ export interface CatalogItem {
   hostReviewNote?: string | null;
   vendorId?: string | null;
   vendor?: { id: string; name: string; status: string } | null;
+  /** Breezeway person id this experience's setup task is assigned to. */
+  breezeWayTeamId?: string | null;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -105,6 +107,8 @@ export interface CreateCatalogItemDto {
   vendorId?: string;
   experienceCategoryId?: string;
   basePrice?: number;
+  /** Breezeway person id to assign this experience's setup task to. */
+  breezeWayTeamId?: string;
   sortOrder?: number;
   included?: string[];
   hostName?: string;

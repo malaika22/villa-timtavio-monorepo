@@ -9,6 +9,8 @@ export const experienceFormSchema = z.object({
   basePrice: z.number().min(0).optional(),
   isIncluded: z.boolean(),
   vendorId: z.string().optional(),
+  /** Breezeway person id the setup task routes to (empty = category default) */
+  breezeWayTeamId: z.string().optional(),
   primaryPhotoUrl: z.string().optional(),
   maxGuestCount: z.number().int().positive().optional(),
   /** Newline-separated "what's included" list (one item per line) */

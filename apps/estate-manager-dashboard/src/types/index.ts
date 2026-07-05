@@ -251,6 +251,7 @@ export type ContentExperience = {
   durationMinutes?: number | null;
   basePrice?: number | null;
   vendorId?: string | null;
+  breezeWayTeamId?: string | null;
   primaryPhotoUrl?: string | null;
   maxGuestCount?: number | null;
   included?: string[];

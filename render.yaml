@@ -107,11 +107,11 @@ services:
         sync: false
       - key: BREEZEWAY_WEBHOOK_SECRET
         sync: false
-      - key: BREEZEWAY_CONCIERGE_TEAM_ID
+      - key: BREEZEWAY_CONCIERGE_PERSON_ID
         sync: false
-      - key: BREEZEWAY_CULINARY_TEAM_ID
+      - key: BREEZEWAY_CULINARY_PERSON_ID
         sync: false
-      - key: BREEZEWAY_WELLNESS_TEAM_ID
+      - key: BREEZEWAY_WELLNESS_PERSON_ID
         sync: false
 
       # ── Pusher (real-time) ──

@@ -74,6 +74,7 @@ export function mapCatalogItemToContentExperience(
     durationMinutes: item.durationMinutes,
     basePrice: item.basePrice != null ? Number(item.basePrice) : null,
     vendorId: item.vendorId,
+    breezeWayTeamId: item.breezeWayTeamId ?? null,
     primaryPhotoUrl: item.primaryPhotoUrl,
     maxGuestCount: item.maxGuestCount,
     included: item.included ?? [],

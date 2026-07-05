@@ -28,6 +28,9 @@ export const API = {
     recommendationById: (id: string) => `/api/v1/catalog/recommendations/${id}`,
     importCsv: '/api/v1/catalog/import/csv',
   },
+  breezeway: {
+    staff: '/api/v1/breezeway/staff',
+  },
   requests: {
     create: (bookingId: string) => `/api/v1/requests/bookings/${bookingId}`,
     byBooking: (bookingId: string) => `/api/v1/requests/bookings/${bookingId}`,

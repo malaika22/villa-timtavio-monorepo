@@ -14,7 +14,7 @@ import {
   DeclineRequestDto,
 } from './dto/create-request.dto';
 import {
-  BREEZEWAY_TEAM_MAP,
+  BREEZEWAY_ASSIGNEE_MAP,
   EXPERIENCE_LEAD_TIMES,
 } from '../breezeway/breezeway.config';
 import { derivePrimaryRoomNumber } from '../../common/booking-room.util';
@@ -654,10 +654,12 @@ export class RequestsService {
 
   private async createBreezeWayTask(request: any) {
     const category = request.catalogItem.category;
-    const teamId =
+    // catalogItem.breezeWayTeamId is a per-item override; it now holds a person
+    // id (the DB column keeps its legacy name to avoid a migration).
+    const assigneeId =
       request.catalogItem.breezeWayTeamId ||
-      BREEZEWAY_TEAM_MAP[category] ||
-      BREEZEWAY_TEAM_MAP['WELLNESS'];
+      BREEZEWAY_ASSIGNEE_MAP[category] ||
+      BREEZEWAY_ASSIGNEE_MAP['WELLNESS'];
 
     const leadTime =
       request.catalogItem.setupLeadTimeMinutes ||
@@ -672,7 +674,7 @@ export class RequestsService {
         title: `${request.catalogItem.name} — Setup`,
         description: `Guest: ${request.requestedByName}\nTime: ${request.confirmedTime}\nGuests: ${request.guestCount}\nNotes: ${request.specialRequests || 'None'}`,
         propertyId: process.env.BREEZEWAY_PROPERTY_ID || '',
-        teamId,
+        assigneeId,
         dueDate: dueDate.toISOString(),
         requirePhoto: true,
         templateId: request.catalogItem.breezeWayTemplateId,

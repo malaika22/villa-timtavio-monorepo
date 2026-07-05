@@ -1,11 +1,20 @@
-export const BREEZEWAY_TEAM_MAP: Record<string, string> = {
-  INCLUDED: process.env.BREEZEWAY_CONCIERGE_TEAM_ID || '',
-  ARRIVAL_TRANSIT: process.env.BREEZEWAY_CONCIERGE_TEAM_ID || '',
-  WELLNESS: process.env.BREEZEWAY_WELLNESS_TEAM_ID || '',
-  CULINARY_AGAVE: process.env.BREEZEWAY_CULINARY_TEAM_ID || '',
-  OCEAN_ADVENTURE: process.env.BREEZEWAY_CONCIERGE_TEAM_ID || '',
-  EXCURSIONS: process.env.BREEZEWAY_CONCIERGE_TEAM_ID || '',
-  PRIVATE: process.env.BREEZEWAY_CONCIERGE_TEAM_ID || '',
+// This Breezeway account has no teams configured — only individual people
+// (GET /public/inventory/v1/people). So experience-setup tasks are assigned to
+// a PERSON id rather than a team id. Culinary/Wellness fall back to Concierge
+// when unset, so a single-manager estate routes everything to one person; split
+// them out later by setting the dedicated env vars once specialists are hired.
+const CONCIERGE = process.env.BREEZEWAY_CONCIERGE_PERSON_ID || '';
+const CULINARY = process.env.BREEZEWAY_CULINARY_PERSON_ID || CONCIERGE;
+const WELLNESS = process.env.BREEZEWAY_WELLNESS_PERSON_ID || CONCIERGE;
+
+export const BREEZEWAY_ASSIGNEE_MAP: Record<string, string> = {
+  INCLUDED: CONCIERGE,
+  ARRIVAL_TRANSIT: CONCIERGE,
+  WELLNESS: WELLNESS,
+  CULINARY_AGAVE: CULINARY,
+  OCEAN_ADVENTURE: CONCIERGE,
+  EXCURSIONS: CONCIERGE,
+  PRIVATE: CONCIERGE,
 };
 
 export const EXPERIENCE_LEAD_TIMES: Record<string, number> = {

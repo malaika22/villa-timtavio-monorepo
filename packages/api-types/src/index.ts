@@ -1,5 +1,6 @@
 export type * from './bookings';
 export type * from './catalog';
+export type * from './breezeway';
 export type * from './experience-categories';
 export type * from './crm';
 export type * from './folio';
