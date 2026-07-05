@@ -1,5 +1,4 @@
 'use client';
-import { useState } from 'react';
 import { MetricCardGrid } from '@/components/intelligence/cards/MetricCardGrid';
 import { OccupancyCalendar } from '@/components/intelligence/pages/overview/OccupancyCalendar';
 import { OverviewTeasers } from '@/components/intelligence/pages/overview/OverviewTeasers';
@@ -19,17 +18,10 @@ import {
   useRevenueTrend,
   useUpcomingStaysAbbrev,
 } from '@/hooks/useAnalytics';
-
-const PERIODS: { value: string; label: string }[] = [
-  { value: 'mtd', label: 'MTD' },
-  { value: 'qtd', label: 'QTD' },
-  { value: '30d', label: '30 days' },
-  { value: '90d', label: '90 days' },
-  { value: 'ytd', label: 'YTD' },
-];
+import { usePeriod, PERIOD_SHORT } from '@/providers/period-provider';
 
 export const OverviewPage = () => {
-  const [period, setPeriod] = useState('ytd');
+  const { period } = usePeriod();
   const { data: upcomingData, isLoading } = useUpcomingStaysAbbrev();
   const { data: overview } = useAnalyticsOverview(period);
   const { data: liveAlerts } = useIntelligenceAlerts();
@@ -45,25 +37,11 @@ export const OverviewPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-intel-text-muted">Showing metrics for</p>
-        <div className="inline-flex rounded-md border border-intel-border bg-intel-card p-0.5">
-          {PERIODS.map((p) => (
-            <button
-              key={p.value}
-              type="button"
-              onClick={() => setPeriod(p.value)}
-              className={
-                period === p.value
-                  ? 'rounded px-2.5 py-1 text-xs bg-intel-maroon text-white'
-                  : 'rounded px-2.5 py-1 text-xs text-intel-text-muted hover:text-intel-text'
-              }
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <p className="text-sm text-intel-text-muted">
+        Showing metrics for{' '}
+        <span className="font-medium text-intel-text">{PERIOD_SHORT[period]}</span>
+        {' '}· change the range from the selector above.
+      </p>
 
       <MetricCardGrid metrics={metrics} />
 

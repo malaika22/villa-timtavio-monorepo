@@ -5,6 +5,7 @@ import { Calendar, ChevronDown, Download, FileText } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 import { MobileIntelligenceNav } from '@/components/intelligence/sidebar/MobileIntelligenceNav';
+import { GlobalPeriodSelector } from '@/components/intelligence/header/GlobalPeriodSelector';
 import type { PageMeta } from '@/config/navigation';
 
 const outlineBtn =
@@ -18,16 +19,20 @@ export const PageHeader = ({ meta }: { meta: PageMeta }) => {
   const isVendors = pathname === '/vendors';
   const isCapitalInsights = pathname === '/capital-insights';
   const isSystemHealth = pathname === '/system-health';
+  const isOverview = pathname === '/';
   const useYtdExport =
     isHeatMaps || isAnalytics || isExperiences || isVendors || isCapitalInsights;
 
-  const dateLabel = isHeatMaps
+  // The global period selector drives the activity modules (Overview,
+  // Experiences). Revenue/Vendors present YTD figures, heat maps is "today",
+  // capital insights is annual, system health has no date control.
+  const showPeriodSelector = isOverview || isExperiences;
+  const isFixedRange = isHeatMaps || isCapitalInsights || isAnalytics || isVendors;
+  const fixedLabel = isHeatMaps
     ? 'Mar 27, 2026'
     : isCapitalInsights
       ? '2026 Annual'
-      : useYtdExport
-        ? 'YTD 2026'
-        : 'Mar 2026';
+      : 'YTD 2026';
 
   return (
     <header className="flex shrink-0 flex-col gap-2 border-y border-[#e8e4de] bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between lg:px-6">
@@ -41,10 +46,12 @@ export const PageHeader = ({ meta }: { meta: PageMeta }) => {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        {!isSystemHealth ? (
+        {showPeriodSelector ? (
+          <GlobalPeriodSelector />
+        ) : isFixedRange ? (
           <Button variant="outline" className={outlineBtn}>
             <Calendar className="size-3.5 text-intel-text-muted" />
-            {dateLabel}
+            {fixedLabel}
             <ChevronDown className="size-3.5 text-intel-text-muted" />
           </Button>
         ) : null}

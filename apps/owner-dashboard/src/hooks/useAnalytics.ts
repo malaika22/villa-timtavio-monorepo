@@ -118,10 +118,10 @@ export function useExperiencePerformance(period?: string) {
   });
 }
 
-export function useExperienceKpis() {
+export function useExperienceKpis(period?: string) {
   return useQuery({
-    queryKey: ['analytics', 'experiences', 'ytd'],
-    queryFn: () => analyticsApi.experiences(),
+    queryKey: ['analytics', 'experiences', period ?? 'ytd'],
+    queryFn: () => analyticsApi.experiences(period),
     refetchInterval: TEN_MINUTES,
     staleTime: TEN_MINUTES,
     // Aggregate the raw rows into the four headline experience tiles.

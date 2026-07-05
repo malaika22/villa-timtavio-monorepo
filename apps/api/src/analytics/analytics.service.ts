@@ -6,6 +6,24 @@ import { PrismaService } from '../prisma/prisma.service';
 export class AnalyticsService {
   constructor(private prisma: PrismaService) {}
 
+  // Resolve the start of an owner period window. Defaults to YTD.
+  private resolvePeriodStart(period?: string): Date {
+    const now = new Date();
+    switch (period) {
+      case '30d':
+        return new Date(now.getTime() - 30 * 24 * 3600 * 1000);
+      case '90d':
+        return new Date(now.getTime() - 90 * 24 * 3600 * 1000);
+      case 'mtd':
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+      case 'qtd':
+        return new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+      case 'ytd':
+      default:
+        return new Date(now.getFullYear(), 0, 1);
+    }
+  }
+
   async getOverview(period?: string) {
     const now = new Date();
     // Resolve the requested window. Defaults to YTD.
@@ -952,11 +970,17 @@ export class AnalyticsService {
     const now = Date.now();
     const D90 = 90 * 24 * 3600 * 1000;
     const base = (p: unknown) => Number(p ?? 0);
+    // Bookings/revenue/rating honour the requested window; the trend is always
+    // a 90d-over-90d comparison independent of the selected period.
+    const windowStart = this.resolvePeriodStart(period);
 
     const rows = items.map((item) => {
       const reqs = item.experienceRequests;
-      const completed = reqs.filter((r) => r.status === 'COMPLETED');
-      const cancelled = reqs.filter((r) => r.status === 'CANCELLED');
+      const inWindow = reqs.filter(
+        (r) => new Date(r.createdAt) >= windowStart,
+      );
+      const completed = inWindow.filter((r) => r.status === 'COMPLETED');
+      const cancelled = inWindow.filter((r) => r.status === 'CANCELLED');
       const bookings = completed.length;
 
       const revenue = completed.reduce(
@@ -964,7 +988,7 @@ export class AnalyticsService {
         0,
       );
 
-      const ratings = reqs
+      const ratings = inWindow
         .map((r) => r.vendorRating?.rating)
         .filter((v): v is number => typeof v === 'number');
       const rating =

@@ -8,11 +8,13 @@ import {
   useExperiencePerformance,
   useEquipmentAnalysis,
 } from '@/hooks/useAnalytics';
+import { usePeriod } from '@/providers/period-provider';
 
 const money = (n: number) => `$${Math.round(n).toLocaleString()}`;
 
 export const OverviewTeasers = () => {
-  const { data: perfRows } = useExperiencePerformance();
+  const { period } = usePeriod();
+  const { data: perfRows } = useExperiencePerformance(period);
   const { data: equipment } = useEquipmentAnalysis();
 
   const top3 = [...(perfRows ?? [])]

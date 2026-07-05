@@ -7,6 +7,7 @@ import { IntelCard } from '@/components/intelligence/ui/IntelCard';
 import { experiencePerformanceRows } from '@/lib/mock-data';
 import type { ExperiencePerformanceRow } from '@/types';
 import { useExperiencePerformance } from '@/hooks/useAnalytics';
+import { usePeriod } from '@/providers/period-provider';
 import {
   COLUMNS,
   DECLINED_HIGH,
@@ -32,7 +33,8 @@ const SORTABLE: Record<string, (r: ExperiencePerformanceRow) => number> = {
 const parseRevenue = (s: string) => Number(String(s).replace(/[^0-9.]/g, '')) || 0;
 
 export const ExperiencePerformanceTable = () => {
-  const { data: apiRows } = useExperiencePerformance();
+  const { period } = usePeriod();
+  const { data: apiRows } = useExperiencePerformance(period);
   // Use live rows once at least one experience has activity; otherwise show the
   // sample shape rather than an all-zero table.
   const baseRows: ExperiencePerformanceRow[] =
