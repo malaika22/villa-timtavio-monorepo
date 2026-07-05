@@ -6,7 +6,8 @@
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start --port 3001",
-    "lint": "eslint"
+    "lint": "eslint",
+    "tsc": "tsc"
   },
   "dependencies": {
     "@auth0/nextjs-auth0": "^4.23.0",
