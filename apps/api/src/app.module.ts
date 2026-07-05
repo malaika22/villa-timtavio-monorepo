@@ -29,8 +29,10 @@ import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DiningModule } from './modules/dining/dining.module';
 import { ExperienceCategoriesModule } from './modules/experience-categories/experience-categories.module';
+import { HealthController } from './health.controller';
 
 @Module({
+  controllers: [HealthController],
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),

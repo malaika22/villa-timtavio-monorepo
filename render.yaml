@@ -1,0 +1,147 @@
+# Render Blueprint for the Casa TimTavio backend.
+# Apply from the Render dashboard: New > Blueprint > point at this repo.
+#
+# Provisions three linked resources:
+#   • managed PostgreSQL           (Prisma DATABASE_URL)
+#   • managed Redis / Key Value    (BullMQ lodgify-sync queue)
+#   • the NestJS API as a web svc  (persistent — runs cron schedulers + queue)
+#
+# Review plan/region before applying — free tiers exist, but Render's free
+# Postgres expires after 30 days. Secrets (sync:false) are filled in the
+# dashboard after the first apply; they are never committed to git.
+
+databases:
+  - name: casa-timtavio-db
+    databaseName: casa_timtavio
+    plan: basic-256mb
+    region: oregon
+
+services:
+  # ─── Redis / Key Value (BullMQ) ────────────────────────────────────────────
+  - type: redis
+    name: casa-timtavio-redis
+    plan: starter
+    region: oregon
+    ipAllowList: [] # internal-only; no public access
+    maxmemoryPolicy: noeviction # queued jobs must not be evicted
+
+  # ─── NestJS API ────────────────────────────────────────────────────────────
+  - type: web
+    name: casa-timtavio-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    plan: starter
+    region: oregon
+    branch: main
+    # Single instance on purpose: the cron schedulers (magic links, 6am
+    # departure, session revoke) and the BullMQ worker must not double-fire.
+    numInstances: 1
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # PORT is injected by Render; the app reads process.env.PORT.
+
+      # ── Auto-wired from the managed resources above ──
+      - key: DATABASE_URL
+        fromDatabase:
+          name: casa-timtavio-db
+          property: connectionString
+      - key: REDIS_HOST
+        fromService:
+          type: redis
+          name: casa-timtavio-redis
+          property: host
+      - key: REDIS_PORT
+        fromService:
+          type: redis
+          name: casa-timtavio-redis
+          property: port
+      # REDIS_PASSWORD is intentionally omitted — Render's internal Redis needs
+      # no auth, and the app falls back to undefined.
+
+      # ── Frontend origins (CORS) ──
+      - key: PWA_URL
+        sync: false
+      - key: DASHBOARD_URL
+        sync: false
+
+      # ── Auth / signing ──
+      - key: JWT_SECRET
+        sync: false
+      - key: AUTH0_DOMAIN
+        sync: false
+      - key: AUTH0_AUDIENCE
+        sync: false
+      - key: AUTH0_MGMT_CLIENT_ID
+        sync: false
+      - key: AUTH0_MGMT_CLIENT_SECRET
+        sync: false
+
+      # ── Stripe ──
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
+      # ── Lodgify ──
+      - key: LODGIFY_API_KEY
+        sync: false
+      - key: LODGIFY_PROPERTY_ID
+        sync: false
+      - key: LODGIFY_WEBHOOK_SECRET
+        sync: false
+
+      # ── Breezeway ──
+      - key: BREEZEWAY_API_KEY
+        sync: false
+      - key: BREEZEWAY_ORG_ID
+        sync: false
+      - key: BREEZEWAY_PROPERTY_ID
+        sync: false
+      - key: BREEZEWAY_WEBHOOK_SECRET
+        sync: false
+      - key: BREEZEWAY_CONCIERGE_TEAM_ID
+        sync: false
+      - key: BREEZEWAY_CULINARY_TEAM_ID
+        sync: false
+      - key: BREEZEWAY_WELLNESS_TEAM_ID
+        sync: false
+
+      # ── Pusher (real-time) ──
+      - key: PUSHER_APP_ID
+        sync: false
+      - key: PUSHER_KEY
+        sync: false
+      - key: PUSHER_SECRET
+        sync: false
+      - key: PUSHER_CLUSTER
+        sync: false
+
+      # ── Email (Resend) ──
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
+      - key: RODRIGO_EMAIL
+        sync: false
+      - key: TO_EMAILS
+        sync: false
+
+      # ── Web Push (VAPID) ──
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_EMAIL
+        sync: false
+      - key: VAPID_SUBJECT
+        sync: false
+
+      # ── Sortly (optional inventory sync) ──
+      - key: SORTLY_API_TOKEN
+        sync: false
+      - key: SORTLY_API_URL
+        sync: false

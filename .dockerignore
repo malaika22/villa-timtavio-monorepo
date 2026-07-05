@@ -1,0 +1,24 @@
+# Keep the Docker build context small and free of secrets/artifacts.
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/*.log
+
+# Never ship env files into the image; secrets come from Render env vars.
+**/.env
+**/.env.*
+!**/.env.example
+
+# VCS / editor / OS noise
+.git
+.gitignore
+**/.DS_Store
+.vscode
+.idea
+
+# Frontends aren't part of the API image (the Dockerfile only copies apps/api).
+apps/pwa
+apps/owner-dashboard
+apps/estate-manager-dashboard
