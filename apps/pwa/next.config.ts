@@ -14,14 +14,15 @@ const nextConfig: NextConfig = {
 function buildConfig(): NextConfig {
   if (process.env.NODE_ENV !== 'production') return nextConfig;
   // eslint-disable-next-line @typescript-eslint/no-require-imports
+  // next-pwa@5.6.0 API: Workbox GenerateSW options live at the top level
+  // (not nested under `workboxOptions`, which is the @ducanh2912 fork's shape).
   const withPWA = require('next-pwa')({
     dest: 'public',
     register: true,
     skipWaiting: true,
     cacheOnFrontEndNav: true,
-    aggressiveFrontEndNavCaching: true,
     reloadOnOnline: true,
-    workboxOptions: { disableDevLogs: true },
+    disableDevLogs: true,
   });
   return withPWA(nextConfig);
 }
