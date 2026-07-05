@@ -852,6 +852,82 @@ export class AnalyticsService {
     });
   }
 
+  // Strategic recommendations for experiences — generated from the same live
+  // performance rows (top revenue, accelerating demand, high cancellation,
+  // under-rated). Structured {variant,title,message} for the panel.
+  async getExperienceRecommendations() {
+    const rows = await this.getExperiencePerformance();
+    const active = rows.filter((r) => r.bookings > 0);
+    if (active.length === 0) return { recommendations: [] };
+
+    const money = (n: number) => `$${Math.round(n).toLocaleString()}`;
+    const recs: {
+      id: string;
+      variant: 'success' | 'info' | 'warning';
+      title: string;
+      message: string;
+    }[] = [];
+    const used = new Set<string>();
+
+    // 1) Top revenue experience → feature it.
+    const top = [...active].sort((a, b) => b.revenue - a.revenue)[0];
+    if (top && top.revenue > 0) {
+      used.add(top.id);
+      recs.push({
+        id: `exp-rec-top-${top.id}`,
+        variant: 'success',
+        title: `${top.name}:`,
+        message: `top revenue experience at ${money(top.revenue)} across ${top.bookings} booking${
+          top.bookings === 1 ? '' : 's'
+        }${top.rating ? ` (${top.rating.toFixed(1)}★)` : ''}. Feature it in pre-arrival concierge offers and protect peak slots.`,
+      });
+    }
+
+    // 2) Fastest-accelerating demand → pre-stage.
+    const rising = [...active]
+      .filter((r) => r.trendPercent !== null && r.trendPercent > 0 && !used.has(r.id))
+      .sort((a, b) => (b.trendPercent ?? 0) - (a.trendPercent ?? 0))[0];
+    if (rising) {
+      used.add(rising.id);
+      recs.push({
+        id: `exp-rec-rising-${rising.id}`,
+        variant: 'info',
+        title: `${rising.name}:`,
+        message: `demand is up ${rising.trendPercent}% over the last 90 days — pre-stage staff and inventory before the next peak.`,
+      });
+    }
+
+    // 3) Highest cancellation rate → review.
+    const declining = [...active]
+      .filter((r) => r.declinedPercent >= 15 && !used.has(r.id))
+      .sort((a, b) => b.declinedPercent - a.declinedPercent)[0];
+    if (declining) {
+      used.add(declining.id);
+      recs.push({
+        id: `exp-rec-decline-${declining.id}`,
+        variant: 'warning',
+        title: `${declining.name}:`,
+        message: `${declining.declinedPercent}% of requests are cancelled — review pricing, capacity or vendor availability.`,
+      });
+    }
+
+    // 4) Under-rated experience → audit quality.
+    const lowRated = [...active]
+      .filter((r) => r.rating > 0 && r.rating < 4.5 && !used.has(r.id))
+      .sort((a, b) => a.rating - b.rating)[0];
+    if (lowRated) {
+      used.add(lowRated.id);
+      recs.push({
+        id: `exp-rec-rating-${lowRated.id}`,
+        variant: 'warning',
+        title: `${lowRated.name}:`,
+        message: `guest rating is ${lowRated.rating.toFixed(1)}★ — audit the vendor and delivery before promoting it further.`,
+      });
+    }
+
+    return { recommendations: recs };
+  }
+
   // Per-experience performance rows built from real requests: completed
   // bookings, revenue (confirmed cost, falling back to base price), guest
   // rating, cancellation rate and a 90-day-over-90-day booking trend.

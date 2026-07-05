@@ -5,7 +5,10 @@ import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
 import { experienceDemandInsights } from '@/lib/mock-data';
-import { useExperienceInsights } from '@/hooks/useAnalytics';
+import {
+  useExperienceRecommendations,
+  useExperienceInsights,
+} from '@/hooks/useAnalytics';
 import type { ExperienceInsight } from '@/types';
 
 const styles = {
@@ -47,17 +50,28 @@ const InsightItem = ({ insight }: { insight: ExperienceInsight }) => {
 };
 
 export const DemandInsightsPanel = () => {
-  const { data } = useExperienceInsights();
-  const live = data?.insights ?? [];
+  // Prefer the structured strategic recommendations; fall back to the plain
+  // insight strings, then to sample data.
+  const { data: recs } = useExperienceRecommendations();
+  const { data: insightData } = useExperienceInsights();
+
+  const recommendations = recs?.recommendations ?? [];
+  const insightStrings = insightData?.insights ?? [];
+
   const items: ExperienceInsight[] =
-    live.length > 0
-      ? live.map((message, i) => ({
-          id: `live-${i}`,
-          variant: i === 0 ? 'success' : i === 1 ? 'info' : 'warning',
-          title: '',
-          message,
-        }))
-      : experienceDemandInsights;
+    recommendations.length > 0
+      ? recommendations
+      : insightStrings.length > 0
+        ? insightStrings.map((message, i) => ({
+            id: `live-${i}`,
+            variant: (i === 0 ? 'success' : i === 1 ? 'info' : 'warning') as
+              | 'success'
+              | 'info'
+              | 'warning',
+            title: '',
+            message,
+          }))
+        : experienceDemandInsights;
 
   return (
     <section className="flex h-full min-h-0 flex-col">

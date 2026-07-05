@@ -50,8 +50,19 @@ export const analyticsApi = {
     api.get<{ insights: string[] }>(API.analytics.heatMapInsights),
   experienceInsights: () =>
     api.get<{ insights: string[] }>(API.analytics.experienceInsights),
+  experienceRecommendations: () =>
+    api.get<{ recommendations: ExperienceRecommendation[] }>(
+      API.analytics.experienceRecommendations,
+    ),
   vendorForecast: () => api.get<VendorForecastRow[]>(API.analytics.vendorForecast),
 };
+
+export interface ExperienceRecommendation {
+  id: string;
+  variant: 'success' | 'info' | 'warning';
+  title: string;
+  message: string;
+}
 
 export interface ExperiencePerfApiRow {
   id: string;

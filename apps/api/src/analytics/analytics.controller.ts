@@ -66,6 +66,12 @@ export class AnalyticsController {
     return this.analyticsService.getExperienceInsights();
   }
 
+  @Get('experience-recommendations')
+  @Roles('owner')
+  getExperienceRecommendations() {
+    return this.analyticsService.getExperienceRecommendations();
+  }
+
   @Get('vendor-forecast')
   @Roles('owner')
   getVendorForecast() {

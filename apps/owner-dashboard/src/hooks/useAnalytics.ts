@@ -325,6 +325,15 @@ export function useExperienceInsights() {
   });
 }
 
+export function useExperienceRecommendations() {
+  return useQuery({
+    queryKey: ['analytics', 'experience-recommendations'],
+    queryFn: analyticsApi.experienceRecommendations,
+    refetchInterval: TEN_MINUTES,
+    staleTime: TEN_MINUTES,
+  });
+}
+
 export function useVendorForecast() {
   return useQuery({
     queryKey: ['analytics', 'vendor-forecast'],
