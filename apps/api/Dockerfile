@@ -15,7 +15,7 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends openssl ca-c
 COPY package.json package-lock.json turbo.json ./
 COPY apps/api/package.json ./apps/api/package.json
 COPY packages ./packages
-RUN npm ci
+RUN npm install --no-audit --no-fund
 
 # Build the API: generate the Prisma client, then compile with Nest.
 COPY apps/api ./apps/api

@@ -46,6 +46,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@nestjs/cli": "^11.0.24",
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@types/multer": "^2.1.0",
