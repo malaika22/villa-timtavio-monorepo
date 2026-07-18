@@ -4,7 +4,6 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useState,
   type ReactNode,
 } from 'react';
@@ -29,6 +28,13 @@ export const PERIOD_SHORT: Record<Period, string> = {
 
 const STORAGE_KEY = 'owner:period';
 
+function readStoredPeriod(): Period {
+  if (typeof window === 'undefined') return 'ytd';
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  if (stored && stored in PERIOD_SHORT) return stored as Period;
+  return 'ytd';
+}
+
 type PeriodContextValue = {
   period: Period;
   setPeriod: (p: Period) => void;
@@ -39,15 +45,7 @@ const PeriodContext = createContext<PeriodContextValue | null>(null);
 // Global date-range selection, inherited by every module. Persisted to
 // localStorage so it survives navigation and reloads.
 export function PeriodProvider({ children }: { children: ReactNode }) {
-  const [period, setPeriodState] = useState<Period>('ytd');
-
-  useEffect(() => {
-    const stored =
-      typeof window !== 'undefined'
-        ? (window.localStorage.getItem(STORAGE_KEY) as Period | null)
-        : null;
-    if (stored && stored in PERIOD_SHORT) setPeriodState(stored);
-  }, []);
+  const [period, setPeriodState] = useState<Period>(readStoredPeriod);
 
   const setPeriod = useCallback((p: Period) => {
     setPeriodState(p);
