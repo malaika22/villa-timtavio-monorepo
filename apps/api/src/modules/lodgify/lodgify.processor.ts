@@ -3,6 +3,7 @@ import { Job } from 'bull';
 import { Logger } from '@nestjs/common';
 import { LodgifyService } from './lodgify.service';
 import { BookingsService } from '../bookings/bookings.service';
+import { normalizeLodgifyBooking } from './lodgify-booking.mapper';
 
 @Processor('lodgify-sync')
 export class LodgifyProcessor {
@@ -21,10 +22,20 @@ export class LodgifyProcessor {
 
     for (const booking of bookings) {
       try {
-        await this.bookingsService.syncFromLodgify(booking);
+        // Normalize the raw Lodgify API shape (guest.name, etc.) into our
+        // sync payload — same mapper the webhook path uses — so the guest's
+        // real name flows through instead of defaulting to "Guest".
+        const payload = normalizeLodgifyBooking(booking);
+        if (!payload) {
+          this.logger.warn(
+            `Skipped Lodgify booking ${booking?.id}: missing id/dates/email`,
+          );
+          continue;
+        }
+        await this.bookingsService.syncFromLodgify(payload);
       } catch (err: any) {
         this.logger.error(
-          `Failed to sync booking ${booking.id}: ${err.message}`,
+          `Failed to sync booking ${booking?.id}: ${err.message}`,
         );
       }
     }

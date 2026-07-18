@@ -150,50 +150,84 @@ export default function AuthCallback() {
         style={{
           minHeight: '100vh',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           padding: '24px',
-          background: '#F0EDE6',
-          fontFamily: 'Georgia, serif',
+          background: '#f5f3f0',
         }}
       >
-        <p style={{ fontSize: '22px', color: '#1A1A18', marginBottom: '12px' }}>
-          {errorMessage}
-        </p>
-        <p
+        <div
           style={{
-            fontSize: '15px',
-            color: '#888780',
+            width: '100%',
+            maxWidth: '380px',
+            background: '#ffffff',
+            border: '1px solid #e8e6e0',
+            borderRadius: '14px',
+            padding: '40px 32px',
             textAlign: 'center',
-            maxWidth: '320px',
-            lineHeight: '1.7',
-            marginBottom: '32px',
-            fontFamily: 'sans-serif',
+            boxShadow: '0 1px 3px rgba(26,22,20,0.05)',
           }}
         >
-          For your privacy, access links expire automatically. Please contact
-          the estate for a new link.
-        </p>
-
-        <button
-          onClick={() => {
-            window.location.href = `tel:+1234567890`;
-          }}
-          style={{
-            padding: '14px 28px',
-            border: '1px solid #1A1A18',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontWeight: '500',
-            color: '#1A1A18',
-            textDecoration: 'none',
-            letterSpacing: '0.08em',
-            fontFamily: 'sans-serif',
-          }}
-        >
-          Contact the estate
-        </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/dark-logo.svg"
+            alt="Villa TimTavio"
+            width={128}
+            style={{ display: 'block', margin: '0 auto 20px', height: 'auto' }}
+          />
+          <div
+            style={{
+              width: '40px',
+              height: '2px',
+              background: '#c4a882',
+              margin: '0 auto 24px',
+            }}
+          />
+          <h1
+            style={{
+              fontFamily: "'Cormorant Garamond', Georgia, serif",
+              fontSize: '24px',
+              lineHeight: 1.25,
+              color: '#0f1f2e',
+              margin: '0 0 12px',
+            }}
+          >
+            {errorMessage}
+          </h1>
+          <p
+            style={{
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '14px',
+              color: '#797168',
+              lineHeight: 1.7,
+              margin: '0 0 28px',
+            }}
+          >
+            For your privacy, access links expire automatically. Please contact
+            the estate for a new link.
+          </p>
+          <button
+            onClick={() => {
+              window.location.href = `tel:+1234567890`;
+            }}
+            style={{
+              width: '100%',
+              padding: '14px 28px',
+              background: '#0f1f2e',
+              border: 'none',
+              borderRadius: '10px',
+              fontFamily: 'Inter, sans-serif',
+              fontSize: '12px',
+              fontWeight: 600,
+              letterSpacing: '0.12em',
+              textTransform: 'uppercase',
+              color: '#ffffff',
+              cursor: 'pointer',
+            }}
+          >
+            Contact the estate
+          </button>
+        </div>
       </div>
     );
   }
@@ -203,20 +237,29 @@ export default function AuthCallback() {
       style={{
         minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: '#F0EDE6',
+        gap: '20px',
+        background: '#f5f3f0',
       }}
     >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/images/dark-logo.svg"
+        alt="Villa TimTavio"
+        width={128}
+        style={{ height: 'auto' }}
+      />
       <p
         style={{
-          fontFamily: 'Georgia, serif',
-          fontSize: '16px',
-          color: '#888780',
+          fontFamily: "'Cormorant Garamond', Georgia, serif",
+          fontSize: '17px',
+          color: '#797168',
           fontStyle: 'italic',
         }}
       >
-        Signing you in...
+        Signing you in…
       </p>
     </div>
   );
