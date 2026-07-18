@@ -82,51 +82,59 @@ export class MagicLinkService {
         to: payload.email,
         subject: 'Your Villa TimTavio access link',
         html: `
+          <style>
+            @media only screen and (max-width:600px) {
+              .tt-pad { padding-left:22px !important; padding-right:22px !important; }
+              .tt-h1 { font-size:19px !important; }
+              .tt-body { font-size:14px !important; line-height:1.6 !important; }
+              .tt-btn a { padding:14px 30px !important; }
+            }
+          </style>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
                  style="background-color:#f5f3f0;margin:0;padding:0;">
             <tr>
-              <td align="center" style="padding:40px 16px;">
+              <td align="center" style="padding:28px 12px;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
                        style="max-width:560px;background-color:#ffffff;border:1px solid #e8e6e0;border-radius:10px;">
                   <tr>
-                    <td align="center" style="padding:44px 44px 0 44px;">
-                      <img src="${logoUrl}" alt="Villa TimTavio" width="140"
-                           style="display:block;width:140px;max-width:55%;height:auto;margin:0 auto;" />
+                    <td align="center" class="tt-pad" style="padding:36px 32px 0 32px;">
+                      <img src="${logoUrl}" alt="Villa TimTavio" width="132"
+                           style="display:block;width:132px;max-width:60%;height:auto;margin:0 auto;" />
                     </td>
                   </tr>
                   <tr>
-                    <td align="center" style="padding:18px 44px 0 44px;">
+                    <td align="center" class="tt-pad" style="padding:16px 32px 0 32px;">
                       <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:12px;
-                                letter-spacing:0.22em;text-transform:uppercase;color:#8c7261;">
+                                letter-spacing:0.2em;text-transform:uppercase;color:#8c7261;">
                         Villa TimTavio
                       </p>
                     </td>
                   </tr>
                   <tr>
-                    <td align="center" style="padding:22px 44px 0 44px;">
+                    <td align="center" style="padding:18px 32px 0 32px;">
                       <div style="width:40px;height:2px;background-color:#c4a882;margin:0 auto;line-height:2px;font-size:0;">&nbsp;</div>
                     </td>
                   </tr>
                   <tr>
-                    <td align="center" style="padding:28px 44px 0 44px;font-family:Georgia,'Times New Roman',serif;">
-                      <p style="margin:0 0 14px 0;font-size:20px;color:#0f1f2e;">
+                    <td align="center" class="tt-pad" style="padding:24px 32px 0 32px;font-family:Georgia,'Times New Roman',serif;">
+                      <p class="tt-h1" style="margin:0 0 12px 0;font-size:20px;color:#0f1f2e;">
                         Welcome, ${payload.firstName}.
                       </p>
-                      <p style="margin:0;font-size:15px;line-height:1.8;color:#5f5e5a;">
+                      <p class="tt-body" style="margin:0;font-size:15px;line-height:1.7;color:#5f5e5a;">
                         Click below to access your stay at Villa TimTavio.
                         This link expires in ${ttlMinutes} minutes.
                       </p>
                     </td>
                   </tr>
                   <tr>
-                    <td align="center" style="padding:32px 44px 4px 44px;">
-                      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+                    <td align="center" style="padding:28px 24px 4px 24px;">
+                      <table role="presentation" cellpadding="0" cellspacing="0" class="tt-btn" style="margin:0 auto;">
                         <tr>
                           <td align="center" style="background-color:#0f1f2e;border-radius:8px;">
                             <a href="${magicLinkUrl}"
-                               style="display:inline-block;padding:15px 40px;color:#ffffff;text-decoration:none;
+                               style="display:inline-block;padding:15px 36px;color:#ffffff;text-decoration:none;
                                       font-family:Arial,sans-serif;font-size:12px;font-weight:600;
-                                      letter-spacing:0.14em;text-transform:uppercase;">
+                                      letter-spacing:0.12em;text-transform:uppercase;white-space:nowrap;">
                               Access Your Stay
                             </a>
                           </td>
@@ -135,15 +143,15 @@ export class MagicLinkService {
                     </td>
                   </tr>
                   <tr>
-                    <td align="center" style="padding:24px 44px 0 44px;">
+                    <td align="center" class="tt-pad" style="padding:22px 32px 0 32px;">
                       <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#b0a898;line-height:1.6;">
                         If you did not request this link, please disregard this email.
                       </p>
                     </td>
                   </tr>
                   <tr>
-                    <td style="padding:32px 44px 40px 44px;">
-                      <div style="border-top:1px solid #e8e6e0;padding-top:22px;text-align:center;">
+                    <td class="tt-pad" style="padding:28px 32px 36px 32px;">
+                      <div style="border-top:1px solid #e8e6e0;padding-top:20px;text-align:center;">
                         <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-style:italic;
                                   font-size:13px;color:#b4b2a9;">
                           Villa TimTavio &middot; Puerto Escondido, Oaxaca
