@@ -64,7 +64,8 @@ export const ContentCatalogPage = () => {
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const { data: catalogData, isLoading } = useCatalogAdmin();
-  const { data: categories = [] } = useExperienceCategories();
+  const { data: categories = [], isLoading: categoriesLoading } =
+    useExperienceCategories();
   const { data: menuItems = [] } = useMenu();
   const { data: recommendations = [] } = useRecommendations();
   const toggleActive = useToggleCatalogItem();
@@ -170,6 +171,7 @@ export const ContentCatalogPage = () => {
             onFilterChange={setActiveFilter}
             summary={`${allExperiences.length} experiences · ${activeCount} active`}
             categories={categories}
+            loading={isLoading || categoriesLoading}
             onManageCategories={() => setCategoryDialogOpen(true)}
             action={
               <button

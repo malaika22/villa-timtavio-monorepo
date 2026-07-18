@@ -5,12 +5,7 @@ import { useMemo, useState } from 'react';
 import { ApprovalsFilterBar } from '@/components/manager/pages/approvals/ApprovalsFilterBar';
 import { ApprovalsKanban } from '@/components/manager/pages/approvals/ApprovalsKanban';
 import { ApprovalsQueueTable } from '@/components/manager/pages/approvals/ApprovalsQueueTable';
-import { ConflictDetectedBanner } from '@/components/manager/pages/approvals/ConflictDetectedBanner';
 import { LayoutList, LayoutGrid } from 'lucide-react';
-import {
-  approvalQueueItems,
-  conflictDetectedMessage,
-} from '@/lib/approvals-mock-data';
 import type { ApprovalFilterTab, ApprovalQueueItem } from '@/types';
 import {
   useApprovalQueue,
@@ -41,7 +36,8 @@ export const ApprovalsPage = () => {
         return true;
       });
     }
-    return approvalQueueItems;
+    // No mock fallback — show nothing until real data loads.
+    return [];
   }, [queueData, activeData, historyData]);
 
   const filteredRows = useMemo(() => {
@@ -61,7 +57,6 @@ export const ApprovalsPage = () => {
     [allItems],
   );
 
-  const hasConflict = allItems.some((i) => i.status === 'Conflict');
   const isLoading = queueLoading || activeLoading;
   const [view, setView] = useState<'list' | 'board'>('list');
 
@@ -94,10 +89,6 @@ export const ApprovalsPage = () => {
           </button>
         </div>
       </div>
-
-      {hasConflict ? (
-        <ConflictDetectedBanner message={conflictDetectedMessage} />
-      ) : null}
 
       {isLoading ? (
         <div className="space-y-3">

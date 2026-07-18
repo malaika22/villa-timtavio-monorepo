@@ -17,6 +17,7 @@ type Props = {
   categories: ExperienceCategory[];
   onManageCategories: () => void;
   action?: React.ReactNode;
+  loading?: boolean;
 };
 
 export const ContentCatalogToolbar = ({
@@ -28,6 +29,7 @@ export const ContentCatalogToolbar = ({
   categories,
   onManageCategories,
   action,
+  loading = false,
 }: Props) => {
   const activeCategories = categories.filter((category) => category.isActive);
 
@@ -56,19 +58,31 @@ export const ContentCatalogToolbar = ({
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1 snap-x overflow-x-auto pr-1 [-webkit-mask-image:linear-gradient(to_right,transparent,#000_12px,#000_calc(100%-12px),transparent)] [mask-image:linear-gradient(to_right,transparent,#000_12px,#000_calc(100%-12px),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex w-max items-center gap-1.5 pb-0.5 pl-3">
-            <FilterChip
-              label="All"
-              active={activeFilter === 'all'}
-              onClick={() => onFilterChange('all')}
-            />
-            {activeCategories.map((category) => (
-              <FilterChip
-                key={category.id}
-                label={category.name}
-                active={activeFilter === category.id}
-                onClick={() => onFilterChange(category.id)}
-              />
-            ))}
+            {loading ? (
+              [64, 92, 78, 108, 84].map((w, i) => (
+                <div
+                  key={i}
+                  className="h-8 shrink-0 animate-pulse rounded-full bg-manager-border"
+                  style={{ width: w }}
+                />
+              ))
+            ) : (
+              <>
+                <FilterChip
+                  label="All"
+                  active={activeFilter === 'all'}
+                  onClick={() => onFilterChange('all')}
+                />
+                {activeCategories.map((category) => (
+                  <FilterChip
+                    key={category.id}
+                    label={category.name}
+                    active={activeFilter === category.id}
+                    onClick={() => onFilterChange(category.id)}
+                  />
+                ))}
+              </>
+            )}
           </div>
         </div>
         <Button
