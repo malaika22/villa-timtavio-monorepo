@@ -17,6 +17,13 @@ const DEFAULT_EXPERIENCE_IMAGE =
   process.env.DEFAULT_EXPERIENCE_IMAGE_URL ||
   'https://villa-timtavio-monorepo-pwa.vercel.app/images/experience.png';
 
+// Placeholder "What's Included" bullets for imported experiences — the EM edits
+// these per item to reflect what each experience actually includes.
+const DEFAULT_INCLUDED = [
+  'Dedicated estate concierge coordination',
+  'All applicable taxes & service charges',
+];
+
 function slugifyCategory(value: string): string {
   return value
     .toLowerCase()
@@ -355,6 +362,7 @@ export class CatalogService {
             vendorId,
             primaryPhotoUrl: DEFAULT_EXPERIENCE_IMAGE,
             photoUrls: [DEFAULT_EXPERIENCE_IMAGE],
+            included: DEFAULT_INCLUDED,
             createdBy: importedBy,
             sortOrder: results.imported,
           },

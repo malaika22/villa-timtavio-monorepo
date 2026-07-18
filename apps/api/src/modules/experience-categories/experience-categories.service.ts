@@ -8,14 +8,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateExperienceCategoryDto } from './dto/create-experience-category.dto';
 import { UpdateExperienceCategoryDto } from './dto/update-experience-category.dto';
 
-const DEFAULT_CATEGORIES = [
-  { name: 'Dining', slug: 'dining', sortOrder: 0 },
-  { name: 'Water', slug: 'water', sortOrder: 1 },
-  { name: 'Wellness', slug: 'wellness', sortOrder: 2 },
-  { name: 'Wine', slug: 'wine', sortOrder: 3 },
-  { name: 'Culture', slug: 'culture', sortOrder: 4 },
-];
-
 function slugify(value: string): string {
   return value
     .toLowerCase()
@@ -28,18 +20,9 @@ function slugify(value: string): string {
 export class ExperienceCategoriesService {
   constructor(private prisma: PrismaService) {}
 
-  private async ensureDefaults() {
-    const count = await this.prisma.experienceCategory.count();
-    if (count > 0) return;
-
-    await this.prisma.experienceCategory.createMany({
-      data: DEFAULT_CATEGORIES,
-    });
-  }
-
   async findAll(includeInactive = false) {
-    await this.ensureDefaults();
-
+    // No default seeding — categories exist only if added manually or created
+    // by a bulk sheet upload.
     return this.prisma.experienceCategory.findMany({
       where: includeInactive ? undefined : { isActive: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
