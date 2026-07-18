@@ -11,19 +11,9 @@ const TABS: {
   badgeVariant?: 'red' | 'green';
 }[] = [
   { value: 'current', label: 'Current Booking' },
-  {
-    value: 'upcoming',
-    label: 'Upcoming Bookings',
-    badge: 4,
-    badgeVariant: 'red',
-  },
+  { value: 'upcoming', label: 'Upcoming Bookings' },
   { value: 'past', label: 'Past Bookings' },
-  {
-    value: 'manifest',
-    label: 'Manifest Review',
-    badge: 1,
-    badgeVariant: 'green',
-  },
+  { value: 'manifest', label: 'Manifest Review' },
 ];
 
 export const BookingsTabs = ({

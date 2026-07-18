@@ -305,16 +305,43 @@ export class BookingsService {
         ? Number(lodgifyData.total_price)
         : undefined;
 
+    const peopleCount = Number(lodgifyData.people_count);
     const booking = await this.prisma.booking.update({
       where: { lodgifyId: String(lodgifyData.id) },
       data: {
         checkIn: new Date(lodgifyData.arrival),
         checkOut: new Date(lodgifyData.departure),
         nights: lodgifyData.nights,
+        ...(Number.isFinite(peopleCount) && peopleCount > 0
+          ? { totalGuests: peopleCount }
+          : {}),
         ...(baseRate != null ? { baseRate } : {}),
         lodgifyRawData: lodgifyData,
       },
     });
+
+    // Backfill the primary guest's real name when it's still the "Guest"
+    // placeholder (Lodgify now provides it, or the linked inquiry does).
+    const full = await this.prisma.booking.findUnique({
+      where: { id: booking.id },
+      include: { primaryGuest: true },
+    });
+    const g = full?.primaryGuest;
+    if (g && !realFirstName(g.firstName)) {
+      const inquiry = await this.inquiriesService.findLatestByEmail(g.email);
+      const firstName =
+        realFirstName(lodgifyData.guest?.first_name) ??
+        realFirstName(inquiry?.firstName ?? undefined) ??
+        g.firstName;
+      const lastName =
+        lodgifyData.guest?.last_name || inquiry?.lastName || g.lastName;
+      if (realFirstName(firstName)) {
+        await this.prisma.guest.update({
+          where: { id: g.id },
+          data: { firstName, lastName },
+        });
+      }
+    }
 
     // Keep the base-rate folio line in sync with the (possibly changed) total.
     if (baseRate != null) {

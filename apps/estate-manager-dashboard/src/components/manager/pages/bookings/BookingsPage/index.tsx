@@ -133,7 +133,7 @@ export const BookingsPage = () => {
         <>
           <CurrentBookingHero booking={booking} />
 
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div id="manifest" className="grid scroll-mt-6 gap-6 lg:grid-cols-2">
             <GuestManifestCard bookingId={booking.id} manifest={manifest} />
             <RequestedExperiencesCard booking={booking} />
           </div>
