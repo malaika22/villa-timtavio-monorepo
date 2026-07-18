@@ -198,10 +198,26 @@ export function normalizeLodgifyBooking(
       ? (raw.guest as Record<string, unknown>)
       : null;
 
-  const guestBreakdown =
-    raw.guests && typeof raw.guests === 'object'
-      ? (raw.guests as Record<string, unknown>)
+  // Lodgify's /reservations/bookings payload puts the party size under
+  // rooms[].guest_breakdown / rooms[].people (not a top-level people_count).
+  const rooms = Array.isArray(raw.rooms)
+    ? (raw.rooms as Record<string, unknown>[])
+    : [];
+  const firstRoom =
+    rooms[0] && typeof rooms[0] === 'object' ? rooms[0] : null;
+  const roomBreakdown =
+    firstRoom?.guest_breakdown && typeof firstRoom.guest_breakdown === 'object'
+      ? (firstRoom.guest_breakdown as Record<string, unknown>)
       : null;
+  const roomsPeople = rooms.reduce(
+    (sum, r) => sum + Number((r as Record<string, unknown>)?.people ?? 0),
+    0,
+  );
+
+  const guestBreakdown =
+    (raw.guests && typeof raw.guests === 'object'
+      ? (raw.guests as Record<string, unknown>)
+      : null) ?? roomBreakdown;
 
   const nameFromGuest = splitGuestName(
     (guestObj?.name as string | undefined) ??
@@ -225,9 +241,11 @@ export function normalizeLodgifyBooking(
 
   const adults = Number(guestBreakdown?.adults ?? raw.adults ?? 0);
   const children = Number(guestBreakdown?.children ?? raw.children ?? 0);
+  const infants = Number(guestBreakdown?.infants ?? 0);
   const peopleCount =
     Number(raw.people_count ?? raw.peopleCount ?? raw.total_guests ?? 0) ||
-    (adults + children > 0 ? adults + children : 1);
+    (roomsPeople > 0 ? roomsPeople : 0) ||
+    (adults + children + infants > 0 ? adults + children + infants : 1);
 
   const nights =
     Number(raw.nights ?? 0) || diffNights(String(arrival), String(departure));
