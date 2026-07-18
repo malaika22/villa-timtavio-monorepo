@@ -34,6 +34,7 @@ async function main() {
     ['magicToken', () => prisma.magicToken.deleteMany()],
     ['inquiry', () => prisma.inquiry.deleteMany()],
     ['booking', () => prisma.booking.deleteMany()],
+    ['crmNote', () => prisma.crmNote.deleteMany()],
     ['guest', () => prisma.guest.deleteMany()],
     ['systemAlert', () => prisma.systemAlert.deleteMany()],
     ['auditLog', () => prisma.auditLog.deleteMany()],
