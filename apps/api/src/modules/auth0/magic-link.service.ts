@@ -71,25 +71,88 @@ export class MagicLinkService {
 
       // Step 3: Send magic link email via Resend
       const magicLinkUrl = `${this.config.get('PWA_URL')}/auth/callback?otp=${otp}&email=${encodeURIComponent(payload.email)}`;
+      const logoUrl =
+        this.config.get('EMAIL_LOGO_URL') ||
+        'https://www.villatimtavio.com/images/logo-dark.png';
 
       await this.resend.emails.send({
         from: this.config.get('EMAIL_FROM') || 'reservations@villatimtavio.com',
         to: payload.email,
-        subject: 'Your Villa Timtavio access link',
+        subject: 'Your Villa TimTavio access link',
         html: `
-          <div style="font-family:Georgia,serif;max-width:560px;margin:0 auto;padding:40px 24px;color:#1A1A18;">
-            <p style="font-size:18px;margin-bottom:8px;">Welcome, ${payload.firstName}.</p>
-            <p style="font-size:15px;color:#555;line-height:1.7;margin-bottom:32px;">
-              Click below to access your stay at Villa Timtavio. This link expires in 10 minutes.
-            </p>
-            <a href="${magicLinkUrl}"
-               style="display:inline-block;padding:14px 32px;background:#1A1A18;color:#fff;text-decoration:none;font-family:sans-serif;font-size:13px;letter-spacing:0.08em;border-radius:6px;">
-              ACCESS YOUR STAY
-            </a>
-            <p style="margin-top:40px;font-size:12px;color:#999;font-family:sans-serif;">
-              If you did not request this link, please disregard this email.
-            </p>
-          </div>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                 style="background-color:#f5f3f0;margin:0;padding:0;">
+            <tr>
+              <td align="center" style="padding:40px 16px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                       style="max-width:560px;background-color:#ffffff;border:1px solid #e8e6e0;border-radius:10px;">
+                  <tr>
+                    <td align="center" style="padding:44px 44px 0 44px;">
+                      <img src="${logoUrl}" alt="Villa TimTavio" width="140"
+                           style="display:block;width:140px;max-width:55%;height:auto;margin:0 auto;" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center" style="padding:18px 44px 0 44px;">
+                      <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:12px;
+                                letter-spacing:0.22em;text-transform:uppercase;color:#8c7261;">
+                        Villa TimTavio
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center" style="padding:22px 44px 0 44px;">
+                      <div style="width:40px;height:2px;background-color:#c4a882;margin:0 auto;line-height:2px;font-size:0;">&nbsp;</div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center" style="padding:28px 44px 0 44px;font-family:Georgia,'Times New Roman',serif;">
+                      <p style="margin:0 0 14px 0;font-size:20px;color:#0f1f2e;">
+                        Welcome, ${payload.firstName}.
+                      </p>
+                      <p style="margin:0;font-size:15px;line-height:1.8;color:#5f5e5a;">
+                        Click below to access your stay at Villa TimTavio.
+                        This link expires in 10 minutes.
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center" style="padding:32px 44px 4px 44px;">
+                      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
+                        <tr>
+                          <td align="center" style="background-color:#0f1f2e;border-radius:8px;">
+                            <a href="${magicLinkUrl}"
+                               style="display:inline-block;padding:15px 40px;color:#ffffff;text-decoration:none;
+                                      font-family:Arial,sans-serif;font-size:12px;font-weight:600;
+                                      letter-spacing:0.14em;text-transform:uppercase;">
+                              Access Your Stay
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center" style="padding:24px 44px 0 44px;">
+                      <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#b0a898;line-height:1.6;">
+                        If you did not request this link, please disregard this email.
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:32px 44px 40px 44px;">
+                      <div style="border-top:1px solid #e8e6e0;padding-top:22px;text-align:center;">
+                        <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-style:italic;
+                                  font-size:13px;color:#b4b2a9;">
+                          Villa TimTavio &middot; Puerto Escondido, Oaxaca
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
         `,
       });
 
