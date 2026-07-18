@@ -31,17 +31,18 @@ export const Status = () => {
   return (
     <>
       <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 rounded-full bg-[#1A1A18] px-3 py-1.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#1A1A18] px-3 py-1.5">
             <span
               className="size-[5px] rounded-full bg-[#4CAF50]"
               aria-hidden
             />
             <span className="text-[9px] font-semibold uppercase tracking-[1.4px] text-white">
-              {activeCount} Active Requests
+              {activeCount} Active{' '}
+              {activeCount === 1 ? 'Request' : 'Requests'}
             </span>
           </div>
-          <p className="truncate text-[9px] uppercase tracking-[1.4px] text-[#9A9288]">
+          <p className="text-[9px] uppercase tracking-[1.4px] text-[#9A9288]">
             We&apos;ll notify you when ready.
           </p>
         </div>

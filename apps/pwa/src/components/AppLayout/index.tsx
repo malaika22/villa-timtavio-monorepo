@@ -21,10 +21,12 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <div>
+    // Fill the viewport and let the content area grow, so the footer nav stays
+    // pinned at the bottom even when a page has little/no content.
+    <div className="flex min-h-[100dvh] flex-col">
       <PushRegistrar />
       <Header />
-      {children}
+      <main className="flex flex-1 flex-col">{children}</main>
       <Footer />
     </div>
   );

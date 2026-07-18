@@ -54,8 +54,8 @@ export const ContentCatalogToolbar = ({
 
       {/* Category filter rail — scrolls horizontally so it never wraps/crowds */}
       <div className="flex items-center gap-2">
-        <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="flex w-max items-center gap-1.5 pb-0.5">
+        <div className="min-w-0 flex-1 snap-x overflow-x-auto pr-1 [-webkit-mask-image:linear-gradient(to_right,transparent,#000_12px,#000_calc(100%-12px),transparent)] [mask-image:linear-gradient(to_right,transparent,#000_12px,#000_calc(100%-12px),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex w-max items-center gap-1.5 pb-0.5 pl-3">
             <FilterChip
               label="All"
               active={activeFilter === 'all'}

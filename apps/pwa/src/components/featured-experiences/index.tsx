@@ -19,6 +19,11 @@ export const FeaturedExperiences = () => {
     .slice(0, 2)
     .map((item) => mapCatalogItemToExperience(item, bookingStatus));
 
+  // Don't render the section at all when there are no featured experiences.
+  if (!isLoading && featured.length === 0) {
+    return null;
+  }
+
   return (
     <div className="space-y-4 mb-10">
       <div className="flex items-center justify-between">
