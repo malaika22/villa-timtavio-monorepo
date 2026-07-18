@@ -45,14 +45,23 @@ export const VendorDemandForecast = () => {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.id} className="border-b border-[#f1ece4] last:border-0">
-                <td className="py-2 pr-3 font-medium text-intel-text">{r.name}</td>
+              <tr
+                key={r.id}
+                className="border-b border-[#f1ece4] last:border-0"
+              >
+                <td className="py-2 pr-3 font-medium text-intel-text">
+                  {r.name}
+                </td>
                 <td className="py-2 px-3 text-intel-text-muted">{r.last90}</td>
-                <td className="py-2 px-3 text-intel-text-muted">{r.monthlyRate}</td>
+                <td className="py-2 px-3 text-intel-text-muted">
+                  {r.monthlyRate}
+                </td>
                 <td className="py-2 px-3 font-medium text-intel-text">
                   ~{r.projectedNextQuarter}
                 </td>
-                <td className={`py-2 pl-3 text-xs font-medium ${REC_COLOR(r.recommendation)}`}>
+                <td
+                  className={`py-2 pl-3 text-xs font-medium ${REC_COLOR(r.recommendation)}`}
+                >
                   {r.recommendation}
                 </td>
               </tr>

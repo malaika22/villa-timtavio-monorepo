@@ -38,14 +38,10 @@ export const PerformanceScatter = ({
 }) => {
   const xMid =
     xRef ??
-    (points.length
-      ? points.reduce((s, p) => s + p.x, 0) / points.length
-      : 0);
+    (points.length ? points.reduce((s, p) => s + p.x, 0) / points.length : 0);
   const yMid =
     yRef ??
-    (points.length
-      ? points.reduce((s, p) => s + p.y, 0) / points.length
-      : 0);
+    (points.length ? points.reduce((s, p) => s + p.y, 0) / points.length : 0);
 
   return (
     <ResponsiveContainer width="100%" height={320}>
@@ -63,7 +59,12 @@ export const PerformanceScatter = ({
           dataKey="y"
           name={yLabel}
           tick={{ fontSize: 11, fill: 'var(--intel-text-muted)' }}
-          label={{ value: yLabel, angle: -90, position: 'insideLeft', fontSize: 11 }}
+          label={{
+            value: yLabel,
+            angle: -90,
+            position: 'insideLeft',
+            fontSize: 11,
+          }}
         />
         <ZAxis type="number" dataKey="z" range={[60, 400]} />
         {xMid ? <ReferenceLine x={xMid} stroke="var(--intel-border)" /> : null}

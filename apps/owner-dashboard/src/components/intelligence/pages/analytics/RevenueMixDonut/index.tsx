@@ -47,11 +47,16 @@ export const RevenueMixDonut = () => {
                 <Tooltip
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
-                    const p = payload[0].payload as { label: string; value: number };
+                    const p = payload[0].payload as {
+                      label: string;
+                      value: number;
+                    };
                     return (
                       <div className="rounded-md border border-intel-border bg-white px-3 py-2 text-xs shadow-sm">
                         <p className="font-medium text-intel-text">{p.label}</p>
-                        <p className="text-intel-text-muted">{money(p.value)}</p>
+                        <p className="text-intel-text-muted">
+                          {money(p.value)}
+                        </p>
                       </div>
                     );
                   }}
@@ -69,7 +74,10 @@ export const RevenueMixDonut = () => {
           </div>
           <ul className="w-full space-y-2 sm:w-1/2">
             {slices.map((s, i) => (
-              <li key={s.key} className="flex items-center justify-between text-sm">
+              <li
+                key={s.key}
+                className="flex items-center justify-between text-sm"
+              >
                 <span className="flex items-center gap-2 text-intel-text">
                   <span
                     className="size-2.5 rounded-full"

@@ -8,8 +8,7 @@ export const analyticsApi = {
   upcomingStays: () => api.get<UpcomingStay[]>(API.analytics.upcomingStays),
 
   // String[] of narrative insights (see backend getIntelligenceAlerts).
-  intelligenceAlerts: () =>
-    api.get<string[]>(API.analytics.intelligenceAlerts),
+  intelligenceAlerts: () => api.get<string[]>(API.analytics.intelligenceAlerts),
 
   revenueTrend: (year: number, compare?: number) =>
     api.get<{
@@ -54,7 +53,8 @@ export const analyticsApi = {
     api.get<{ recommendations: ExperienceRecommendation[] }>(
       API.analytics.experienceRecommendations,
     ),
-  vendorForecast: () => api.get<VendorForecastRow[]>(API.analytics.vendorForecast),
+  vendorForecast: () =>
+    api.get<VendorForecastRow[]>(API.analytics.vendorForecast),
 };
 
 export interface ExperienceRecommendation {

@@ -37,9 +37,24 @@ const surface = (variant: ZoneConfig['variant']) => {
 };
 
 const zones: ZoneConfig[] = [
-  { id: 'v1', label: 'Villa 1', style: { top: 24, left: '5%', width: '11%', height: 40 }, heat: 'none' },
-  { id: 'v2', label: 'Villa 2', style: { top: 24, left: '18%', width: '11%', height: 40 }, heat: 'low' },
-  { id: 'v5', label: 'Villa 5', style: { top: 24, right: '22%', width: '11%', height: 40 }, heat: 'none' },
+  {
+    id: 'v1',
+    label: 'Villa 1',
+    style: { top: 24, left: '5%', width: '11%', height: 40 },
+    heat: 'none',
+  },
+  {
+    id: 'v2',
+    label: 'Villa 2',
+    style: { top: 24, left: '18%', width: '11%', height: 40 },
+    heat: 'low',
+  },
+  {
+    id: 'v5',
+    label: 'Villa 5',
+    style: { top: 24, right: '22%', width: '11%', height: 40 },
+    heat: 'none',
+  },
   {
     id: 'spa',
     label: 'Spa & Wellness',
@@ -47,16 +62,37 @@ const zones: ZoneConfig[] = [
     heat: 'medium',
     variant: 'amenity',
   },
-  { id: 'v4', label: 'Villa 4', style: { top: 92, left: '5%', width: '11%', height: 46 }, heat: 'low' },
+  {
+    id: 'v4',
+    label: 'Villa 4',
+    style: { top: 92, left: '5%', width: '11%', height: 46 },
+    heat: 'low',
+  },
   {
     id: 'pool',
     label: 'Pool',
-    style: { top: 88, left: '50%', width: '22%', height: 60, transform: 'translateX(-50%)' },
+    style: {
+      top: 88,
+      left: '50%',
+      width: '22%',
+      height: 60,
+      transform: 'translateX(-50%)',
+    },
     heat: 'high',
     variant: 'pool',
   },
-  { id: 'v3', label: 'Villa 3', style: { top: 92, right: '18%', width: '11%', height: 46 }, heat: 'medium' },
-  { id: 'v6', label: 'Villa 6', style: { top: 92, right: '5%', width: '11%', height: 46 }, heat: 'low' },
+  {
+    id: 'v3',
+    label: 'Villa 3',
+    style: { top: 92, right: '18%', width: '11%', height: 46 },
+    heat: 'medium',
+  },
+  {
+    id: 'v6',
+    label: 'Villa 6',
+    style: { top: 92, right: '5%', width: '11%', height: 46 },
+    heat: 'low',
+  },
   {
     id: 'dt',
     label: 'Dining Terrace',
@@ -133,9 +169,13 @@ export const EstateHeatMap = ({ className }: { className?: string }) => (
     <div className="shrink-0 border-t border-intel-border bg-white px-6 py-3.5 md:px-8">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2.5">
-          <span className="text-[10px] text-intel-text-muted">Low activity</span>
+          <span className="text-[10px] text-intel-text-muted">
+            Low activity
+          </span>
           <div className="h-1.5 w-[100px] rounded-full bg-gradient-to-r from-[#f4d0ab] via-[#d47848] to-[#8b322c] sm:w-[120px]" />
-          <span className="text-[10px] text-intel-text-muted">High activity</span>
+          <span className="text-[10px] text-intel-text-muted">
+            High activity
+          </span>
         </div>
         <p className="text-[10px] text-intel-text-muted/80">
           Hover zones for detail · Real-time data updates every 15 min

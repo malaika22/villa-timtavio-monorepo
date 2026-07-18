@@ -17,7 +17,10 @@ export const HotZonesPanel = ({ category }: { category?: string }) => {
     if (!data || data.length === 0) return heatMapHotZones;
     const bySpace = new Map<string, number>();
     for (const cell of data) {
-      bySpace.set(cell.space, (bySpace.get(cell.space) ?? 0) + cell.activityScore);
+      bySpace.set(
+        cell.space,
+        (bySpace.get(cell.space) ?? 0) + cell.activityScore,
+      );
     }
     const ranked = [...bySpace.entries()].sort((a, b) => b[1] - a[1]);
     const max = ranked[0]?.[1] ?? 0;
@@ -37,7 +40,9 @@ export const HotZonesPanel = ({ category }: { category?: string }) => {
           <li key={zone.id}>
             <div className="mb-1 flex items-center justify-between gap-2 text-xs">
               <span className="truncate text-intel-text">{zone.label}</span>
-              <span className="shrink-0 font-medium tabular-nums text-intel-text">{zone.score}</span>
+              <span className="shrink-0 font-medium tabular-nums text-intel-text">
+                {zone.score}
+              </span>
             </div>
             <div className="h-1 overflow-hidden rounded-full bg-[#ebe6e0]">
               <div

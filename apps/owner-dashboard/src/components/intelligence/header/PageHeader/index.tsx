@@ -21,13 +21,18 @@ export const PageHeader = ({ meta }: { meta: PageMeta }) => {
   const isSystemHealth = pathname === '/system-health';
   const isOverview = pathname === '/';
   const useYtdExport =
-    isHeatMaps || isAnalytics || isExperiences || isVendors || isCapitalInsights;
+    isHeatMaps ||
+    isAnalytics ||
+    isExperiences ||
+    isVendors ||
+    isCapitalInsights;
 
   // The global period selector drives the activity modules (Overview,
   // Experiences). Revenue/Vendors present YTD figures, heat maps is "today",
   // capital insights is annual, system health has no date control.
   const showPeriodSelector = isOverview || isExperiences;
-  const isFixedRange = isHeatMaps || isCapitalInsights || isAnalytics || isVendors;
+  const isFixedRange =
+    isHeatMaps || isCapitalInsights || isAnalytics || isVendors;
   const fixedLabel = isHeatMaps
     ? 'Mar 27, 2026'
     : isCapitalInsights
@@ -42,7 +47,9 @@ export const PageHeader = ({ meta }: { meta: PageMeta }) => {
           <h1 className="font-cormorant text-[28px] leading-tight font-normal text-intel-text">
             {meta.title}
           </h1>
-          <p className="font-inter mt-0.5 text-sm text-intel-text-muted">{meta.subtitle}</p>
+          <p className="font-inter mt-0.5 text-sm text-intel-text-muted">
+            {meta.subtitle}
+          </p>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">

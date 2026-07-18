@@ -6,7 +6,17 @@ import { IntelCard } from '@/components/intelligence/ui/IntelCard';
 import { HeatMapCellModal } from '@/components/intelligence/pages/heat-maps/HeatMapCellModal';
 import { useHeatMap } from '@/hooks/useAnalytics';
 
-const BLOCKS = ['6 AM', '8 AM', '10 AM', '12 PM', '2 PM', '4 PM', '6 PM', '8 PM', '10 PM'];
+const BLOCKS = [
+  '6 AM',
+  '8 AM',
+  '10 AM',
+  '12 PM',
+  '2 PM',
+  '4 PM',
+  '6 PM',
+  '8 PM',
+  '10 PM',
+];
 
 // white → deep gold by intensity
 function cellColor(score: number, max: number): string {
@@ -26,9 +36,10 @@ export const EstateHeatMapGrid = ({ category }: { category?: string }) => {
     block: string;
     score: number;
   } | null>(null);
-  const [drill, setDrill] = useState<{ space: string; timeBlock: string } | null>(
-    null,
-  );
+  const [drill, setDrill] = useState<{
+    space: string;
+    timeBlock: string;
+  } | null>(null);
 
   const { spaces, lookup, max } = useMemo(() => {
     const spaceSet = new Set<string>();

@@ -51,94 +51,94 @@ export const RevenueTrendChart = ({ data }: { data: RevenueMonth[] }) => {
           </p>
         </div>
         <div className="flex items-center gap-2">
-        <div className="inline-flex rounded-md border border-intel-border bg-intel-main p-0.5">
-          {(['monthly', 'quarterly'] as const).map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => setPeriod(p)}
-              className={cn(
-                'rounded px-3 py-1 text-xs capitalize transition-colors',
-                period === p
-                  ? 'bg-intel-maroon text-white'
-                  : 'text-intel-text-muted hover:text-intel-text',
-              )}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-        <ExportMenu
-          filename="revenue-trend"
-          csvRows={chartData as unknown as Record<string, unknown>[]}
-          pngTarget={chartRef}
-        />
+          <div className="inline-flex rounded-md border border-intel-border bg-intel-main p-0.5">
+            {(['monthly', 'quarterly'] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setPeriod(p)}
+                className={cn(
+                  'rounded px-3 py-1 text-xs capitalize transition-colors',
+                  period === p
+                    ? 'bg-intel-maroon text-white'
+                    : 'text-intel-text-muted hover:text-intel-text',
+                )}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          <ExportMenu
+            filename="revenue-trend"
+            csvRows={chartData as unknown as Record<string, unknown>[]}
+            pngTarget={chartRef}
+          />
         </div>
       </div>
       <div ref={chartRef}>
-      <ChartContainer config={chartConfig} className="mt-4 h-[240px] w-full">
-        <ComposedChart
-          data={chartData}
-          margin={{ top: 8, right: 12, left: 4, bottom: 0 }}
-        >
-          <defs>
-            <linearGradient id="revenue2026Fill" x1="0" y1="0" x2="0" y2="1">
-              <stop
-                offset="0%"
-                stopColor="var(--intel-maroon)"
-                stopOpacity={0.22}
-              />
-              <stop
-                offset="100%"
-                stopColor="var(--intel-maroon)"
-                stopOpacity={0.02}
-              />
-            </linearGradient>
-          </defs>
-          <CartesianGrid
-            strokeDasharray="3 3"
-            vertical={false}
-            stroke="#E8E4DE"
-          />
-          <XAxis
-            dataKey="month"
-            tickLine={false}
-            axisLine={false}
-            tick={{ fill: '#7A726C', fontSize: 11 }}
-            dy={6}
-          />
-          <YAxis
-            tickLine={false}
-            axisLine={false}
-            domain={[30, 150]}
-            ticks={[30, 60, 90, 120, 150]}
-            tick={{ fill: '#7A726C', fontSize: 11 }}
-            tickFormatter={(v) => `${v}k`}
-            width={36}
-          />
-          <ChartTooltip content={<ChartTooltipContent />} />
-          <Area
-            type="monotone"
-            dataKey="y2026"
-            stroke="none"
-            fill="url(#revenue2026Fill)"
-          />
-          <Line
-            type="monotone"
-            dataKey="y2026"
-            stroke="var(--intel-maroon)"
-            strokeWidth={2}
-            dot={false}
-          />
-          <Line
-            type="monotone"
-            dataKey="y2025"
-            stroke="var(--intel-gold)"
-            strokeWidth={1.5}
-            dot={false}
-          />
-        </ComposedChart>
-      </ChartContainer>
+        <ChartContainer config={chartConfig} className="mt-4 h-[240px] w-full">
+          <ComposedChart
+            data={chartData}
+            margin={{ top: 8, right: 12, left: 4, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient id="revenue2026Fill" x1="0" y1="0" x2="0" y2="1">
+                <stop
+                  offset="0%"
+                  stopColor="var(--intel-maroon)"
+                  stopOpacity={0.22}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="var(--intel-maroon)"
+                  stopOpacity={0.02}
+                />
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              vertical={false}
+              stroke="#E8E4DE"
+            />
+            <XAxis
+              dataKey="month"
+              tickLine={false}
+              axisLine={false}
+              tick={{ fill: '#7A726C', fontSize: 11 }}
+              dy={6}
+            />
+            <YAxis
+              tickLine={false}
+              axisLine={false}
+              domain={[30, 150]}
+              ticks={[30, 60, 90, 120, 150]}
+              tick={{ fill: '#7A726C', fontSize: 11 }}
+              tickFormatter={(v) => `${v}k`}
+              width={36}
+            />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Area
+              type="monotone"
+              dataKey="y2026"
+              stroke="none"
+              fill="url(#revenue2026Fill)"
+            />
+            <Line
+              type="monotone"
+              dataKey="y2026"
+              stroke="var(--intel-maroon)"
+              strokeWidth={2}
+              dot={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="y2025"
+              stroke="var(--intel-gold)"
+              strokeWidth={1.5}
+              dot={false}
+            />
+          </ComposedChart>
+        </ChartContainer>
       </div>
       <div className="mt-2 flex gap-5 text-xs text-intel-text-muted">
         <span className="flex items-center gap-1.5">

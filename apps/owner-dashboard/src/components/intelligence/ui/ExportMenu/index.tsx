@@ -17,14 +17,20 @@ type Props = {
 };
 
 // Small per-chart/table export control: CSV for data, PNG for charts.
-export const ExportMenu = ({ filename, csvRows, csvColumns, pngTarget }: Props) => {
+export const ExportMenu = ({
+  filename,
+  csvRows,
+  csvColumns,
+  pngTarget,
+}: Props) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node))
+        setOpen(false);
     };
     document.addEventListener('mousedown', onClick);
     return () => document.removeEventListener('mousedown', onClick);

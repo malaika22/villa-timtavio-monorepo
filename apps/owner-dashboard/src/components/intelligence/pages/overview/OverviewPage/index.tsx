@@ -39,8 +39,10 @@ export const OverviewPage = () => {
     <div className="space-y-6">
       <p className="text-sm text-intel-text-muted">
         Showing metrics for{' '}
-        <span className="font-medium text-intel-text">{PERIOD_SHORT[period]}</span>
-        {' '}· change the range from the selector above.
+        <span className="font-medium text-intel-text">
+          {PERIOD_SHORT[period]}
+        </span>{' '}
+        · change the range from the selector above.
       </p>
 
       <MetricCardGrid metrics={metrics} />

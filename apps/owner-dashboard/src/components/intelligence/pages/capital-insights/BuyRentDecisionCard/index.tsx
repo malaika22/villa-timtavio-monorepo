@@ -23,9 +23,16 @@ const RENT = {
   text: 'text-[#b45309]',
 };
 
-const buyActionLine = (lead: string) => lead.replace(/^Recommend:\s*/i, '').trim();
+const buyActionLine = (lead: string) =>
+  lead.replace(/^Recommend:\s*/i, '').trim();
 
-const BuyRecommendationBox = ({ lead, body }: { lead: string; body: string }) => (
+const BuyRecommendationBox = ({
+  lead,
+  body,
+}: {
+  lead: string;
+  body: string;
+}) => (
   <div
     className={`mt-4 flex flex-1 gap-3 rounded-lg border px-4 py-3.5 ${BUY.bg} ${BUY.border}`}
   >
@@ -35,11 +42,15 @@ const BuyRecommendationBox = ({ lead, body }: { lead: string; body: string }) =>
       <Check className={`size-3.5 ${BUY.text}`} strokeWidth={2.5} />
     </div>
     <div className="flex min-w-0 flex-1 gap-4 sm:gap-5">
-      <div className={`shrink-0 text-[13px] font-bold leading-snug ${BUY.text}`}>
+      <div
+        className={`shrink-0 text-[13px] font-bold leading-snug ${BUY.text}`}
+      >
         <div>Recommend:</div>
         <div>{buyActionLine(lead)}</div>
       </div>
-      <p className={`min-w-0 flex-1 text-[12px] font-normal leading-relaxed ${BUY.text}`}>
+      <p
+        className={`min-w-0 flex-1 text-[12px] font-normal leading-relaxed ${BUY.text}`}
+      >
         {body}
       </p>
     </div>
@@ -55,31 +66,48 @@ const PlainRecommendationBox = ({
 }) => {
   const s = variant === 'hold' ? HOLD : RENT;
   return (
-    <div className={`mt-4 flex-1 rounded-lg border px-4 py-3.5 ${s.bg} ${s.border}`}>
-      <p className={`text-[12px] font-normal leading-relaxed ${s.text}`}>{children}</p>
+    <div
+      className={`mt-4 flex-1 rounded-lg border px-4 py-3.5 ${s.bg} ${s.border}`}
+    >
+      <p className={`text-[12px] font-normal leading-relaxed ${s.text}`}>
+        {children}
+      </p>
     </div>
   );
 };
 
-export const BuyRentDecisionCard = ({ item }: { item: BuyRentAnalysisItem }) => (
+export const BuyRentDecisionCard = ({
+  item,
+}: {
+  item: BuyRentAnalysisItem;
+}) => (
   <IntelCard className="flex h-full flex-col rounded-xl p-5">
     <IntelLabel>{item.category}</IntelLabel>
     <p className="mt-2 font-cormorant text-[36px] leading-none tracking-tight text-intel-text">
       {item.decision}
     </p>
-    <p className="mt-2 text-sm leading-snug text-intel-text-muted">{item.description}</p>
+    <p className="mt-2 text-sm leading-snug text-intel-text-muted">
+      {item.description}
+    </p>
 
     <div className="mt-5 grid grid-cols-3 gap-3 border-y border-intel-border py-4">
       {item.metrics.map((m) => (
         <div key={m.label}>
-          <p className="text-[10px] leading-snug text-intel-text-muted">{m.label}</p>
-          <p className="mt-1 text-sm font-medium tabular-nums text-intel-text">{m.value}</p>
+          <p className="text-[10px] leading-snug text-intel-text-muted">
+            {m.label}
+          </p>
+          <p className="mt-1 text-sm font-medium tabular-nums text-intel-text">
+            {m.value}
+          </p>
         </div>
       ))}
     </div>
 
     {item.variant === 'buy' ? (
-      <BuyRecommendationBox lead={item.recommendationLead} body={item.recommendationBody} />
+      <BuyRecommendationBox
+        lead={item.recommendationLead}
+        body={item.recommendationBody}
+      />
     ) : (
       <PlainRecommendationBox variant={item.variant}>
         {`${item.recommendationLead} ${item.recommendationBody}`}

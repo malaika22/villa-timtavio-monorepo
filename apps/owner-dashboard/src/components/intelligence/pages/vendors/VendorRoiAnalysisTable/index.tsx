@@ -68,88 +68,119 @@ export const VendorRoiAnalysisTable = () => {
   }));
 
   return (
-  <section>
-    <div className="mb-3 flex items-center gap-2">
-      <h3 className="font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">
-        Vendor ROI Analysis — YTD 2026
-      </h3>
-      <ExportMenu filename="vendor-roi-analysis" csvRows={csvRows} />
-    </div>
-    <IntelCard padding={false} className="overflow-hidden rounded-xl">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[960px] text-sm">
-          <thead>
-            <tr className="border-b border-intel-border bg-[#f9f9f9]">
-              {COLUMNS.map((col) => (
-                <th
-                  key={col}
+    <section>
+      <div className="mb-3 flex items-center gap-2">
+        <h3 className="font-cormorant text-[22px] leading-tight font-normal text-[#7b4343]">
+          Vendor ROI Analysis — YTD 2026
+        </h3>
+        <ExportMenu filename="vendor-roi-analysis" csvRows={csvRows} />
+      </div>
+      <IntelCard padding={false} className="overflow-hidden rounded-xl">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[960px] text-sm">
+            <thead>
+              <tr className="border-b border-intel-border bg-[#f9f9f9]">
+                {COLUMNS.map((col) => (
+                  <th
+                    key={col}
+                    className={cn(
+                      'px-4 py-3 text-left text-[10px] font-medium tracking-[0.12em] text-intel-text-muted uppercase',
+                      cellBorder,
+                    )}
+                  >
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr
+                  key={row.id}
                   className={cn(
-                    'px-4 py-3 text-left text-[10px] font-medium tracking-[0.12em] text-intel-text-muted uppercase',
-                    cellBorder,
+                    'border-b border-intel-border last:border-0',
+                    i % 2 === 1 && 'bg-[#faf9f7]',
                   )}
                 >
-                  {col}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, i) => (
-              <tr
-                key={row.id}
-                className={cn(
-                  'border-b border-intel-border last:border-0',
-                  i % 2 === 1 && 'bg-[#faf9f7]',
-                )}
-              >
-                <td className={cn('px-4 py-3 font-semibold text-intel-text', cellBorder)}>
-                  {row.name}
-                </td>
-                <td className={cn('px-4 py-3', cellBorder)} style={{ color: MUTED_GREY }}>
-                  {row.category}
-                </td>
-                <td className={cn('px-4 py-3 tabular-nums', cellBorder)} style={{ color: MUTED_GREY }}>
-                  {row.bookings}
-                </td>
-                <td className={cn('px-4 py-3 tabular-nums', cellBorder)} style={{ color: MUTED_GREY }}>
-                  {row.grossRevenue}
-                </td>
-                <td className={cn('px-4 py-3 tabular-nums', cellBorder)} style={{ color: MUTED_GREY }}>
-                  {row.vendorCost}
-                </td>
-                <td className={cn('px-4 py-3 tabular-nums', cellBorder)} style={{ color: MUTED_GREY }}>
-                  {row.netMargin}
-                </td>
-                <td
-                  className={cn('px-4 py-3 font-semibold tabular-nums', cellBorder)}
-                  style={{ color: ROI_TAN }}
-                >
-                  {row.roiLabel}
-                </td>
-                <td className={cn('px-4 py-3', cellBorder)}>
-                  <span
-                    className="inline-flex items-center gap-1 tabular-nums"
-                    style={{ color: RATING_GOLD }}
+                  <td
+                    className={cn(
+                      'px-4 py-3 font-semibold text-intel-text',
+                      cellBorder,
+                    )}
                   >
-                    <Star className="size-3.5" style={{ fill: RATING_GOLD, color: RATING_GOLD }} />
-                    {row.rating.toFixed(1)}
-                  </span>
-                </td>
-                <td
-                  className={cn('px-4 py-3 font-medium tabular-nums', cellBorder)}
-                  style={{ color: declinedColor(row) }}
-                >
-                  {row.declined === 0 ? '0' : `${row.declined} (${row.declinedPercent}%)`}
-                </td>
-                <td className="px-4 py-3">
-                  <StatusBadge status={row.status} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </IntelCard>
-  </section>
+                    {row.name}
+                  </td>
+                  <td
+                    className={cn('px-4 py-3', cellBorder)}
+                    style={{ color: MUTED_GREY }}
+                  >
+                    {row.category}
+                  </td>
+                  <td
+                    className={cn('px-4 py-3 tabular-nums', cellBorder)}
+                    style={{ color: MUTED_GREY }}
+                  >
+                    {row.bookings}
+                  </td>
+                  <td
+                    className={cn('px-4 py-3 tabular-nums', cellBorder)}
+                    style={{ color: MUTED_GREY }}
+                  >
+                    {row.grossRevenue}
+                  </td>
+                  <td
+                    className={cn('px-4 py-3 tabular-nums', cellBorder)}
+                    style={{ color: MUTED_GREY }}
+                  >
+                    {row.vendorCost}
+                  </td>
+                  <td
+                    className={cn('px-4 py-3 tabular-nums', cellBorder)}
+                    style={{ color: MUTED_GREY }}
+                  >
+                    {row.netMargin}
+                  </td>
+                  <td
+                    className={cn(
+                      'px-4 py-3 font-semibold tabular-nums',
+                      cellBorder,
+                    )}
+                    style={{ color: ROI_TAN }}
+                  >
+                    {row.roiLabel}
+                  </td>
+                  <td className={cn('px-4 py-3', cellBorder)}>
+                    <span
+                      className="inline-flex items-center gap-1 tabular-nums"
+                      style={{ color: RATING_GOLD }}
+                    >
+                      <Star
+                        className="size-3.5"
+                        style={{ fill: RATING_GOLD, color: RATING_GOLD }}
+                      />
+                      {row.rating.toFixed(1)}
+                    </span>
+                  </td>
+                  <td
+                    className={cn(
+                      'px-4 py-3 font-medium tabular-nums',
+                      cellBorder,
+                    )}
+                    style={{ color: declinedColor(row) }}
+                  >
+                    {row.declined === 0
+                      ? '0'
+                      : `${row.declined} (${row.declinedPercent}%)`}
+                  </td>
+                  <td className="px-4 py-3">
+                    <StatusBadge status={row.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </IntelCard>
+    </section>
   );
 };

@@ -21,7 +21,9 @@ export const VillaOccupancyCard = ({ villa }: { villa: VillaOccupancy }) => (
     <p
       className={cn(
         'mt-2 text-[11px]',
-        villa.status === 'Occupied' ? 'text-intel-text-muted' : 'text-intel-text-muted',
+        villa.status === 'Occupied'
+          ? 'text-intel-text-muted'
+          : 'text-intel-text-muted',
       )}
     >
       {villa.status}

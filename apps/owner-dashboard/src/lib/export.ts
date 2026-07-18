@@ -32,7 +32,10 @@ export function downloadCsv(
   const blob = new Blob([`${header}\n${body}`], {
     type: 'text/csv;charset=utf-8',
   });
-  triggerDownload(blob, filename.endsWith('.csv') ? filename : `${filename}.csv`);
+  triggerDownload(
+    blob,
+    filename.endsWith('.csv') ? filename : `${filename}.csv`,
+  );
 }
 
 // Copy resolved computed styles (fill/stroke/font/etc.) onto a cloned SVG so

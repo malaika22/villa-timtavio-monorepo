@@ -31,7 +31,8 @@ const SORTABLE: Record<string, (r: ExperiencePerformanceRow) => number> = {
   Declined: (r) => r.declinedPercent,
 };
 
-const parseRevenue = (s: string) => Number(String(s).replace(/[^0-9.]/g, '')) || 0;
+const parseRevenue = (s: string) =>
+  Number(String(s).replace(/[^0-9.]/g, '')) || 0;
 
 export const ExperiencePerformanceTable = () => {
   const { period } = usePeriod();
@@ -51,7 +52,9 @@ export const ExperiencePerformanceTable = () => {
     if (!sortKey) return baseRows;
     const accessor = SORTABLE[sortKey];
     return [...baseRows].sort((a, b) =>
-      sortDir === 'desc' ? accessor(b) - accessor(a) : accessor(a) - accessor(b),
+      sortDir === 'desc'
+        ? accessor(b) - accessor(a)
+        : accessor(a) - accessor(b),
     );
   }, [baseRows, sortKey, sortDir]);
 
@@ -99,7 +102,8 @@ export const ExperiencePerformanceTable = () => {
                       className={cn(
                         'px-4 py-3 text-left text-[10px] font-medium tracking-[0.12em] text-intel-text-muted uppercase',
                         cellBorder,
-                        sortable && 'cursor-pointer select-none hover:text-intel-text',
+                        sortable &&
+                          'cursor-pointer select-none hover:text-intel-text',
                       )}
                     >
                       <span className="inline-flex items-center gap-1">
@@ -125,107 +129,107 @@ export const ExperiencePerformanceTable = () => {
             <tbody>
               {rows.map((row, i) => (
                 <Fragment key={row.id}>
-                <tr
-                  onClick={() =>
-                    setExpanded(expanded === row.id ? null : row.id)
-                  }
-                  className={cn(
-                    'cursor-pointer border-b border-intel-border last:border-0 hover:bg-[#f5f1ec]',
-                    i % 2 === 1 && 'bg-[#faf9f7]',
-                  )}
-                >
-                  <td
+                  <tr
+                    onClick={() =>
+                      setExpanded(expanded === row.id ? null : row.id)
+                    }
                     className={cn(
-                      'px-4 py-3 font-semibold text-intel-text',
-                      cellBorder,
+                      'cursor-pointer border-b border-intel-border last:border-0 hover:bg-[#f5f1ec]',
+                      i % 2 === 1 && 'bg-[#faf9f7]',
                     )}
                   >
-                    <span className="inline-flex items-center gap-1.5">
-                      <ChevronDown
-                        className={cn(
-                          'size-3 text-intel-text-muted transition-transform',
-                          expanded === row.id && 'rotate-180',
-                        )}
-                      />
-                      {row.name}
-                    </span>
-                  </td>
-                  <td
-                    className={cn('px-4 py-3 tabular-nums', cellBorder)}
-                    style={{ color: MUTED_GREY }}
-                  >
-                    {row.bookings}
-                  </td>
-                  <td
-                    className={cn('px-4 py-3 tabular-nums', cellBorder)}
-                    style={{ color: MUTED_GREY }}
-                  >
-                    {row.revenue}
-                  </td>
-                  <td className={cn('px-4 py-3', cellBorder)}>
-                    <span
-                      className="inline-flex items-center gap-1 tabular-nums"
-                      style={{ color: RATING_GOLD }}
+                    <td
+                      className={cn(
+                        'px-4 py-3 font-semibold text-intel-text',
+                        cellBorder,
+                      )}
                     >
-                      <Star
-                        className="size-3.5"
-                        style={{ fill: RATING_GOLD, color: RATING_GOLD }}
-                      />
-                      {row.rating.toFixed(1)}
-                    </span>
-                  </td>
-                  <td
-                    className={cn(
-                      'px-4 py-3 font-medium tabular-nums',
-                      cellBorder,
-                    )}
-                    style={{ color: declinedColor(row) }}
-                  >
-                    {row.declined === 0
-                      ? '0'
-                      : `${row.declined} (${row.declinedPercent}%)`}
-                  </td>
-                  <td className="px-4 py-3 font-medium tabular-nums text-intel-text">
-                    {row.trend}
-                  </td>
-                </tr>
-                {expanded === row.id ? (
-                  <tr key={`${row.id}-detail`} className="bg-[#faf8f4]">
-                    <td colSpan={COLUMNS.length} className="px-4 py-3">
-                      <div className="flex flex-wrap gap-6 text-xs text-intel-text-muted">
-                        <span>
-                          Revenue / booking:{' '}
-                          <span className="font-medium text-intel-text">
-                            $
-                            {row.bookings > 0
-                              ? Math.round(
-                                  parseRevenue(row.revenue) / row.bookings,
-                                ).toLocaleString()
-                              : 0}
-                          </span>
-                        </span>
-                        <span>
-                          Decline rate:{' '}
-                          <span className="font-medium text-intel-text">
-                            {row.declinedPercent}%
-                          </span>
-                        </span>
-                        <span>
-                          Trend:{' '}
-                          <span className="font-medium text-intel-text">
-                            {row.trendDirection} {row.trend}
-                          </span>
-                        </span>
-                        <span>
-                          Rating:{' '}
-                          <span className="font-medium text-intel-text">
-                            {row.rating.toFixed(1)} / 5
-                          </span>
-                        </span>
-                      </div>
+                      <span className="inline-flex items-center gap-1.5">
+                        <ChevronDown
+                          className={cn(
+                            'size-3 text-intel-text-muted transition-transform',
+                            expanded === row.id && 'rotate-180',
+                          )}
+                        />
+                        {row.name}
+                      </span>
+                    </td>
+                    <td
+                      className={cn('px-4 py-3 tabular-nums', cellBorder)}
+                      style={{ color: MUTED_GREY }}
+                    >
+                      {row.bookings}
+                    </td>
+                    <td
+                      className={cn('px-4 py-3 tabular-nums', cellBorder)}
+                      style={{ color: MUTED_GREY }}
+                    >
+                      {row.revenue}
+                    </td>
+                    <td className={cn('px-4 py-3', cellBorder)}>
+                      <span
+                        className="inline-flex items-center gap-1 tabular-nums"
+                        style={{ color: RATING_GOLD }}
+                      >
+                        <Star
+                          className="size-3.5"
+                          style={{ fill: RATING_GOLD, color: RATING_GOLD }}
+                        />
+                        {row.rating.toFixed(1)}
+                      </span>
+                    </td>
+                    <td
+                      className={cn(
+                        'px-4 py-3 font-medium tabular-nums',
+                        cellBorder,
+                      )}
+                      style={{ color: declinedColor(row) }}
+                    >
+                      {row.declined === 0
+                        ? '0'
+                        : `${row.declined} (${row.declinedPercent}%)`}
+                    </td>
+                    <td className="px-4 py-3 font-medium tabular-nums text-intel-text">
+                      {row.trend}
                     </td>
                   </tr>
-                ) : null}
+                  {expanded === row.id ? (
+                    <tr key={`${row.id}-detail`} className="bg-[#faf8f4]">
+                      <td colSpan={COLUMNS.length} className="px-4 py-3">
+                        <div className="flex flex-wrap gap-6 text-xs text-intel-text-muted">
+                          <span>
+                            Revenue / booking:{' '}
+                            <span className="font-medium text-intel-text">
+                              $
+                              {row.bookings > 0
+                                ? Math.round(
+                                    parseRevenue(row.revenue) / row.bookings,
+                                  ).toLocaleString()
+                                : 0}
+                            </span>
+                          </span>
+                          <span>
+                            Decline rate:{' '}
+                            <span className="font-medium text-intel-text">
+                              {row.declinedPercent}%
+                            </span>
+                          </span>
+                          <span>
+                            Trend:{' '}
+                            <span className="font-medium text-intel-text">
+                              {row.trendDirection} {row.trend}
+                            </span>
+                          </span>
+                          <span>
+                            Rating:{' '}
+                            <span className="font-medium text-intel-text">
+                              {row.rating.toFixed(1)} / 5
+                            </span>
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : null}
                 </Fragment>
               ))}
             </tbody>

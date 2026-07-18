@@ -66,8 +66,18 @@ export function useIntelligenceAlerts() {
 }
 
 const MONTHS = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 export function useRevenueTrend(year: number, compare?: number) {
@@ -132,9 +142,7 @@ export function useExperienceKpis(period?: string) {
       const avgPer = booked > 0 ? Math.round(revenue / booked) : 0;
       const declineBase = booked + declined;
       const declineRate =
-        declineBase > 0
-          ? Math.round((declined / declineBase) * 1000) / 10
-          : 0;
+        declineBase > 0 ? Math.round((declined / declineBase) * 1000) / 10 : 0;
       return [
         { id: 'exp-booked', label: 'TOTAL BOOKED YTD', value: String(booked) },
         {
@@ -185,7 +193,8 @@ export function useRevenueSummary() {
     // Map the summary into the 4 headline KPI tiles.
     select: (s): MetricCard[] => {
       const prevYear = s.year - 1;
-      const stayPts = Math.round((s.avgStayNights - s.priorAvgStayNights) * 10) / 10;
+      const stayPts =
+        Math.round((s.avgStayNights - s.priorAvgStayNights) * 10) / 10;
       const repeatPts = s.repeatRatePercent - s.priorRepeatRatePercent;
       return [
         {
@@ -207,7 +216,8 @@ export function useRevenueSummary() {
           ...(s.priorAvgStayNights > 0
             ? {
                 trend: `${stayPts >= 0 ? '↑' : '↓'} ${Math.abs(stayPts)} vs ${s.priorAvgStayNights} in ${prevYear}`,
-                trendDirection: stayPts >= 0 ? ('up' as const) : ('down' as const),
+                trendDirection:
+                  stayPts >= 0 ? ('up' as const) : ('down' as const),
               }
             : {}),
         },
@@ -218,7 +228,8 @@ export function useRevenueSummary() {
           ...(s.priorRepeatRatePercent > 0
             ? {
                 trend: `${repeatPts >= 0 ? '↑' : '↓'} ${Math.abs(repeatPts)} pts vs ${prevYear}`,
-                trendDirection: repeatPts >= 0 ? ('up' as const) : ('down' as const),
+                trendDirection:
+                  repeatPts >= 0 ? ('up' as const) : ('down' as const),
               }
             : {}),
         },

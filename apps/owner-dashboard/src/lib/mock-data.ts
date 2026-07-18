@@ -192,8 +192,7 @@ export const heatMapInsights = [
   {
     id: 'hm1',
     variant: 'warning' as const,
-    message:
-      'Pool capacity at 94% — consider concierge rotation coordination.',
+    message: 'Pool capacity at 94% — consider concierge rotation coordination.',
   },
   {
     id: 'hm2',
@@ -204,10 +203,30 @@ export const heatMapInsights = [
 ];
 
 export const topProperties = [
-  { property: 'Villa TimTavio — Main', revenue: '$48,200', bookings: 24, occupancy: '78%' },
-  { property: 'Guest Cottage', revenue: '$18,600', bookings: 12, occupancy: '71%' },
-  { property: 'Garden Suite A', revenue: '$12,400', bookings: 18, occupancy: '65%' },
-  { property: 'Garden Suite B', revenue: '$11,100', bookings: 15, occupancy: '58%' },
+  {
+    property: 'Villa TimTavio — Main',
+    revenue: '$48,200',
+    bookings: 24,
+    occupancy: '78%',
+  },
+  {
+    property: 'Guest Cottage',
+    revenue: '$18,600',
+    bookings: 12,
+    occupancy: '71%',
+  },
+  {
+    property: 'Garden Suite A',
+    revenue: '$12,400',
+    bookings: 18,
+    occupancy: '65%',
+  },
+  {
+    property: 'Garden Suite B',
+    revenue: '$11,100',
+    bookings: 15,
+    occupancy: '58%',
+  },
 ];
 
 export const analyticsMetrics: MetricCard[] = [

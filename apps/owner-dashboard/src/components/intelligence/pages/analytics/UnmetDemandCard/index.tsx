@@ -42,7 +42,9 @@ export const UnmetDemandCard = () => {
               <span className="font-cormorant text-[30px] leading-none text-intel-text">
                 {money(data!.estimatedLostRevenue)}
               </span>
-              <span className="ml-1 text-xs text-intel-text-muted">est. lost</span>
+              <span className="ml-1 text-xs text-intel-text-muted">
+                est. lost
+              </span>
             </div>
           </div>
           <ul className="divide-y divide-[#f1ece4]">

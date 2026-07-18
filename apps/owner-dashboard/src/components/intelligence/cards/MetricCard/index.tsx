@@ -25,7 +25,9 @@ export const MetricCard = ({ metric }: { metric: MetricCardType }) => (
       </p>
     ) : null}
     {metric.subtext ? (
-      <p className="mt-2.5 text-[11px] text-intel-text-muted">{metric.subtext}</p>
+      <p className="mt-2.5 text-[11px] text-intel-text-muted">
+        {metric.subtext}
+      </p>
     ) : null}
   </IntelCard>
 );

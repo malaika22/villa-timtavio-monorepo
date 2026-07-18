@@ -82,7 +82,9 @@ export const ActiveSessionsTable = () => {
                         <span className="text-intel-text">{row.name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-intel-text-muted">{row.role}</td>
+                    <td className="px-4 py-3 text-intel-text-muted">
+                      {row.role}
+                    </td>
                     <td className="px-4 py-3 text-intel-text-muted">
                       {relativeTime(row.sessionStartAt)}
                     </td>

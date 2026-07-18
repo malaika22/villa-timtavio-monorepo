@@ -15,10 +15,7 @@ export const HeatMapsPage = () => {
     <div className="space-y-4">
       <div className="grid gap-x-5 gap-y-4 xl:grid-cols-[minmax(0,1fr)_272px] xl:items-stretch">
         <div className="min-w-0 xl:col-span-2">
-          <HeatMapFilters
-            category={category}
-            onCategoryChange={setCategory}
-          />
+          <HeatMapFilters category={category} onCategoryChange={setCategory} />
         </div>
 
         <EstateHeatMapGrid category={category} />

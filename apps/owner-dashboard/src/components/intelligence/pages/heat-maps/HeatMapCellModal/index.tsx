@@ -82,7 +82,10 @@ export const HeatMapCellModal = ({
             ) : (
               <ul className="divide-y divide-[#f1ece4]">
                 {data.timeline.map((e, i) => (
-                  <li key={i} className="flex items-center justify-between py-2 text-sm">
+                  <li
+                    key={i}
+                    className="flex items-center justify-between py-2 text-sm"
+                  >
                     <span className="text-[#2b2824]">
                       {e.serviceType.replace(/_/g, ' ').toLowerCase()}
                     </span>
@@ -128,16 +131,26 @@ export const HeatMapCellModal = ({
           ) : (
             <ul className="space-y-2 text-sm text-[#2b2824]">
               {data.total >= 6 ? (
-                <li>· High-traffic block — ensure staffing coverage for {cell?.space}.</li>
+                <li>
+                  · High-traffic block — ensure staffing coverage for{' '}
+                  {cell?.space}.
+                </li>
               ) : data.total === 0 ? (
                 <li>· Quiet block — an opportunity to schedule maintenance.</li>
               ) : (
-                <li>· Moderate activity — current staffing looks sufficient.</li>
+                <li>
+                  · Moderate activity — current staffing looks sufficient.
+                </li>
               )}
               {data.withCost > data.withoutCost ? (
-                <li>· Mostly billable — strong upsell window; consider a featured offer.</li>
+                <li>
+                  · Mostly billable — strong upsell window; consider a featured
+                  offer.
+                </li>
               ) : (
-                <li>· Mostly complimentary — a candidate for a paid upgrade.</li>
+                <li>
+                  · Mostly complimentary — a candidate for a paid upgrade.
+                </li>
               )}
             </ul>
           )}

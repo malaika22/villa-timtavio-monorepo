@@ -51,7 +51,10 @@ export const PeakHoursChart = () => {
           <YAxis hide domain={[0, 100]} />
           <Bar dataKey="index" radius={[2, 2, 0, 0]} maxBarSize={10}>
             {bars.map((entry) => (
-              <Cell key={entry.hour} fill={entry.peak ? '#5e3a31' : '#e5e0da'} />
+              <Cell
+                key={entry.hour}
+                fill={entry.peak ? '#5e3a31' : '#e5e0da'}
+              />
             ))}
           </Bar>
         </BarChart>

@@ -66,11 +66,22 @@ export const EquipmentTracker = () => {
             </thead>
             <tbody>
               {rows.map((r) => (
-                <tr key={r.id} className="border-b border-[#f1ece4] last:border-0">
-                  <td className="py-2 pr-3 font-medium text-intel-text">{r.name}</td>
-                  <td className="py-2 px-3 text-intel-text-muted">{money(r.rentalCostPerUse)}</td>
-                  <td className="py-2 px-3 text-intel-text-muted">{r.usesPerYear}</td>
-                  <td className="py-2 px-3 text-intel-text-muted">{money(r.purchasePrice)}</td>
+                <tr
+                  key={r.id}
+                  className="border-b border-[#f1ece4] last:border-0"
+                >
+                  <td className="py-2 pr-3 font-medium text-intel-text">
+                    {r.name}
+                  </td>
+                  <td className="py-2 px-3 text-intel-text-muted">
+                    {money(r.rentalCostPerUse)}
+                  </td>
+                  <td className="py-2 px-3 text-intel-text-muted">
+                    {r.usesPerYear}
+                  </td>
+                  <td className="py-2 px-3 text-intel-text-muted">
+                    {money(r.purchasePrice)}
+                  </td>
                   <td className="py-2 px-3 text-intel-text-muted">
                     {r.breakEvenUses != null ? `${r.breakEvenUses} uses` : '—'}
                   </td>
@@ -80,7 +91,9 @@ export const EquipmentTracker = () => {
                     {money(r.twoYearSavings)}
                   </td>
                   <td className="py-2 px-3">
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${BADGE[r.recommendation]}`}>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${BADGE[r.recommendation]}`}
+                    >
                       {r.recommendation === 'BUY'
                         ? 'Purchase'
                         : r.recommendation === 'MONITOR'
@@ -109,27 +122,66 @@ export const EquipmentTracker = () => {
               </p>
               {active.seasonalNotes ? (
                 <p className="mb-2 text-xs text-intel-text-muted">
-                  {active.seasonalNotes} · maintenance {money(active.annualMaintenance)}/yr
+                  {active.seasonalNotes} · maintenance{' '}
+                  {money(active.annualMaintenance)}/yr
                 </p>
               ) : null}
               <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={active.projection} margin={{ top: 8, right: 16, bottom: 8, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--intel-border)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} label={{ value: 'months', position: 'insideBottom', offset: -2, fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
+                <LineChart
+                  data={active.projection}
+                  margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--intel-border)"
+                  />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 11 }}
+                    label={{
+                      value: 'months',
+                      position: 'insideBottom',
+                      offset: -2,
+                      fontSize: 10,
+                    }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v) => `$${Math.round(v / 1000)}k`}
+                  />
                   <ReferenceLine
                     x={
                       active.annualRental > 0
-                        ? Math.round((active.purchasePrice / (active.annualRental / 12)))
+                        ? Math.round(
+                            active.purchasePrice / (active.annualRental / 12),
+                          )
                         : undefined
                     }
                     stroke="#1e7e34"
                     strokeDasharray="4 4"
-                    label={{ value: 'break-even', fontSize: 10, fill: '#1e7e34' }}
+                    label={{
+                      value: 'break-even',
+                      fontSize: 10,
+                      fill: '#1e7e34',
+                    }}
                   />
                   <Tooltip formatter={(v) => money(Number(v))} />
-                  <Line type="monotone" dataKey="rent" name="Keep renting" stroke="#c2922d" dot={false} strokeWidth={2} />
-                  <Line type="monotone" dataKey="own" name="Purchase" stroke="#7b4343" dot={false} strokeWidth={2} />
+                  <Line
+                    type="monotone"
+                    dataKey="rent"
+                    name="Keep renting"
+                    stroke="#c2922d"
+                    dot={false}
+                    strokeWidth={2}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="own"
+                    name="Purchase"
+                    stroke="#7b4343"
+                    dot={false}
+                    strokeWidth={2}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>

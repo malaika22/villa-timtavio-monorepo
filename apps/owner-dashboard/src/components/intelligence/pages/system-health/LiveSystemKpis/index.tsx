@@ -41,9 +41,21 @@ export const LiveSystemKpis = () => {
       label: 'Avg response',
       value: data?.avgResponseMs != null ? `${data.avgResponseMs} ms` : '—',
     },
-    { icon: Users, label: 'Active sessions', value: data?.activeSessions ?? '—' },
-    { icon: Link2, label: 'Magic links · 30d', value: data?.magicLinks30d ?? '—' },
-    { icon: Plug, label: 'Integrations', value: data ? `${connected}/${totalServices}` : '—' },
+    {
+      icon: Users,
+      label: 'Active sessions',
+      value: data?.activeSessions ?? '—',
+    },
+    {
+      icon: Link2,
+      label: 'Magic links · 30d',
+      value: data?.magicLinks30d ?? '—',
+    },
+    {
+      icon: Plug,
+      label: 'Integrations',
+      value: data ? `${connected}/${totalServices}` : '—',
+    },
   ];
 
   const history = data?.history ?? [];
@@ -79,7 +91,10 @@ export const LiveSystemKpis = () => {
           </h3>
           <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {data.services.map((s) => (
-              <li key={s.key} className="flex items-center justify-between text-sm">
+              <li
+                key={s.key}
+                className="flex items-center justify-between text-sm"
+              >
                 <span className="text-intel-text">{s.name}</span>
                 <span
                   className={
@@ -138,7 +153,10 @@ export const LiveSystemKpis = () => {
         ) : (
           <ul className="divide-y divide-[#f1ece4]">
             {incidents.map((inc, i) => (
-              <li key={i} className="flex items-center justify-between py-2 text-sm">
+              <li
+                key={i}
+                className="flex items-center justify-between py-2 text-sm"
+              >
                 <span className="text-intel-text">
                   Degraded database connectivity
                 </span>

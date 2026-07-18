@@ -1,20 +1,26 @@
 import { cn } from '@repo/ui/lib/utils';
 import type { StayStatus } from '@/types';
 
-const config: Record<StayStatus, { label: string; className: string; dot: string }> = {
+const config: Record<
+  StayStatus,
+  { label: string; className: string; dot: string }
+> = {
   'arriving-today': {
     label: 'Arriving today',
-    className: 'border border-intel-warning/30 bg-intel-warning-bg text-intel-warning',
+    className:
+      'border border-intel-warning/30 bg-intel-warning-bg text-intel-warning',
     dot: 'bg-intel-warning',
   },
   confirmed: {
     label: 'Confirmed',
-    className: 'border border-intel-success/30 bg-intel-success-bg text-intel-success',
+    className:
+      'border border-intel-success/30 bg-intel-success-bg text-intel-success',
     dot: 'bg-intel-success',
   },
   'pending-review': {
     label: 'Pending review',
-    className: 'border border-intel-warning/30 bg-intel-warning-bg text-intel-warning',
+    className:
+      'border border-intel-warning/30 bg-intel-warning-bg text-intel-warning',
     dot: 'bg-intel-warning',
   },
 };

@@ -61,7 +61,10 @@ function buildRecommendations(
   const rising = active
     .map((v) => ({ v, f: fc.get(v.id) }))
     .filter((x) => x.f?.recommendation.startsWith('High') && !used.has(x.v.id))
-    .sort((a, b) => (b.f!.projectedNextQuarter ?? 0) - (a.f!.projectedNextQuarter ?? 0))[0];
+    .sort(
+      (a, b) =>
+        (b.f!.projectedNextQuarter ?? 0) - (a.f!.projectedNextQuarter ?? 0),
+    )[0];
   if (rising) {
     used.add(rising.v.id);
     recs.push({
@@ -150,8 +153,7 @@ export const StrategicRecommendationsPanel = () => {
   const { data: perf } = useVendorPerformance();
   const { data: forecast } = useVendorForecast();
 
-  const live =
-    perf && forecast ? buildRecommendations(perf, forecast) : [];
+  const live = perf && forecast ? buildRecommendations(perf, forecast) : [];
   const items = live.length > 0 ? live : vendorStrategicRecommendations;
 
   return (

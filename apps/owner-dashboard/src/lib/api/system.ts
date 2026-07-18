@@ -30,6 +30,5 @@ export interface ActiveSessionRow {
 
 export const systemApi = {
   health: () => api.get<SystemHealthResponse>(API.system.health),
-  activeSessions: () =>
-    api.get<ActiveSessionRow[]>(API.system.activeSessions),
+  activeSessions: () => api.get<ActiveSessionRow[]>(API.system.activeSessions),
 };
