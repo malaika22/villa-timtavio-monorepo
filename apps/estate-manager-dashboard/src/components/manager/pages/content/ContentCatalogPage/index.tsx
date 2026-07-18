@@ -61,6 +61,7 @@ export const ContentCatalogPage = () => {
   const [deletingExperience, setDeletingExperience] =
     useState<ContentExperience | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const { data: catalogData, isLoading } = useCatalogAdmin();
   const { data: categories = [] } = useExperienceCategories();
@@ -104,6 +105,18 @@ export const ContentCatalogPage = () => {
   const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const isCsv =
+      file.name.toLowerCase().endsWith('.csv') ||
+      file.type === 'text/csv' ||
+      file.type === 'application/vnd.ms-excel';
+    if (!isCsv) {
+      setUploadError(
+        'Please upload a .csv file. If your catalog is an Excel/Sheets file, export it as CSV first (File → Save As / Download → CSV).',
+      );
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+    setUploadError(null);
     importCsv.mutate(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -136,6 +149,12 @@ export const ContentCatalogPage = () => {
               <span>{(importCsv.error as Error).message}</span>
             </div>
           )}
+          {uploadError && (
+            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm text-amber-800">
+              <AlertCircle className="size-4 shrink-0" />
+              <span>{uploadError}</span>
+            </div>
+          )}
 
           <input
             ref={fileInputRef}
@@ -164,6 +183,13 @@ export const ContentCatalogPage = () => {
               </button>
             }
           />
+
+          <p className="-mt-2 text-xs text-manager-text-muted">
+            Bulk import: upload a <span className="font-medium">.csv</span> file
+            (export your catalog spreadsheet as CSV first). Each{' '}
+            <span className="font-medium">Category</span> becomes a filter, and a
+            placeholder image is added that you can replace per experience.
+          </p>
 
           {isLoading ? (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">

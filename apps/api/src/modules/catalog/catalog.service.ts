@@ -11,6 +11,20 @@ import { CatalogCategory } from '@prisma/client';
 import * as csv from 'csv-parse/sync';
 import { getErrorMessage } from '../../commons/utils/error.util';
 
+// Placeholder image applied to imported experiences — the EM replaces it per
+// item later. Overridable via env without a code change.
+const DEFAULT_EXPERIENCE_IMAGE =
+  process.env.DEFAULT_EXPERIENCE_IMAGE_URL ||
+  'https://villa-timtavio-monorepo-pwa.vercel.app/images/experience.png';
+
+function slugifyCategory(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 @Injectable()
 export class CatalogService {
   private readonly logger = new Logger(CatalogService.name);
@@ -254,6 +268,10 @@ export class CatalogService {
       );
     }
 
+    // Cache resolved experience categories (slug -> id) so each distinct CSV
+    // category is upserted once and reused across rows.
+    const categoryCache = new Map<string, string>();
+
     // Map Rodrigo's CSV column names to our schema
     // CSV columns: Category, Experiene Name, The Pitch, Duration, Price (USD), Vendor
     for (const record of records) {
@@ -300,10 +318,33 @@ export class CatalogService {
           if (vendor) vendorId = vendor.id;
         }
 
+        // Resolve (or create) the dynamic experience category that drives the
+        // dashboard filters, keyed on the raw CSV category name.
+        const rawCategory: string = record['Category']?.trim() || 'Other';
+        const catSlug = slugifyCategory(rawCategory) || 'other';
+        let experienceCategoryId: string;
+        const cachedCategoryId = categoryCache.get(catSlug);
+        if (cachedCategoryId) {
+          experienceCategoryId = cachedCategoryId;
+        } else {
+          let expCategory = await this.prisma.experienceCategory.findUnique({
+            where: { slug: catSlug },
+          });
+          if (!expCategory) {
+            const count = await this.prisma.experienceCategory.count();
+            expCategory = await this.prisma.experienceCategory.create({
+              data: { name: rawCategory, slug: catSlug, sortOrder: count },
+            });
+          }
+          experienceCategoryId = expCategory.id;
+          categoryCache.set(catSlug, experienceCategoryId);
+        }
+
         const item = await this.prisma.catalogItem.create({
           data: {
             name,
             category: categoryMapped,
+            experienceCategoryId,
             description: record['The Pitch']?.trim() || '',
             shortDescription:
               record['The Pitch']?.trim()?.substring(0, 120) || '',
@@ -312,6 +353,8 @@ export class CatalogService {
             durationLabel,
             durationMinutes,
             vendorId,
+            primaryPhotoUrl: DEFAULT_EXPERIENCE_IMAGE,
+            photoUrls: [DEFAULT_EXPERIENCE_IMAGE],
             createdBy: importedBy,
             sortOrder: results.imported,
           },

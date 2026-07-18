@@ -95,6 +95,10 @@ export function useImportCatalogCsv() {
     mutationFn: (file: File) => emCatalogApi.importCsv(file),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['catalog'] });
+      // Import may have created new categories — refresh the filter rail too.
+      void queryClient.invalidateQueries({
+        queryKey: ['experience-categories'],
+      });
     },
   });
 }
