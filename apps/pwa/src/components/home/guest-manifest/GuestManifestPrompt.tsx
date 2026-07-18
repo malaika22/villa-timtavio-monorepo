@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, Check, Lock } from 'lucide-react';
+import { ArrowRight, Check, Lock, Users } from 'lucide-react';
 import Link from 'next/link';
 
 type GuestManifestPromptProps = {
@@ -98,9 +98,9 @@ export const GuestManifestPrompt = ({
     return (
       <article className="animate-manifest-in overflow-hidden rounded-2xl border border-[#E9E4DC] bg-white p-4 shadow-[0_1px_2px_rgba(15,31,46,0.04)]">
         <div className="flex items-start gap-3">
-          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-[#E0C4BE] bg-[#F7ECEA]">
-            <Lock
-              className="size-5 text-[#7A4A42]"
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-[#E3D9CD] bg-[#F3EDE4]">
+            <Users
+              className="size-5 text-[#8C7261]"
               strokeWidth={2}
               aria-hidden
             />
@@ -114,21 +114,41 @@ export const GuestManifestPrompt = ({
             </div>
             <p className="mt-1 text-[12px] leading-snug text-[#797168]">
               Add your guests before arrival so we can prepare rooms,
-              preferences, and magic links.
+              preferences, and access links.
             </p>
+            {/* Guest-count indicator */}
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-[11px] font-medium text-[#5E5750]">
+                {guestsAdded} of {maxGuests} guest
+                {maxGuests === 1 ? '' : 's'} added
+              </span>
+              <span className="text-[11px] font-semibold text-[#8C7261]">
+                {pct}%
+              </span>
+            </div>
+            <div
+              className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-[#EFEAE1]"
+              role="progressbar"
+              aria-valuenow={pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className="h-full rounded-full bg-[#8C7261] transition-all"
+                style={{ width: `${pct}%` }}
+              />
+            </div>
           </div>
         </div>
 
         <button
           type="button"
           onClick={onAddGuest}
-          className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#4A2E28] text-[12px] font-semibold uppercase tracking-[2px] text-white transition-colors hover:bg-[#5C3A33]"
+          className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#0F1F2E] text-[12px] font-semibold uppercase tracking-[2px] text-white transition-colors hover:bg-[#1A3040]"
         >
           Add Guests
           <ArrowRight className="size-3.5 shrink-0" aria-hidden />
         </button>
-
-        <ViewManifestLink />
       </article>
     );
   }

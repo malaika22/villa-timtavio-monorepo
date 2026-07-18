@@ -11,6 +11,7 @@ import {
   Pencil,
   Check,
   Clock,
+  Users,
 } from 'lucide-react';
 import { Button } from '@repo/ui/components/button';
 import { Progress } from '@repo/ui/components/progress';
@@ -361,6 +362,22 @@ export const ManifestPage = () => {
         </div>
       )}
 
+      {/* ─── Empty state (no guests yet) ────────────────────────── */}
+      {!isLoading && (manifest?.guests?.length ?? 0) === 0 && !isLocked && (
+        <div className="mt-8 flex flex-col items-center justify-center rounded-[16px] border border-dashed border-[#E3D9CD] bg-[#FAF8F4] px-6 py-10 text-center">
+          <span className="mb-3 flex size-12 items-center justify-center rounded-full border border-[#E3D9CD] bg-[#F3EDE4]">
+            <Users className="size-5 text-[#8C7261]" strokeWidth={2} aria-hidden />
+          </span>
+          <p className="font-cormorant text-[18px] text-[#2B2824]">
+            No guests added yet
+          </p>
+          <p className="mt-1.5 max-w-[240px] text-[11px] leading-snug text-[#797168]">
+            Add your party so we can prepare rooms, dietary preferences, and each
+            guest&apos;s access link.
+          </p>
+        </div>
+      )}
+
       {/* ─── Allergy reminder ───────────────────────────────────── */}
       {!isLocked && (
         <motion.div
@@ -403,8 +420,13 @@ export const ManifestPage = () => {
 
           <Button
             onClick={openAddForm}
-            variant="outline"
-            className="w-full h-12 rounded-[12px] border-[#0F1F2E] bg-white text-[#0F1F2E] text-[10px] font-semibold uppercase tracking-[2px] hover:bg-[#F5F3F0] gap-2"
+            variant={addedGuests === 0 ? 'default' : 'outline'}
+            className={cn(
+              'w-full h-12 rounded-[12px] text-[10px] font-semibold uppercase tracking-[2px] gap-2',
+              addedGuests === 0
+                ? 'bg-[#0F1F2E] text-white hover:bg-[#1A3040]'
+                : 'border-[#0F1F2E] bg-white text-[#0F1F2E] hover:bg-[#F5F3F0]',
+            )}
           >
             <Plus className="size-4" aria-hidden />
             Add guest
