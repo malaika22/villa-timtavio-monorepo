@@ -2,6 +2,7 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
@@ -57,7 +58,8 @@ export class MagicLinkService {
 
       // Step 2: Generate OTP + store in DB
       const otp = crypto.randomInt(100000, 999999).toString();
-      const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+      const ttlMinutes = Number(this.config.get('MAGIC_LINK_TTL_MINUTES')) || 30;
+      const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
 
       await this.prisma.magicToken.create({
         data: {
@@ -112,7 +114,7 @@ export class MagicLinkService {
                       </p>
                       <p style="margin:0;font-size:15px;line-height:1.8;color:#5f5e5a;">
                         Click below to access your stay at Villa TimTavio.
-                        This link expires in 10 minutes.
+                        This link expires in ${ttlMinutes} minutes.
                       </p>
                     </td>
                   </tr>
@@ -212,14 +214,11 @@ export class MagicLinkService {
     });
 
     if (!record) {
-      throw new InternalServerErrorException('Invalid or expired magic link');
+      // Invalid / expired / already-used link — a client error, not a 500.
+      throw new UnauthorizedException(
+        'This access link is invalid or has expired. Please request a new one.',
+      );
     }
-
-    // Mark as used immediately (one-time use)
-    await this.prisma.magicToken.update({
-      where: { id: record.id },
-      data: { used: true },
-    });
 
     const auth0User = await this.auth0Mgmt.getUserByEmail(email);
     const role =
@@ -237,9 +236,17 @@ export class MagicLinkService {
       [`${AUTH0_NAMESPACE}/guestTier`]: record.guestTier,
     };
 
+    // Sign first — if this throws (e.g. misconfigured JWT_SECRET) the token is
+    // NOT consumed, so the guest can retry the same link once the issue is fixed.
     const access_token = this.jwtService.sign(payload, {
       expiresIn,
       algorithm: 'HS256',
+    });
+
+    // Consume the one-time token only after the access token is successfully issued.
+    await this.prisma.magicToken.update({
+      where: { id: record.id },
+      data: { used: true },
     });
 
     return { access_token, expires_in: expiresIn };
