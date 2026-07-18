@@ -297,38 +297,66 @@ export class InquiriesService {
   // ─── Email helpers ────────────────────────────────────────────────────────
 
   private async sendHoldingEmail(email: string, firstName: string) {
+    const logoUrl =
+      process.env.EMAIL_LOGO_URL ??
+      'https://www.villatimtavio.com/images/logo-dark.png';
     try {
       await this.resend.emails.send({
         from: `Villa TimTavio <${process.env.EMAIL_FROM}>`,
         to: email,
         subject: 'Your inquiry has been received — Villa TimTavio',
         html: `
-          <div style="font-family: Georgia, serif; max-width: 520px; 
-                      margin: 0 auto; color: #1A1A18; padding: 40px 0;">
-            <p style="font-size: 13px; font-weight: 500; 
-                      letter-spacing: 0.18em; text-transform: uppercase; 
-                      color: #888780; margin-bottom: 32px;">
-              VILLA TIMTAVIO
-            </p>
-            <p style="font-size: 18px; font-weight: 300; 
-                      margin-bottom: 24px;">
-              Dear ${firstName},
-            </p>
-            <p style="font-size: 15px; line-height: 1.8; 
-                      color: #5F5E5A; margin-bottom: 16px;">
-              Your inquiry has been received by our Estate Management team.
-            </p>
-            <p style="font-size: 15px; line-height: 1.8; color: #5F5E5A;">
-              Due to the exclusive nature of Villa TimTavio, all requests 
-              are subject to a private review. We will be in touch shortly.
-            </p>
-            <div style="margin-top: 48px; padding-top: 24px; 
-                        border-top: 1px solid #E8E6E0;">
-              <p style="font-size: 13px; color: #B4B2A9; font-style: italic;">
-                Villa TimTavio · Puerto Escondido, Oaxaca
-              </p>
-            </div>
-          </div>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                 style="background-color:#f5f3f0;margin:0;padding:0;">
+            <tr>
+              <td align="center" style="padding:40px 16px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                       style="max-width:560px;background-color:#ffffff;border:1px solid #e8e6e0;border-radius:10px;">
+                  <tr>
+                    <td align="center" style="padding:44px 44px 0 44px;">
+                      <img src="${logoUrl}" alt="Villa TimTavio" width="140"
+                           style="display:block;width:140px;max-width:55%;height:auto;margin:0 auto;" />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center" style="padding:18px 44px 0 44px;">
+                      <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:12px;
+                                letter-spacing:0.22em;text-transform:uppercase;color:#8c7261;">
+                        Villa TimTavio
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td align="center" style="padding:22px 44px 0 44px;">
+                      <div style="width:40px;height:2px;background-color:#c4a882;margin:0 auto;line-height:2px;font-size:0;">&nbsp;</div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:28px 44px 8px 44px;font-family:Georgia,'Times New Roman',serif;">
+                      <p style="margin:0 0 22px 0;font-size:20px;color:#0f1f2e;">Dear ${firstName},</p>
+                      <p style="margin:0 0 16px 0;font-size:15px;line-height:1.85;color:#5f5e5a;">
+                        Your inquiry has been received by our Estate Management team.
+                      </p>
+                      <p style="margin:0;font-size:15px;line-height:1.85;color:#5f5e5a;">
+                        Due to the exclusive nature of Villa TimTavio, all requests are
+                        subject to a private review. We will be in touch shortly.
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:32px 44px 44px 44px;">
+                      <div style="border-top:1px solid #e8e6e0;padding-top:22px;">
+                        <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-style:italic;
+                                  font-size:13px;color:#b4b2a9;">
+                          Villa TimTavio &middot; Puerto Escondido, Oaxaca
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
         `,
       });
     } catch (error) {

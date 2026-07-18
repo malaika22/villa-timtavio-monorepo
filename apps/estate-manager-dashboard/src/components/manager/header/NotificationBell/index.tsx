@@ -30,6 +30,9 @@ function alertHref(alert: SystemAlert): string | null {
   // Reminders are resolved by changing booking status in the Current Guests
   // table — deep-link straight to it.
   if (alert.category === 'REMINDER') return '/#current-guests';
+  // Inquiry alerts are BOOKING-category but should open the inquiry detail.
+  if (alert.entityType === 'Inquiry' && alert.entityId)
+    return `/inquiries/${alert.entityId}`;
   if (alert.category === 'BOOKING') return '/approvals';
   return null;
 }
