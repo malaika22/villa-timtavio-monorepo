@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { GuestDetailPanel } from '@/components/manager/pages/guests/GuestDetailPanel';
 import { GuestListPanel } from '@/components/manager/pages/guests/GuestListPanel';
@@ -24,15 +24,15 @@ export const GuestsPage = () => {
   const searchParams = useSearchParams();
   const guestFromUrl = searchParams.get('guest');
   const [selectedId, setSelectedId] = useState<string | null>(guestFromUrl);
+  const [prevGuestFromUrl, setPrevGuestFromUrl] = useState(guestFromUrl);
   const [search, setSearch] = useState('');
 
-  const { current: apiCurrent, past: apiPast } = useGuests(search);
+  if (guestFromUrl !== prevGuestFromUrl) {
+    setPrevGuestFromUrl(guestFromUrl);
+    if (guestFromUrl) setSelectedId(guestFromUrl);
+  }
 
-  useEffect(() => {
-    if (guestFromUrl) {
-      setSelectedId(guestFromUrl);
-    }
-  }, [guestFromUrl]);
+  const { current: apiCurrent, past: apiPast } = useGuests(search);
 
   const current = useMemo(
     () => filterGuests(apiCurrent, search),

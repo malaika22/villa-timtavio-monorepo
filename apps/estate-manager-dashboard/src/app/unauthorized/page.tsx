@@ -8,8 +8,8 @@ export default function UnauthorizedPage() {
           Access denied
         </h1>
         <p className="mt-2 text-sm text-manager-text-muted">
-          Your account does not have permission to access this dashboard.
-          Please contact the estate administrator.
+          Your account does not have permission to access this dashboard. Please
+          contact the estate administrator.
         </p>
         <div className="mt-6 flex flex-col gap-2">
           <a

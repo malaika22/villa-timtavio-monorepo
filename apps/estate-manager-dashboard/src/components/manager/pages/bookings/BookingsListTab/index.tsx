@@ -38,7 +38,10 @@ export const BookingsListTab = ({
     return (
       <div className="space-y-2">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-14 animate-pulse rounded-lg bg-manager-border" />
+          <div
+            key={i}
+            className="h-14 animate-pulse rounded-lg bg-manager-border"
+          />
         ))}
       </div>
     );
@@ -83,10 +86,18 @@ export const BookingsListTab = ({
                   {guest.firstName} {guest.lastName}
                 </Link>
               </td>
-              <td className="px-4 py-3 text-manager-text-muted">{fmt(booking.checkIn)}</td>
-              <td className="px-4 py-3 text-manager-text-muted">{fmt(booking.checkOut)}</td>
-              <td className="px-4 py-3 text-manager-text-muted">{booking.nights}</td>
-              <td className="px-4 py-3 text-manager-text-muted">{booking.totalGuests}</td>
+              <td className="px-4 py-3 text-manager-text-muted">
+                {fmt(booking.checkIn)}
+              </td>
+              <td className="px-4 py-3 text-manager-text-muted">
+                {fmt(booking.checkOut)}
+              </td>
+              <td className="px-4 py-3 text-manager-text-muted">
+                {booking.nights}
+              </td>
+              <td className="px-4 py-3 text-manager-text-muted">
+                {booking.totalGuests}
+              </td>
               <td className="px-4 py-3">
                 <span className="rounded-full bg-[#f5ebe0] px-2.5 py-1 text-xs font-medium text-[#8b6914]">
                   {mode === 'manifest-review'

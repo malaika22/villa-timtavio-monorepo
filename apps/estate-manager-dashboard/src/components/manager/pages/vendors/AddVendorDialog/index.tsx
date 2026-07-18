@@ -81,8 +81,16 @@ export const AddVendorDialog = ({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <Input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-          <Input placeholder="Role (e.g. Private Chef)" value={role} onChange={(e) => setRole(e.target.value)} />
+          <Input
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Input
+            placeholder="Role (e.g. Private Chef)"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+          />
           <div className="flex flex-wrap gap-1.5">
             {CATEGORIES.map((c) => (
               <button
@@ -100,8 +108,17 @@ export const AddVendorDialog = ({
               </button>
             ))}
           </div>
-          <Input placeholder="Email (optional)" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <Input placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          <Input
+            placeholder="Email (optional)"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Input
+            placeholder="Phone (optional)"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -112,7 +129,9 @@ export const AddVendorDialog = ({
             disabled={!valid || create.isPending}
             onClick={submit}
           >
-            {create.isPending ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : null}
+            {create.isPending ? (
+              <Loader2 className="mr-1.5 size-4 animate-spin" />
+            ) : null}
             Add vendor
           </Button>
         </DialogFooter>

@@ -29,7 +29,13 @@ export function useOccupancy(period?: string) {
 
 export function useHeatMap(date?: string, range?: string, category?: string) {
   return useQuery({
-    queryKey: ['analytics', 'heat-map', date ?? null, range ?? null, category ?? null],
+    queryKey: [
+      'analytics',
+      'heat-map',
+      date ?? null,
+      range ?? null,
+      category ?? null,
+    ],
     queryFn: () => emAnalyticsApi.heatMap(date, range, category),
     staleTime: STALE,
   });

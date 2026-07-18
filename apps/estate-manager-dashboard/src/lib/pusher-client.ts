@@ -8,7 +8,9 @@ export async function getDashboardPusherClient(): Promise<PusherClient> {
 
   const { key, cluster } = config.pusher;
   if (!key || !cluster) {
-    throw new Error('Pusher is not configured for the estate manager dashboard');
+    throw new Error(
+      'Pusher is not configured for the estate manager dashboard',
+    );
   }
 
   const tokenRes = await fetch('/api/auth/token');

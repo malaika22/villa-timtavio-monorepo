@@ -22,7 +22,12 @@ type Props = {
   onSearchChange: (value: string) => void;
 };
 
-export const VendorsFilterBar = ({ activeTab, onTabChange, search, onSearchChange }: Props) => (
+export const VendorsFilterBar = ({
+  activeTab,
+  onTabChange,
+  search,
+  onSearchChange,
+}: Props) => (
   <div className="font-inter flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
     <div className="inline-flex w-full max-w-full flex-wrap items-center gap-0.5 rounded-lg border border-manager-border bg-manager-card p-1 shadow-none lg:w-auto lg:flex-nowrap">
       {TABS.map((tab) => {

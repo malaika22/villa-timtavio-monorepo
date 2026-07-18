@@ -144,9 +144,7 @@ export const InquiriesPage = () => {
         {FILTER_TABS.map((tab) => {
           const isActive = filter === tab.value;
           const count =
-            tab.value === 'NEW' && filter === 'all'
-              ? counts.NEW
-              : undefined;
+            tab.value === 'NEW' && filter === 'all' ? counts.NEW : undefined;
 
           return (
             <button

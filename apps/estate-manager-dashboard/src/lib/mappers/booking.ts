@@ -35,7 +35,10 @@ function formatDateRange(checkIn: string, checkOut: string): string {
   if (sameMonth) {
     return `${fmtDay(a)}–${fmtDay(b)} ${fmtMonthYear(a)}`;
   }
-  const aLabel = a.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+  const aLabel = a.toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'short',
+  });
   const bLabel = `${fmtDay(b)} ${fmtMonthYear(b)}`;
   return `${aLabel} – ${bLabel}`;
 }
@@ -103,12 +106,16 @@ function buildChecklist(
 ): CurrentBooking['checklist'] {
   const { manifestStatus, status, manifestGuests, checkIn } = detail;
   const linkSent =
-    manifestGuests.some((g) => g.pwaLinkSent) || manifestStatus !== 'INCOMPLETE';
+    manifestGuests.some((g) => g.pwaLinkSent) ||
+    manifestStatus !== 'INCOMPLETE';
   const submitted = ['SUBMITTED', 'APPROVED'].includes(manifestStatus);
   const approved = manifestStatus === 'APPROVED';
-  const checkedIn = ['CHECKED_IN', 'SETTLED', 'DEPARTURE_TODAY', 'CHECKED_OUT'].includes(
-    status,
-  );
+  const checkedIn = [
+    'CHECKED_IN',
+    'SETTLED',
+    'DEPARTURE_TODAY',
+    'CHECKED_OUT',
+  ].includes(status);
 
   const s = (cond: boolean, pending = false): ChecklistItemStatus =>
     cond ? 'completed' : pending ? 'pending' : 'upcoming';
@@ -119,7 +126,9 @@ function buildChecklist(
     {
       id: 'c3',
       title: 'Guest manifest submitted',
-      status: submitted ? 'completed' : s(manifestStatus === 'IN_PROGRESS', true),
+      status: submitted
+        ? 'completed'
+        : s(manifestStatus === 'IN_PROGRESS', true),
     },
     {
       id: 'c4',
@@ -164,20 +173,24 @@ export function mapToCurrentBooking(
   // primary member's.
   const dietary = dedupe([
     ...splitList(...primaryGuest.dietaryRestrictions),
-    ...manifestGuests.flatMap((g) => splitList(...(g.dietaryRestrictions ?? []))),
+    ...manifestGuests.flatMap((g) =>
+      splitList(...(g.dietaryRestrictions ?? [])),
+    ),
   ]);
 
   const allergyList = dedupe(
-    [
-      primaryGuest.allergies,
-      ...manifestGuests.map((g) => g.allergies),
-    ].filter((a): a is string => !!a && a.trim().length > 0),
+    [primaryGuest.allergies, ...manifestGuests.map((g) => g.allergies)].filter(
+      (a): a is string => !!a && a.trim().length > 0,
+    ),
   );
   // Surface allergies in the dietary chips too (highlighted as alerts).
   for (const a of allergyList) if (!dietary.includes(a)) dietary.push(a);
 
   const beverages = dedupe([
-    ...splitList(primaryGuest.beveragePreferences, primaryGuest.winePreferences),
+    ...splitList(
+      primaryGuest.beveragePreferences,
+      primaryGuest.winePreferences,
+    ),
     ...manifestGuests.flatMap((g) => splitList(g.beveragePreferences)),
   ]);
 

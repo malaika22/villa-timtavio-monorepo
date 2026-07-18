@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Button,
   Dialog,
@@ -22,6 +22,30 @@ import {
   useUpdateRecommendation,
 } from '@/hooks/useCatalogAdmin';
 
+const emptyForm = {
+  name: '',
+  category: '',
+  location: '',
+  description: '',
+  photoUrl: '',
+  externalUrl: '',
+  isFeatured: false,
+  sortOrder: 0,
+};
+
+function formFromEditing(editing: Recommendation | null) {
+  return {
+    name: editing?.name ?? '',
+    category: editing?.category ?? '',
+    location: editing?.location ?? '',
+    description: editing?.description ?? '',
+    photoUrl: editing?.photoUrl ?? '',
+    externalUrl: editing?.externalUrl ?? '',
+    isFeatured: editing?.isFeatured ?? false,
+    sortOrder: editing?.sortOrder ?? 0,
+  };
+}
+
 export const RecommendationFormDialog = ({
   open,
   onOpenChange,
@@ -35,31 +59,14 @@ export const RecommendationFormDialog = ({
   const update = useUpdateRecommendation();
   const pending = create.isPending || update.isPending;
 
-  const [form, setForm] = useState({
-    name: '',
-    category: '',
-    location: '',
-    description: '',
-    photoUrl: '',
-    externalUrl: '',
-    isFeatured: false,
-    sortOrder: 0,
-  });
+  const [form, setForm] = useState(emptyForm);
+  const formSessionKey = `${open}:${editing?.id ?? 'new'}`;
+  const [activeSessionKey, setActiveSessionKey] = useState(formSessionKey);
 
-  useEffect(() => {
-    if (open) {
-      setForm({
-        name: editing?.name ?? '',
-        category: editing?.category ?? '',
-        location: editing?.location ?? '',
-        description: editing?.description ?? '',
-        photoUrl: editing?.photoUrl ?? '',
-        externalUrl: editing?.externalUrl ?? '',
-        isFeatured: editing?.isFeatured ?? false,
-        sortOrder: editing?.sortOrder ?? 0,
-      });
-    }
-  }, [open, editing]);
+  if (open && formSessionKey !== activeSessionKey) {
+    setActiveSessionKey(formSessionKey);
+    setForm(formFromEditing(editing));
+  }
 
   const set = (k: keyof typeof form, v: string | boolean | number) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -80,7 +87,9 @@ export const RecommendationFormDialog = ({
     };
     const onDone = {
       onSuccess: () => {
-        toast.success(editing ? 'Recommendation updated' : 'Recommendation added');
+        toast.success(
+          editing ? 'Recommendation updated' : 'Recommendation added',
+        );
         onOpenChange(false);
       },
       onError: (e: unknown) => toast.error((e as Error).message),
@@ -101,17 +110,39 @@ export const RecommendationFormDialog = ({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Input placeholder="Name" value={form.name} onChange={(e) => set('name', e.target.value)} />
-          <Input placeholder="Category" value={form.category} onChange={(e) => set('category', e.target.value)} />
-          <Input placeholder="Location" value={form.location} onChange={(e) => set('location', e.target.value)} />
+          <Input
+            placeholder="Name"
+            value={form.name}
+            onChange={(e) => set('name', e.target.value)}
+          />
+          <Input
+            placeholder="Category"
+            value={form.category}
+            onChange={(e) => set('category', e.target.value)}
+          />
+          <Input
+            placeholder="Location"
+            value={form.location}
+            onChange={(e) => set('location', e.target.value)}
+          />
           <Input
             type="number"
             placeholder="Sort order"
             value={form.sortOrder}
             onChange={(e) => set('sortOrder', Number(e.target.value))}
           />
-          <Input className="sm:col-span-2" placeholder="Photo URL" value={form.photoUrl} onChange={(e) => set('photoUrl', e.target.value)} />
-          <Input className="sm:col-span-2" placeholder="External URL" value={form.externalUrl} onChange={(e) => set('externalUrl', e.target.value)} />
+          <Input
+            className="sm:col-span-2"
+            placeholder="Photo URL"
+            value={form.photoUrl}
+            onChange={(e) => set('photoUrl', e.target.value)}
+          />
+          <Input
+            className="sm:col-span-2"
+            placeholder="External URL"
+            value={form.externalUrl}
+            onChange={(e) => set('externalUrl', e.target.value)}
+          />
           <Textarea
             className="sm:col-span-2"
             rows={3}
@@ -129,7 +160,9 @@ export const RecommendationFormDialog = ({
                 : 'border-manager-border text-manager-text-muted',
             )}
           >
-            <Star className={cn('size-3.5', form.isFeatured && 'fill-current')} />
+            <Star
+              className={cn('size-3.5', form.isFeatured && 'fill-current')}
+            />
             Featured
           </button>
         </div>
@@ -142,7 +175,9 @@ export const RecommendationFormDialog = ({
             disabled={!valid || pending}
             onClick={submit}
           >
-            {pending ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : null}
+            {pending ? (
+              <Loader2 className="mr-1.5 size-4 animate-spin" />
+            ) : null}
             {editing ? 'Save' : 'Add'}
           </Button>
         </DialogFooter>

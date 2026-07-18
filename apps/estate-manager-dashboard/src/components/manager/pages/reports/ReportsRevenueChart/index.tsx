@@ -26,7 +26,9 @@ function YearToggle({
       onClick={onClick}
       className={cn(
         'font-inter rounded-md px-4 py-1.5 text-sm font-medium transition-colors',
-        active ? 'bg-manager-accent text-white' : 'text-[#707070] hover:text-manager-text',
+        active
+          ? 'bg-manager-accent text-white'
+          : 'text-[#707070] hover:text-manager-text',
       )}
     >
       {year}
@@ -42,7 +44,10 @@ function RevenueBars({ data }: { data: ReportsRevenueMonth[] }) {
       {data.map((row) => {
         const height = Math.round((row.valueK / max) * MAX_BAR_HEIGHT);
         return (
-          <div key={row.month} className="flex min-w-0 flex-1 flex-col items-center">
+          <div
+            key={row.month}
+            className="flex min-w-0 flex-1 flex-col items-center"
+          >
             <span className="font-inter mb-2 text-[11px] font-medium text-manager-text-muted">
               {row.label}
             </span>
@@ -54,7 +59,9 @@ function RevenueBars({ data }: { data: ReportsRevenueMonth[] }) {
               style={{ height: `${Math.max(height, 8)}px` }}
               title={row.label}
             />
-            <span className="font-inter mt-2 text-xs text-manager-text-muted">{row.month}</span>
+            <span className="font-inter mt-2 text-xs text-manager-text-muted">
+              {row.month}
+            </span>
           </div>
         );
       })}
@@ -73,8 +80,16 @@ export const ReportsRevenueChart = () => {
           Revenue by Month — {year}
         </h3>
         <div className="inline-flex items-center gap-0.5 rounded-lg border border-manager-border bg-manager-card p-1">
-          <YearToggle year="2026" active={year === '2026'} onClick={() => setYear('2026')} />
-          <YearToggle year="2025" active={year === '2025'} onClick={() => setYear('2025')} />
+          <YearToggle
+            year="2026"
+            active={year === '2026'}
+            onClick={() => setYear('2026')}
+          />
+          <YearToggle
+            year="2025"
+            active={year === '2025'}
+            onClick={() => setYear('2025')}
+          />
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { useSyncExternalStore } from 'react';
 import { DashboardCard } from '@repo/dashboard-ui';
 import { cn } from '@repo/ui/lib/utils';
 import { AlertTriangle, CheckCircle2, RefreshCw } from 'lucide-react';
@@ -15,13 +16,34 @@ const SEVERITY_STYLES: Record<string, string> = {
   low: 'border-manager-border bg-[#faf9f7] text-manager-text',
 };
 
+const HOUR_MS = 60 * 60 * 1000;
+const MINUTE_MS = 60_000;
+
+function subscribeToClock(onStoreChange: () => void) {
+  const id = window.setInterval(onStoreChange, MINUTE_MS);
+  return () => window.clearInterval(id);
+}
+
+function getClockSnapshot() {
+  return Math.floor(Date.now() / MINUTE_MS);
+}
+
+function getServerClockSnapshot() {
+  return 0;
+}
+
 export const SystemHealthPage = () => {
   const { data: sync, isLoading: syncLoading } = useLodgifySyncStatus();
   const { data: alerts, isLoading: alertsLoading } = useSystemAlerts();
+  const nowMinute = useSyncExternalStore(
+    subscribeToClock,
+    getClockSnapshot,
+    getServerClockSnapshot,
+  );
 
   const lastSync = sync?.lastSyncAt ? new Date(sync.lastSyncAt) : null;
   const syncHealthy =
-    lastSync != null && Date.now() - lastSync.getTime() < 60 * 60 * 1000;
+    lastSync != null && nowMinute * MINUTE_MS - lastSync.getTime() < HOUR_MS;
 
   return (
     <div className="font-inter space-y-5">
@@ -76,7 +98,11 @@ export const SystemHealthPage = () => {
       </div>
 
       {/* System alerts */}
-      <DashboardCard variant="manager" padding={false} className="overflow-hidden">
+      <DashboardCard
+        variant="manager"
+        padding={false}
+        className="overflow-hidden"
+      >
         <div className="border-b border-[#ebe6df] px-5 py-3.5">
           <h3 className="text-sm font-semibold text-manager-text">
             System Alerts
@@ -85,7 +111,10 @@ export const SystemHealthPage = () => {
         {alertsLoading ? (
           <div className="space-y-2 p-5">
             {[1, 2].map((i) => (
-              <div key={i} className="h-14 animate-pulse rounded-lg bg-manager-border" />
+              <div
+                key={i}
+                className="h-14 animate-pulse rounded-lg bg-manager-border"
+              />
             ))}
           </div>
         ) : alerts && alerts.length > 0 ? (

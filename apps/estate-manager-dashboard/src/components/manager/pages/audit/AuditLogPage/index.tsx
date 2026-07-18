@@ -19,7 +19,9 @@ const prettyAction = (a: string) =>
 
 export const AuditLogPage = () => {
   const [search, setSearch] = useState('');
-  const { data: rows = [], isLoading } = useAuditLog({ search: search || undefined });
+  const { data: rows = [], isLoading } = useAuditLog({
+    search: search || undefined,
+  });
 
   const columns: DataTableColumn<AuditLogEntry>[] = [
     {
@@ -54,7 +56,9 @@ export const AuditLogPage = () => {
       cell: (row) => (
         <div className="min-w-[160px]">
           <p className="text-sm text-manager-text">{row.entityType}</p>
-          <p className="truncate text-xs text-manager-text-muted">{row.entityId}</p>
+          <p className="truncate text-xs text-manager-text-muted">
+            {row.entityId}
+          </p>
         </div>
       ),
     },
@@ -64,7 +68,9 @@ export const AuditLogPage = () => {
       cell: (row) => (
         <div>
           <p className="text-sm text-manager-text">{row.performedBy}</p>
-          <p className="text-xs text-manager-text-muted">{row.performedByRole}</p>
+          <p className="text-xs text-manager-text-muted">
+            {row.performedByRole}
+          </p>
         </div>
       ),
     },
@@ -85,7 +91,10 @@ export const AuditLogPage = () => {
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-12 animate-pulse rounded-lg bg-manager-border" />
+            <div
+              key={i}
+              className="h-12 animate-pulse rounded-lg bg-manager-border"
+            />
           ))}
         </div>
       ) : rows.length === 0 ? (
@@ -93,7 +102,12 @@ export const AuditLogPage = () => {
           No audit entries{search ? ' match your search' : ' yet'}.
         </p>
       ) : (
-        <DataTable columns={columns} rows={rows} variant="manager" striped={false} />
+        <DataTable
+          columns={columns}
+          rows={rows}
+          variant="manager"
+          striped={false}
+        />
       )}
     </div>
   );

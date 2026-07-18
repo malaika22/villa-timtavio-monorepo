@@ -3,7 +3,13 @@ import { cn } from '@repo/ui/lib/utils';
 
 import type { CurrentBooking } from '@/types';
 
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
+const Section = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => (
   <div className="mb-4 last:mb-0">
     <h4 className="mb-2 text-[10px] font-medium tracking-[0.14em] text-manager-text-muted uppercase">
       {title}
@@ -16,9 +22,15 @@ const EmptyHint = ({ text }: { text: string }) => (
   <p className="text-sm italic text-manager-text-muted">{text}</p>
 );
 
-export const BookingPreferencesCard = ({ booking }: { booking: CurrentBooking }) => (
+export const BookingPreferencesCard = ({
+  booking,
+}: {
+  booking: CurrentBooking;
+}) => (
   <DashboardCard variant="manager" className="p-5">
-    <h3 className="mb-4 text-sm font-semibold text-manager-text">Guest Preferences</h3>
+    <h3 className="mb-4 text-sm font-semibold text-manager-text">
+      Guest Preferences
+    </h3>
 
     <Section title="Dietary">
       {booking.dietary.length === 0 ? (
@@ -73,7 +85,9 @@ export const BookingPreferencesCard = ({ booking }: { booking: CurrentBooking })
     <Section title="Notes">
       {booking.staffNote.text ? (
         <div className="rounded-lg border border-[#e8dcc8] bg-[#fff5eb] p-4">
-          <p className="text-sm leading-relaxed text-manager-text">{booking.staffNote.text}</p>
+          <p className="text-sm leading-relaxed text-manager-text">
+            {booking.staffNote.text}
+          </p>
           {booking.staffNote.attribution ? (
             <p className="mt-2 text-sm text-manager-text-muted">
               {booking.staffNote.attribution}

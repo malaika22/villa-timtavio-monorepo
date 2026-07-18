@@ -44,8 +44,7 @@ export const FolioPage = () => {
     null,
   );
 
-  const bookingId =
-    selectedBookingId ?? guests[0]?.activeBookingId ?? null;
+  const bookingId = selectedBookingId ?? guests[0]?.activeBookingId ?? null;
   const selectedGuest = guests.find((g) => g.activeBookingId === bookingId);
 
   const { data: folio, isLoading: folioLoading } = useFolioEM(bookingId);
@@ -91,11 +90,16 @@ export const FolioPage = () => {
         {guestsLoading ? (
           <div className="space-y-2 p-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 animate-pulse rounded-lg bg-manager-border" />
+              <div
+                key={i}
+                className="h-12 animate-pulse rounded-lg bg-manager-border"
+              />
             ))}
           </div>
         ) : guests.length === 0 ? (
-          <p className="p-4 text-sm text-manager-text-muted">No current guests.</p>
+          <p className="p-4 text-sm text-manager-text-muted">
+            No current guests.
+          </p>
         ) : (
           <ul className="p-2">
             {guests.map((g) => (
@@ -190,7 +194,9 @@ export const FolioPage = () => {
                       </p>
                       <p className="text-xs text-manager-text-muted">
                         {item.type.replace(/_/g, ' ').toLowerCase()}
-                        {item.attributedToName ? ` · ${item.attributedToName}` : ''}
+                        {item.attributedToName
+                          ? ` · ${item.attributedToName}`
+                          : ''}
                         {editable ? ' · editable 30m' : ''}
                       </p>
                     </div>
@@ -240,7 +246,9 @@ export const FolioPage = () => {
               />
               <div className="flex items-center justify-between border-t border-manager-border pt-2 text-base font-semibold text-manager-text">
                 <span>Grand total</span>
-                <span className="tabular-nums">{money(folio.summary.grandTotal)}</span>
+                <span className="tabular-nums">
+                  {money(folio.summary.grandTotal)}
+                </span>
               </div>
             </div>
           </div>
@@ -325,7 +333,9 @@ export const FolioPage = () => {
             <div className="rounded-lg bg-manager-main px-4 py-3 text-sm">
               <div className="flex justify-between font-semibold text-manager-text">
                 <span>Grand total</span>
-                <span className="tabular-nums">{money(folio.summary.grandTotal)}</span>
+                <span className="tabular-nums">
+                  {money(folio.summary.grandTotal)}
+                </span>
               </div>
             </div>
           ) : null}
@@ -467,7 +477,9 @@ function LogChargeDialog({
             disabled={!valid || pending}
             onClick={submit}
           >
-            {pending ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : null}
+            {pending ? (
+              <Loader2 className="mr-1.5 size-4 animate-spin" />
+            ) : null}
             Add charge
           </Button>
         </DialogFooter>

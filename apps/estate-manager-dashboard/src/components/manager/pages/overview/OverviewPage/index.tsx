@@ -12,7 +12,18 @@ import {
 import { formatRevenueCompact } from '@/lib/mappers/dashboard';
 
 const MONTH_LABELS = [
-  'J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D',
+  'J',
+  'F',
+  'M',
+  'A',
+  'M',
+  'J',
+  'J',
+  'A',
+  'S',
+  'O',
+  'N',
+  'D',
 ];
 
 export const OverviewPage = () => {
@@ -51,7 +62,10 @@ export const OverviewPage = () => {
       ]
     : [];
 
-  const maxRevenue = Math.max(1, ...(revenue?.data.map((d) => d.revenue) ?? [0]));
+  const maxRevenue = Math.max(
+    1,
+    ...(revenue?.data.map((d) => d.revenue) ?? [0]),
+  );
 
   return (
     <div className="space-y-5 font-inter">
@@ -74,7 +88,10 @@ export const OverviewPage = () => {
       {overviewLoading ? (
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-24 animate-pulse rounded-xl bg-manager-border" />
+            <div
+              key={i}
+              className="h-24 animate-pulse rounded-xl bg-manager-border"
+            />
           ))}
         </div>
       ) : (
@@ -120,7 +137,11 @@ export const OverviewPage = () => {
         </DashboardCard>
 
         {/* Upcoming stays */}
-        <DashboardCard variant="manager" padding={false} className="overflow-hidden">
+        <DashboardCard
+          variant="manager"
+          padding={false}
+          className="overflow-hidden"
+        >
           <div className="border-b border-[#ebe6df] px-5 py-3.5">
             <h3 className="text-sm font-semibold text-manager-text">
               Upcoming Stays

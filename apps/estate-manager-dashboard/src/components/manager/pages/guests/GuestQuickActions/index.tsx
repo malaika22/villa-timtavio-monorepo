@@ -38,7 +38,11 @@ const STATUS_CYCLE: BookingStatus[] = [
 const btn =
   'h-8 gap-1.5 rounded-md border-[#e5e0d8] bg-white px-3.5 text-[13px] font-medium text-manager-text shadow-none hover:bg-[#faf9f7]';
 
-export const GuestQuickActions = ({ profile }: { profile: GuestDNAProfile }) => {
+export const GuestQuickActions = ({
+  profile,
+}: {
+  profile: GuestDNAProfile;
+}) => {
   const queryClient = useQueryClient();
   const bookingId = profile.activeBookingId ?? null;
   const sendLink = useSendMagicLink();
@@ -68,7 +72,11 @@ export const GuestQuickActions = ({ profile }: { profile: GuestDNAProfile }) => 
       {/* Change state */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className={btn} disabled={statusMutation.isPending}>
+          <Button
+            variant="outline"
+            className={btn}
+            disabled={statusMutation.isPending}
+          >
             {statusMutation.isPending ? (
               <Loader2 className="size-3.5 animate-spin" />
             ) : null}

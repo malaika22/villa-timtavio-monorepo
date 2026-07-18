@@ -1,7 +1,11 @@
 import { GuestStayActivityStatusPill } from '@/components/manager/pages/guests/GuestStayActivityStatus';
 import type { GuestDNAProfile } from '@/types';
 
-export const GuestStayActivityTable = ({ profile }: { profile: GuestDNAProfile }) => (
+export const GuestStayActivityTable = ({
+  profile,
+}: {
+  profile: GuestDNAProfile;
+}) => (
   <section>
     <h3 className="mb-2 text-[10px] font-medium tracking-[0.14em] text-manager-text-muted uppercase">
       Current Stay Activity
@@ -26,9 +30,16 @@ export const GuestStayActivityTable = ({ profile }: { profile: GuestDNAProfile }
           </thead>
           <tbody>
             {profile.stayActivity.map((row) => (
-              <tr key={row.id} className="border-b border-[#ebe6df] last:border-0">
-                <td className="px-3 py-2 font-medium text-manager-text">{row.experience}</td>
-                <td className="px-3 py-2 text-manager-text-muted">{row.date}</td>
+              <tr
+                key={row.id}
+                className="border-b border-[#ebe6df] last:border-0"
+              >
+                <td className="px-3 py-2 font-medium text-manager-text">
+                  {row.experience}
+                </td>
+                <td className="px-3 py-2 text-manager-text-muted">
+                  {row.date}
+                </td>
                 <td className="px-3 py-2">
                   <GuestStayActivityStatusPill status={row.status} />
                 </td>

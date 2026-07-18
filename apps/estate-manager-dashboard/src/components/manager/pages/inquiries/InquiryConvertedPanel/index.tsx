@@ -24,10 +24,15 @@ export function InquiryConvertedPanel({ inquiry }: Props) {
         </h2>
         <p className="mt-1 text-sm text-purple-800/80">
           This inquiry was converted to booking{' '}
-          <span className="font-mono text-xs">{inquiry.convertedToBookingId}</span>
+          <span className="font-mono text-xs">
+            {inquiry.convertedToBookingId}
+          </span>
           . Open Bookings + Manifest to manage the stay.
         </p>
-        <Button asChild className="mt-4 bg-manager-accent text-white hover:opacity-90">
+        <Button
+          asChild
+          className="mt-4 bg-manager-accent text-white hover:opacity-90"
+        >
           <Link href="/bookings">
             <BookMarked className="mr-2 size-4" />
             Open bookings
@@ -44,8 +49,8 @@ export function InquiryConvertedPanel({ inquiry }: Props) {
           Converted to booking
         </h2>
         <p className="mt-1 text-sm text-purple-800/80">
-          Lodgify reservation synced. Send the guest magic link manually if needed
-          before the 24-hour auto-send window.
+          Lodgify reservation synced. Send the guest magic link manually if
+          needed before the 24-hour auto-send window.
         </p>
       </div>
 

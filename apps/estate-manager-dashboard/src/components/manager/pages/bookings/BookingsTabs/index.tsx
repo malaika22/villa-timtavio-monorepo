@@ -11,9 +11,19 @@ const TABS: {
   badgeVariant?: 'red' | 'green';
 }[] = [
   { value: 'current', label: 'Current Booking' },
-  { value: 'upcoming', label: 'Upcoming Bookings', badge: 4, badgeVariant: 'red' },
+  {
+    value: 'upcoming',
+    label: 'Upcoming Bookings',
+    badge: 4,
+    badgeVariant: 'red',
+  },
   { value: 'past', label: 'Past Bookings' },
-  { value: 'manifest', label: 'Manifest Review', badge: 1, badgeVariant: 'green' },
+  {
+    value: 'manifest',
+    label: 'Manifest Review',
+    badge: 1,
+    badgeVariant: 'green',
+  },
 ];
 
 export const BookingsTabs = ({
@@ -33,7 +43,9 @@ export const BookingsTabs = ({
           onClick={() => onTabChange(tab.value)}
           className={cn(
             'relative flex items-center gap-2 pb-3 text-sm font-medium transition-colors',
-            isActive ? 'text-manager-text' : 'text-manager-text-muted hover:text-manager-text',
+            isActive
+              ? 'text-manager-text'
+              : 'text-manager-text-muted hover:text-manager-text',
           )}
         >
           {tab.label}

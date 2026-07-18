@@ -20,8 +20,12 @@ export function useDashboardAuth() {
   });
   const router = useRouter();
 
-  const roles: string[] =
-    (user as any)?.[`${config.auth0.auth0Namespace}/roles`] || [];
+  const rolesClaim = (user as Record<string, unknown> | undefined | null)?.[
+    `${config.auth0.auth0Namespace}/roles`
+  ];
+  const roles: string[] = Array.isArray(rolesClaim)
+    ? rolesClaim.filter((role): role is string => typeof role === 'string')
+    : [];
   const isOwner = roles.includes('owner');
   const isEM = roles.includes('estate_manager');
 

@@ -12,19 +12,27 @@ export const ReportsTopVendorsTable = () => {
       key: 'vendor',
       header: 'Vendor',
       cell: (row) => (
-        <span className="font-inter text-sm font-semibold text-manager-text">{row.vendor}</span>
+        <span className="font-inter text-sm font-semibold text-manager-text">
+          {row.vendor}
+        </span>
       ),
     },
     {
       key: 'category',
       header: 'Category',
-      cell: (row) => <span className="font-inter text-sm text-manager-text-muted">{row.category}</span>,
+      cell: (row) => (
+        <span className="font-inter text-sm text-manager-text-muted">
+          {row.category}
+        </span>
+      ),
     },
     {
       key: 'bookings',
       header: 'Bookings',
       cell: (row) => (
-        <span className="font-inter text-sm tabular-nums text-manager-text">{row.bookings}</span>
+        <span className="font-inter text-sm tabular-nums text-manager-text">
+          {row.bookings}
+        </span>
       ),
     },
     {
@@ -45,7 +53,9 @@ export const ReportsTopVendorsTable = () => {
       key: 'lastBooking',
       header: 'Last Booking',
       cell: (row) => (
-        <span className="font-inter text-sm text-manager-text-muted">{row.lastBooking}</span>
+        <span className="font-inter text-sm text-manager-text-muted">
+          {row.lastBooking}
+        </span>
       ),
     },
   ];

@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { ImagePlus, Plus } from 'lucide-react';
 import {
   Button,
@@ -87,17 +87,21 @@ export const ExperienceFormDialog = ({
     },
   });
 
+  const experienceCategoryId = useWatch({
+    control: form.control,
+    name: 'experienceCategoryId',
+  });
+
   const selectedCategory = useMemo(
-    () =>
-      categories.find(
-        (category) => category.id === form.watch('experienceCategoryId'),
-      ),
-    [categories, form],
+    () => categories.find((category) => category.id === experienceCategoryId),
+    [categories, experienceCategoryId],
   );
 
-  useEffect(() => {
-    if (!open) return;
+  const formSessionKey = `${open}:${experience?.id ?? 'new'}:${defaultCategoryId}`;
+  const [activeSessionKey, setActiveSessionKey] = useState(formSessionKey);
 
+  if (open && formSessionKey !== activeSessionKey) {
+    setActiveSessionKey(formSessionKey);
     if (experience) {
       form.reset({
         name: experience.name,
@@ -119,31 +123,30 @@ export const ExperienceFormDialog = ({
         hostReviewNote: experience.hostReviewNote ?? '',
       });
       setImagePreview(experience.primaryPhotoUrl ?? null);
-      return;
+    } else {
+      form.reset({
+        name: '',
+        experienceCategoryId: defaultCategoryId,
+        description: '',
+        durationMinutes: 60,
+        durationLabel: '1 hr',
+        basePrice: undefined,
+        isIncluded: false,
+        vendorId: '',
+        breezeWayTeamId: '',
+        primaryPhotoUrl: '',
+        maxGuestCount: undefined,
+        included: '',
+        hostName: '',
+        hostTitle: '',
+        hostAvatarUrl: '',
+        hostReviewNote: '',
+      });
+      setImagePreview(null);
     }
+  }
 
-    form.reset({
-      name: '',
-      experienceCategoryId: defaultCategoryId,
-      description: '',
-      durationMinutes: 60,
-      durationLabel: '1 hr',
-      basePrice: undefined,
-      isIncluded: false,
-      vendorId: '',
-      breezeWayTeamId: '',
-      primaryPhotoUrl: '',
-      maxGuestCount: undefined,
-      included: '',
-      hostName: '',
-      hostTitle: '',
-      hostAvatarUrl: '',
-      hostReviewNote: '',
-    });
-    setImagePreview(null);
-  }, [open, experience, form, defaultCategoryId]);
-
-  const isIncluded = form.watch('isIncluded');
+  const isIncluded = useWatch({ control: form.control, name: 'isIncluded' });
 
   const onSubmit = form.handleSubmit(async (values) => {
     const category = categories.find(
@@ -473,8 +476,8 @@ export const ExperienceFormDialog = ({
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Who Breezeway assigns this experience&apos;s setup task to.
-                      Leave as default to use the category&apos;s fallback
+                      Who Breezeway assigns this experience&apos;s setup task
+                      to. Leave as default to use the category&apos;s fallback
                       assignee.
                     </FormDescription>
                     <FormMessage />
@@ -518,7 +521,10 @@ export const ExperienceFormDialog = ({
                       <FormItem>
                         <FormLabel>Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="e.g. Chef Maria Lopez" {...field} />
+                          <Input
+                            placeholder="e.g. Chef Maria Lopez"
+                            {...field}
+                          />
                         </FormControl>
                       </FormItem>
                     )}

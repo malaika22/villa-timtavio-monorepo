@@ -2,7 +2,12 @@
 
 import { DashboardCard } from '@repo/dashboard-ui';
 import { cn } from '@repo/ui/lib/utils';
-import { CheckCircle2, UtensilsCrossed, Coffee, AlertTriangle } from 'lucide-react';
+import {
+  CheckCircle2,
+  UtensilsCrossed,
+  Coffee,
+  AlertTriangle,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { useDining, useConfirmDining } from '@/hooks/useDining';
 import type { DiningOrderItem, DiningRequest } from '@repo/api-types';
@@ -20,7 +25,11 @@ export const DiningSittingsCard = ({ bookingId }: { bookingId: string }) => {
   const confirm = useConfirmDining(bookingId);
 
   return (
-    <DashboardCard variant="manager" padding={false} className="overflow-hidden">
+    <DashboardCard
+      variant="manager"
+      padding={false}
+      className="overflow-hidden"
+    >
       <div className="flex items-center justify-between border-b border-[#ebe6df] px-5 py-3.5">
         <h3 className="text-sm font-semibold text-manager-text">Dining</h3>
         <span className="text-xs text-manager-text-muted">
@@ -31,7 +40,10 @@ export const DiningSittingsCard = ({ bookingId }: { bookingId: string }) => {
       {isLoading ? (
         <div className="space-y-2 p-5">
           {[1, 2].map((i) => (
-            <div key={i} className="h-16 animate-pulse rounded-lg bg-manager-border" />
+            <div
+              key={i}
+              className="h-16 animate-pulse rounded-lg bg-manager-border"
+            />
           ))}
         </div>
       ) : !requests || requests.length === 0 ? (

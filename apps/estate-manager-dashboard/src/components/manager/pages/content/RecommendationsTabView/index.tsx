@@ -44,7 +44,10 @@ export const RecommendationsTabView = () => {
     return (
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-44 animate-pulse rounded-xl bg-manager-border" />
+          <div
+            key={i}
+            className="h-44 animate-pulse rounded-xl bg-manager-border"
+          />
         ))}
       </div>
     );
@@ -63,7 +66,11 @@ export const RecommendationsTabView = () => {
             {rec.photoUrl && (
               <div className="h-28 w-full overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={rec.photoUrl} alt={rec.name} className="size-full object-cover" />
+                <img
+                  src={rec.photoUrl}
+                  alt={rec.name}
+                  className="size-full object-cover"
+                />
               </div>
             )}
             <div className="flex flex-1 flex-col p-4">
@@ -86,7 +93,9 @@ export const RecommendationsTabView = () => {
                       : 'inline-flex shrink-0 items-center gap-1 rounded-full border border-manager-border px-2 py-0.5 text-[10px] font-medium text-manager-text-muted'
                   }
                 >
-                  <Star className={`size-2.5 ${rec.isFeatured ? 'fill-current' : ''}`} />
+                  <Star
+                    className={`size-2.5 ${rec.isFeatured ? 'fill-current' : ''}`}
+                  />
                   Featured
                 </button>
               </div>

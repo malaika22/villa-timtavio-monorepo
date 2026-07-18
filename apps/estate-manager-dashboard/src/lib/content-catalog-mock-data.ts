@@ -1,4 +1,8 @@
-import type { ContentCatalogTab, ContentExperience, ContentExperienceCategory } from '@/types';
+import type {
+  ContentCatalogTab,
+  ContentExperience,
+  ContentExperienceCategory,
+} from '@/types';
 
 export const contentCatalogTabCounts: Record<ContentCatalogTab, number> = {
   experiences: 9,
@@ -6,15 +10,17 @@ export const contentCatalogTabCounts: Record<ContentCatalogTab, number> = {
   recommendations: 11,
 };
 
-export const contentExperienceFilters: { value: 'all' | ContentExperienceCategory; label: string }[] =
-  [
-    { value: 'all', label: 'All' },
-    { value: 'dining', label: 'Dining' },
-    { value: 'water', label: 'Water' },
-    { value: 'wellness', label: 'Wellness' },
-    { value: 'wine', label: 'Wine' },
-    { value: 'culture', label: 'Culture' },
-  ];
+export const contentExperienceFilters: {
+  value: 'all' | ContentExperienceCategory;
+  label: string;
+}[] = [
+  { value: 'all', label: 'All' },
+  { value: 'dining', label: 'Dining' },
+  { value: 'water', label: 'Water' },
+  { value: 'wellness', label: 'Wellness' },
+  { value: 'wine', label: 'Wine' },
+  { value: 'culture', label: 'Culture' },
+];
 
 export const contentExperiences: ContentExperience[] = [
   {

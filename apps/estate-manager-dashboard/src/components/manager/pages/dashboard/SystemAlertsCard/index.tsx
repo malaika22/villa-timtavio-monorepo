@@ -58,7 +58,9 @@ export const SystemAlertsCard = () => {
                     {a.title}
                   </p>
                   {a.message ? (
-                    <p className="text-xs text-manager-text-muted">{a.message}</p>
+                    <p className="text-xs text-manager-text-muted">
+                      {a.message}
+                    </p>
                   ) : null}
                 </div>
                 <button

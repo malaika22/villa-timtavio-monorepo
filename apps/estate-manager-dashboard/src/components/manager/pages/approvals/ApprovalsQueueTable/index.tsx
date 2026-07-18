@@ -14,7 +14,6 @@ import {
 } from '@repo/ui';
 import { DataTable } from '@repo/dashboard-ui';
 import type { DataTableColumn } from '@repo/dashboard-ui';
-import { cn } from '@repo/ui/lib/utils';
 import { Loader2 } from 'lucide-react';
 
 import { GuestAvatar } from '@/components/manager/ui/GuestAvatar';
@@ -35,7 +34,11 @@ const outlineBtn =
 const isActionable = (status: ApprovalQueueStatus) =>
   status === 'Pending' || status === 'Conflict';
 
-export const ApprovalsQueueTable = ({ rows }: { rows: ApprovalQueueItem[] }) => {
+export const ApprovalsQueueTable = ({
+  rows,
+}: {
+  rows: ApprovalQueueItem[];
+}) => {
   const approve = useApproveRequest();
   const decline = useDeclineRequest();
   const confirmCost = useConfirmCost();
@@ -50,7 +53,10 @@ export const ApprovalsQueueTable = ({ rows }: { rows: ApprovalQueueItem[] }) => 
     const amount = Number(costAmount);
     if (!costId || !amount || amount <= 0) return;
     confirmCost.mutate(
-      { id: costId, dto: { confirmedCost: amount, emNotes: costNotes.trim() || undefined } },
+      {
+        id: costId,
+        dto: { confirmedCost: amount, emNotes: costNotes.trim() || undefined },
+      },
       {
         onSuccess: () => {
           toast.success('Cost logged to folio');
@@ -81,7 +87,8 @@ export const ApprovalsQueueTable = ({ rows }: { rows: ApprovalQueueItem[] }) => 
   const toggleSelected = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   const allSelected =
@@ -150,8 +157,12 @@ export const ApprovalsQueueTable = ({ rows }: { rows: ApprovalQueueItem[] }) => 
         <div className="flex items-center gap-3 min-w-[160px]">
           <GuestAvatar initials={row.initials} />
           <div>
-            <p className="text-sm font-semibold text-manager-text">{row.guestName}</p>
-            <p className="text-[15px] text-manager-text-muted">{row.partyLabel}</p>
+            <p className="text-sm font-semibold text-manager-text">
+              {row.guestName}
+            </p>
+            <p className="text-[15px] text-manager-text-muted">
+              {row.partyLabel}
+            </p>
           </div>
         </div>
       ),
@@ -161,8 +172,12 @@ export const ApprovalsQueueTable = ({ rows }: { rows: ApprovalQueueItem[] }) => 
       header: 'Experience',
       cell: (row) => (
         <div className="min-w-[140px]">
-          <p className="text-sm font-semibold text-manager-text">{row.experience}</p>
-          <p className="text-[15px] text-manager-text-muted">{row.experienceDetail}</p>
+          <p className="text-sm font-semibold text-manager-text">
+            {row.experience}
+          </p>
+          <p className="text-[15px] text-manager-text-muted">
+            {row.experienceDetail}
+          </p>
           {row.status === 'Declined' && row.declineReason ? (
             <p className="mt-0.5 text-xs italic text-[#b42318]">
               “{row.declineReason}”
@@ -174,28 +189,38 @@ export const ApprovalsQueueTable = ({ rows }: { rows: ApprovalQueueItem[] }) => 
     {
       key: 'villa',
       header: 'Villa',
-      cell: (row) => <span className="text-sm text-manager-text">{row.villa}</span>,
+      cell: (row) => (
+        <span className="text-sm text-manager-text">{row.villa}</span>
+      ),
     },
     {
       key: 'time',
       header: 'Requested Time',
       cell: (row) => (
         <div>
-          <p className="text-sm font-semibold text-manager-text">{row.requestedDate}</p>
-          <p className="text-[15px] text-manager-text-muted">{row.requestedTime}</p>
+          <p className="text-sm font-semibold text-manager-text">
+            {row.requestedDate}
+          </p>
+          <p className="text-[15px] text-manager-text-muted">
+            {row.requestedTime}
+          </p>
         </div>
       ),
     },
     {
       key: 'vendor',
       header: 'Vendor',
-      cell: (row) => <span className="text-sm text-manager-text">{row.vendor}</span>,
+      cell: (row) => (
+        <span className="text-sm text-manager-text">{row.vendor}</span>
+      ),
     },
     {
       key: 'submitted',
       header: 'Submitted',
       cell: (row) => (
-        <span className="text-[15px] text-manager-text-muted whitespace-nowrap">{row.submitted}</span>
+        <span className="text-[15px] text-manager-text-muted whitespace-nowrap">
+          {row.submitted}
+        </span>
       ),
     },
     {
@@ -304,7 +329,12 @@ export const ApprovalsQueueTable = ({ rows }: { rows: ApprovalQueueItem[] }) => 
         </div>
       ) : null}
 
-      <DataTable columns={columns} rows={rows} variant="manager" striped={false} />
+      <DataTable
+        columns={columns}
+        rows={rows}
+        variant="manager"
+        striped={false}
+      />
 
       <Dialog
         open={!!decliningId}

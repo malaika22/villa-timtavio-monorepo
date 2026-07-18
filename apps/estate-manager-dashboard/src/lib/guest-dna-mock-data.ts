@@ -82,7 +82,11 @@ export const guestDNAProfiles: Record<string, GuestDNAProfile> = {
     summary: 'Villa 3 · Mar 24–31 · Party of 2 · 4th visit',
     tags: ['Member', 'Estate Pass', 'Since 2023'],
     dietary: ['No shellfish', 'Gluten-free preferred', 'Organic produce only'],
-    beverage: ['Burgundy red wine', 'San Pellegrino only', 'No ice in cocktails'],
+    beverage: [
+      'Burgundy red wine',
+      'San Pellegrino only',
+      'No ice in cocktails',
+    ],
     experiencePrefs: [
       'Oceanfront dining preferred',
       'Private chef for dinners',
@@ -208,7 +212,10 @@ export const guestDNAProfiles: Record<string, GuestDNAProfile> = {
 };
 
 /** Default profile when list item has no full DNA record */
-export function getGuestProfile(id: string, listItem: GuestListItem): GuestDNAProfile {
+export function getGuestProfile(
+  id: string,
+  listItem: GuestListItem,
+): GuestDNAProfile {
   const existing = guestDNAProfiles[id];
   if (existing) return existing;
 

@@ -15,10 +15,7 @@ import {
 } from '@repo/ui';
 import { toast } from 'sonner';
 
-import {
-  useApproveInquiry,
-  useDeclineInquiry,
-} from '@/hooks/useInquiries';
+import { useApproveInquiry, useDeclineInquiry } from '@/hooks/useInquiries';
 
 type Props = {
   inquiryId: string;
@@ -141,10 +138,7 @@ export function InquiryVettingPanel({ inquiryId }: Props) {
             </p>
           )}
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowDeclineForm(false)}
-            >
+            <Button variant="outline" onClick={() => setShowDeclineForm(false)}>
               Cancel
             </Button>
             <Button

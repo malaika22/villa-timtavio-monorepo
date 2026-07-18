@@ -69,7 +69,10 @@ export const BookingsPage = () => {
           {past.isLoading ? (
             <div className="space-y-2 p-3">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-12 animate-pulse rounded bg-manager-border" />
+                <div
+                  key={i}
+                  className="h-12 animate-pulse rounded bg-manager-border"
+                />
               ))}
             </div>
           ) : (past.data ?? []).length === 0 ? (
@@ -87,10 +90,19 @@ export const BookingsPage = () => {
               </thead>
               <tbody>
                 {(past.data ?? []).map((g) => (
-                  <tr key={g.id} className="border-b border-[#f1ece4] last:border-0">
-                    <td className="px-4 py-3 font-medium text-manager-text">{g.name}</td>
-                    <td className="px-4 py-3 text-manager-text-muted">{g.dates}</td>
-                    <td className="px-4 py-3 text-manager-text-muted">{g.status}</td>
+                  <tr
+                    key={g.id}
+                    className="border-b border-[#f1ece4] last:border-0"
+                  >
+                    <td className="px-4 py-3 font-medium text-manager-text">
+                      {g.name}
+                    </td>
+                    <td className="px-4 py-3 text-manager-text-muted">
+                      {g.dates}
+                    </td>
+                    <td className="px-4 py-3 text-manager-text-muted">
+                      {g.status}
+                    </td>
                   </tr>
                 ))}
               </tbody>

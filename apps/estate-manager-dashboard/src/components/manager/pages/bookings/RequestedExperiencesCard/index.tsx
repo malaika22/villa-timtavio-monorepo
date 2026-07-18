@@ -3,10 +3,16 @@ import { DashboardCard } from '@repo/dashboard-ui';
 import { ExperienceStatusPill } from '@/components/manager/pages/bookings/ExperienceStatusPill';
 import type { CurrentBooking } from '@/types';
 
-export const RequestedExperiencesCard = ({ booking }: { booking: CurrentBooking }) => (
+export const RequestedExperiencesCard = ({
+  booking,
+}: {
+  booking: CurrentBooking;
+}) => (
   <DashboardCard variant="manager" padding={false} className="overflow-hidden">
     <div className="border-b border-[#ebe6df] px-5 py-3.5">
-      <h3 className="text-sm font-semibold text-manager-text">Requested Experiences</h3>
+      <h3 className="text-sm font-semibold text-manager-text">
+        Requested Experiences
+      </h3>
     </div>
     {booking.experiences.length === 0 ? (
       <p className="px-5 py-8 text-center text-sm text-manager-text-muted">
@@ -30,9 +36,16 @@ export const RequestedExperiencesCard = ({ booking }: { booking: CurrentBooking 
           </thead>
           <tbody>
             {booking.experiences.map((row) => (
-              <tr key={row.id} className="border-b border-[#ebe6df] last:border-0">
-                <td className="px-5 py-3 font-medium text-manager-text">{row.name}</td>
-                <td className="px-5 py-3 text-manager-text-muted">{row.date}</td>
+              <tr
+                key={row.id}
+                className="border-b border-[#ebe6df] last:border-0"
+              >
+                <td className="px-5 py-3 font-medium text-manager-text">
+                  {row.name}
+                </td>
+                <td className="px-5 py-3 text-manager-text-muted">
+                  {row.date}
+                </td>
                 <td className="px-5 py-3">
                   <ExperienceStatusPill status={row.status} />
                 </td>

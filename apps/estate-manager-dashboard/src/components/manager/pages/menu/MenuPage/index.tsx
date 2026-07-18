@@ -21,7 +21,11 @@ const DIET_BADGES: { key: keyof MenuItem; label: string; tone: string }[] = [
   { key: 'isGlutenFree', label: 'GF', tone: 'bg-[#eef0f5] text-[#3a4a6b]' },
   { key: 'containsNuts', label: 'Nuts', tone: 'bg-[#fef6f4] text-[#9a3a30]' },
   { key: 'containsDairy', label: 'Dairy', tone: 'bg-[#fef6f4] text-[#9a3a30]' },
-  { key: 'containsShellfish', label: 'Shellfish', tone: 'bg-[#fef6f4] text-[#9a3a30]' },
+  {
+    key: 'containsShellfish',
+    label: 'Shellfish',
+    tone: 'bg-[#fef6f4] text-[#9a3a30]',
+  },
 ];
 
 export const MenuPage = () => {
@@ -78,13 +82,17 @@ export const MenuPage = () => {
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-40 animate-pulse rounded-xl bg-manager-border" />
+            <div
+              key={i}
+              className="h-40 animate-pulse rounded-xl bg-manager-border"
+            />
           ))}
         </div>
       ) : visible.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[#d4d0c8] bg-white px-6 py-12 text-center">
           <p className="text-sm text-manager-text-muted">
-            No {TABS.find((t) => t.value === activeTab)?.label.toLowerCase()} items yet.
+            No {TABS.find((t) => t.value === activeTab)?.label.toLowerCase()}{' '}
+            items yet.
           </p>
           <button
             onClick={openCreate}
@@ -103,12 +111,18 @@ export const MenuPage = () => {
               {item.photoUrl && (
                 <div className="h-28 w-full overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={item.photoUrl} alt={item.name} className="size-full object-cover" />
+                  <img
+                    src={item.photoUrl}
+                    alt={item.name}
+                    className="size-full object-cover"
+                  />
                 </div>
               )}
               <div className="flex flex-1 flex-col p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-sm font-semibold text-manager-text">{item.name}</h3>
+                  <h3 className="text-sm font-semibold text-manager-text">
+                    {item.name}
+                  </h3>
                   <div className="flex shrink-0 gap-1">
                     <button
                       onClick={() => openEdit(item)}
@@ -139,7 +153,10 @@ export const MenuPage = () => {
                   {DIET_BADGES.filter((b) => item[b.key]).map((b) => (
                     <span
                       key={b.label}
-                      className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', b.tone)}
+                      className={cn(
+                        'rounded-full px-2 py-0.5 text-[10px] font-medium',
+                        b.tone,
+                      )}
                     >
                       {b.label}
                     </span>

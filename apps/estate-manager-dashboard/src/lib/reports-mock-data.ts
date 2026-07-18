@@ -75,11 +75,26 @@ export type ReportsProgressRow = {
 };
 
 export const reportsExperiencePopularity: ReportsProgressRow[] = [
-  { id: 'chef', label: "Chef's Table", percent: 88, detail: '34 bookings · 24%' },
-  { id: 'pool', label: 'Pool Exclusive', percent: 72, detail: '28 bookings · 20%' },
+  {
+    id: 'chef',
+    label: "Chef's Table",
+    percent: 88,
+    detail: '34 bookings · 24%',
+  },
+  {
+    id: 'pool',
+    label: 'Pool Exclusive',
+    percent: 72,
+    detail: '28 bookings · 20%',
+  },
   { id: 'wine', label: 'Wine Vault', percent: 65, detail: '25 bookings · 18%' },
   { id: 'spa', label: 'Spa Ritual', percent: 58, detail: '22 bookings · 16%' },
-  { id: 'yacht', label: 'Yacht Charter', percent: 48, detail: '18 bookings · 13%' },
+  {
+    id: 'yacht',
+    label: 'Yacht Charter',
+    percent: 48,
+    detail: '18 bookings · 13%',
+  },
   { id: 'surf', label: 'Surf Lesson', percent: 38, detail: '12 bookings · 9%' },
 ];
 

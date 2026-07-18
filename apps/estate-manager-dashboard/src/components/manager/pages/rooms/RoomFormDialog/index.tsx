@@ -1,8 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useFieldArray, useForm, type Resolver } from 'react-hook-form';
+import {
+  useFieldArray,
+  useForm,
+  useWatch,
+  type Resolver,
+} from 'react-hook-form';
 import { Plus, Trash2 } from 'lucide-react';
 import {
   Button,
@@ -75,7 +80,9 @@ export const RoomFormDialog = ({ open, onOpenChange, room }: Props) => {
   const form = useForm<RoomFormValues>({
     // zod's coerce makes the schema input type differ from output; the runtime
     // resolver is correct, so we cast to the output-typed resolver.
-    resolver: zodResolver(roomFormSchema) as unknown as Resolver<RoomFormValues>,
+    resolver: zodResolver(
+      roomFormSchema,
+    ) as unknown as Resolver<RoomFormValues>,
     defaultValues: BLANK,
   });
 
@@ -85,8 +92,11 @@ export const RoomFormDialog = ({ open, onOpenChange, room }: Props) => {
   });
 
   // Reset values whenever the dialog opens (edit prefill or blank for create)
-  useEffect(() => {
-    if (!open) return;
+  const formSessionKey = `${open}:${room?.number ?? 'new'}`;
+  const [activeSessionKey, setActiveSessionKey] = useState(formSessionKey);
+
+  if (open && formSessionKey !== activeSessionKey) {
+    setActiveSessionKey(formSessionKey);
     if (room) {
       form.reset({
         number: room.number,
@@ -106,12 +116,13 @@ export const RoomFormDialog = ({ open, onOpenChange, room }: Props) => {
     } else {
       form.reset(BLANK);
     }
-  }, [open, room, form]);
+  }
 
-  const amenities = form.watch('amenities');
-  const ensuite = form.watch('ensuite');
-  const isActive = form.watch('isActive');
-  const imageUrl = form.watch('imageUrl');
+  const amenities = useWatch({ control: form.control, name: 'amenities' });
+  const ensuite = useWatch({ control: form.control, name: 'ensuite' });
+  const isActive = useWatch({ control: form.control, name: 'isActive' });
+  const imageUrl = useWatch({ control: form.control, name: 'imageUrl' });
+  const beds = useWatch({ control: form.control, name: 'beds' });
 
   const toggleAmenity = (value: RoomAmenity) => {
     const next = amenities.includes(value)
@@ -153,7 +164,9 @@ export const RoomFormDialog = ({ open, onOpenChange, room }: Props) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEdit ? `Edit Room ${room.number}` : 'Add room'}</DialogTitle>
+          <DialogTitle>
+            {isEdit ? `Edit Room ${room.number}` : 'Add room'}
+          </DialogTitle>
           <DialogDescription>
             {isEdit
               ? 'Update room details shown to guests during manifest setup.'
@@ -171,11 +184,7 @@ export const RoomFormDialog = ({ open, onOpenChange, room }: Props) => {
                   <FormItem>
                     <FormLabel>Room number</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        disabled={isEdit}
-                        {...field}
-                      />
+                      <Input type="number" disabled={isEdit} {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -268,7 +277,7 @@ export const RoomFormDialog = ({ open, onOpenChange, room }: Props) => {
                 {fields.map((f, index) => (
                   <div key={f.id} className="flex items-center gap-2">
                     <Select
-                      value={form.watch(`beds.${index}.type`)}
+                      value={beds?.[index]?.type}
                       onValueChange={(v) =>
                         form.setValue(
                           `beds.${index}.type`,
@@ -314,7 +323,10 @@ export const RoomFormDialog = ({ open, onOpenChange, room }: Props) => {
                 <FormItem>
                   <FormLabel>Bed summary (short label)</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. 1 Queen + 2 Twin bunks" {...field} />
+                    <Input
+                      placeholder="e.g. 1 Queen + 2 Twin bunks"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -471,11 +483,7 @@ export const RoomFormDialog = ({ open, onOpenChange, room }: Props) => {
                 Cancel
               </Button>
               <Button type="submit" disabled={isPending}>
-                {isPending
-                  ? 'Saving…'
-                  : isEdit
-                    ? 'Save changes'
-                    : 'Add room'}
+                {isPending ? 'Saving…' : isEdit ? 'Save changes' : 'Add room'}
               </Button>
             </DialogFooter>
           </form>

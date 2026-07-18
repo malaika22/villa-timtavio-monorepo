@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Button,
   Input,
@@ -115,8 +115,8 @@ function StaffTab() {
           </Button>
         </div>
         <p className="mt-2 text-xs text-manager-text-muted">
-          Read-only accounts can view everything but cannot log charges,
-          approve requests, or check out.
+          Read-only accounts can view everything but cannot log charges, approve
+          requests, or check out.
         </p>
       </div>
 
@@ -284,9 +284,7 @@ function IntegrationsTab() {
               <p className="text-sm font-medium text-manager-text">{i.name}</p>
               <p className="text-xs text-manager-text-muted">
                 {i.connected ? 'Connected' : 'Not configured'}
-                {i.lastSyncAt
-                  ? ` · synced ${safeDate(i.lastSyncAt)}`
-                  : ''}
+                {i.lastSyncAt ? ` · synced ${safeDate(i.lastSyncAt)}` : ''}
               </p>
             </div>
           </div>
@@ -322,14 +320,16 @@ function PricingTab() {
   const [base, setBase] = useState('');
   const [tax, setTax] = useState('');
   const [service, setService] = useState('');
+  const [prevSettings, setPrevSettings] = useState(settings);
 
-  useEffect(() => {
+  if (settings !== prevSettings) {
+    setPrevSettings(settings);
     if (settings) {
       setBase(String(settings.villaBaseRate));
       setTax(String(Math.round(settings.taxRate * 10000) / 100));
       setService(String(Math.round(settings.serviceChargeRate * 10000) / 100));
     }
-  }, [settings]);
+  }
 
   if (isLoading || !settings) {
     return <div className="h-48 animate-pulse rounded-xl bg-manager-border" />;
@@ -352,13 +352,30 @@ function PricingTab() {
   return (
     <div className="max-w-md space-y-4 rounded-xl border border-manager-border bg-manager-card p-5">
       <Field label="Villa base rate ($ / night)">
-        <Input type="number" min={0} value={base} onChange={(e) => setBase(e.target.value)} />
+        <Input
+          type="number"
+          min={0}
+          value={base}
+          onChange={(e) => setBase(e.target.value)}
+        />
       </Field>
       <Field label="Tax / IVA (%)">
-        <Input type="number" min={0} step="0.01" value={tax} onChange={(e) => setTax(e.target.value)} />
+        <Input
+          type="number"
+          min={0}
+          step="0.01"
+          value={tax}
+          onChange={(e) => setTax(e.target.value)}
+        />
       </Field>
       <Field label="Service charge (%)">
-        <Input type="number" min={0} step="0.01" value={service} onChange={(e) => setService(e.target.value)} />
+        <Input
+          type="number"
+          min={0}
+          step="0.01"
+          value={service}
+          onChange={(e) => setService(e.target.value)}
+        />
       </Field>
       <Button
         className="bg-manager-accent text-white hover:bg-manager-accent-muted"
@@ -380,7 +397,9 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm text-manager-text-muted">{label}</span>
+      <span className="mb-1 block text-sm text-manager-text-muted">
+        {label}
+      </span>
       {children}
     </label>
   );

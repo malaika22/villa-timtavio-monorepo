@@ -136,7 +136,8 @@ export function InquiryDetailPage({ id }: { id: string }) {
             label="Purpose of Stay"
             value={
               inquiry.purposeOfStay
-                ? (PURPOSE_LABEL[inquiry.purposeOfStay] ?? inquiry.purposeOfStay)
+                ? (PURPOSE_LABEL[inquiry.purposeOfStay] ??
+                  inquiry.purposeOfStay)
                 : undefined
             }
           />

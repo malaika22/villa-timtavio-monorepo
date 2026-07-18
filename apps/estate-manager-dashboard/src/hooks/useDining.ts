@@ -14,7 +14,8 @@ export function useConfirmDining(bookingId: string | null) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => emDiningApi.confirm(id),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['dining', bookingId] }),
+    onSuccess: () =>
+      void qc.invalidateQueries({ queryKey: ['dining', bookingId] }),
   });
 }
 
@@ -22,6 +23,7 @@ export function useCancelDining(bookingId: string | null) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => emDiningApi.cancel(id),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['dining', bookingId] }),
+    onSuccess: () =>
+      void qc.invalidateQueries({ queryKey: ['dining', bookingId] }),
   });
 }

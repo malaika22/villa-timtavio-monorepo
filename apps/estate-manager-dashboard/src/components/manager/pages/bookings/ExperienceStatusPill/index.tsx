@@ -5,10 +5,17 @@ import type { ExperienceRequestStatus } from '@/types';
 const styles: Record<ExperienceRequestStatus, { pill: string; dot: string }> = {
   Pending: { pill: 'bg-[#fff4e5] text-[#b45309]', dot: 'bg-[#b45309]' },
   Complimentary: { pill: 'bg-[#e1effe] text-[#1e429f]', dot: 'bg-[#1e429f]' },
-  Confirmed: { pill: 'bg-manager-success-bg text-[#1e7e34]', dot: 'bg-[#1e7e34]' },
+  Confirmed: {
+    pill: 'bg-manager-success-bg text-[#1e7e34]',
+    dot: 'bg-[#1e7e34]',
+  },
 };
 
-export const ExperienceStatusPill = ({ status }: { status: ExperienceRequestStatus }) => {
+export const ExperienceStatusPill = ({
+  status,
+}: {
+  status: ExperienceRequestStatus;
+}) => {
   const s = styles[status];
   return (
     <span

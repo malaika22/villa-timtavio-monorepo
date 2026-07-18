@@ -9,7 +9,20 @@ import {
 } from '@/hooks/useAnalytics';
 import { formatRevenueCompact } from '@/lib/mappers/dashboard';
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 export const AnalyticsPage = () => {
   const year = new Date().getFullYear();
@@ -17,7 +30,10 @@ export const AnalyticsPage = () => {
   const { data: occupancy } = useOccupancy();
   const { data: experiences } = useExperiencePerformance();
 
-  const maxRevenue = Math.max(1, ...(revenue?.data.map((d) => d.revenue) ?? [0]));
+  const maxRevenue = Math.max(
+    1,
+    ...(revenue?.data.map((d) => d.revenue) ?? [0]),
+  );
   const totalRevenue = (revenue?.data ?? []).reduce((s, d) => s + d.revenue, 0);
 
   return (
@@ -65,11 +81,16 @@ export const AnalyticsPage = () => {
         ) : revenue && revenue.data.some((d) => d.revenue > 0) ? (
           <div className="flex h-44 items-end gap-2">
             {revenue.data.map((d) => (
-              <div key={d.month} className="flex flex-1 flex-col items-center gap-1.5">
+              <div
+                key={d.month}
+                className="flex flex-1 flex-col items-center gap-1.5"
+              >
                 <div className="flex w-full flex-1 items-end">
                   <div
                     className="w-full rounded-t bg-[#4a7c59]"
-                    style={{ height: `${Math.max(2, (d.revenue / maxRevenue) * 100)}%` }}
+                    style={{
+                      height: `${Math.max(2, (d.revenue / maxRevenue) * 100)}%`,
+                    }}
                     title={formatRevenueCompact(d.revenue)}
                   />
                 </div>
@@ -87,7 +108,11 @@ export const AnalyticsPage = () => {
       </DashboardCard>
 
       {/* Experience performance */}
-      <DashboardCard variant="manager" padding={false} className="overflow-hidden">
+      <DashboardCard
+        variant="manager"
+        padding={false}
+        className="overflow-hidden"
+      >
         <div className="border-b border-[#ebe6df] px-5 py-3.5">
           <h3 className="text-sm font-semibold text-manager-text">
             Experience Performance
@@ -105,8 +130,13 @@ export const AnalyticsPage = () => {
             </thead>
             <tbody>
               {experiences.map((e) => (
-                <tr key={e.id} className="border-b border-[#ebe6df] last:border-0">
-                  <td className="px-5 py-3 font-medium text-manager-text">{e.name}</td>
+                <tr
+                  key={e.id}
+                  className="border-b border-[#ebe6df] last:border-0"
+                >
+                  <td className="px-5 py-3 font-medium text-manager-text">
+                    {e.name}
+                  </td>
                   <td className="px-5 py-3 text-manager-text-muted">
                     {e.vendor?.name ?? '—'}
                   </td>

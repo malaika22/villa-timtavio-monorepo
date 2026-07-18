@@ -64,7 +64,10 @@ export const CalendarPage = () => {
       {isLoading ? (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-7">
           {Array.from({ length: 7 }).map((_, i) => (
-            <div key={i} className="h-64 animate-pulse rounded-lg bg-manager-border" />
+            <div
+              key={i}
+              className="h-64 animate-pulse rounded-lg bg-manager-border"
+            />
           ))}
         </div>
       ) : (
@@ -95,7 +98,9 @@ export const CalendarPage = () => {
                 </div>
                 <div className="space-y-1.5">
                   {day.events.length === 0 ? (
-                    <p className="px-1 py-2 text-[11px] text-manager-text-muted">—</p>
+                    <p className="px-1 py-2 text-[11px] text-manager-text-muted">
+                      —
+                    </p>
                   ) : (
                     day.events.map((e) => (
                       <div
@@ -106,7 +111,9 @@ export const CalendarPage = () => {
                         )}
                         title={e.label}
                       >
-                        {e.time ? <span className="opacity-70">{e.time} · </span> : null}
+                        {e.time ? (
+                          <span className="opacity-70">{e.time} · </span>
+                        ) : null}
                         {e.label}
                       </div>
                     ))

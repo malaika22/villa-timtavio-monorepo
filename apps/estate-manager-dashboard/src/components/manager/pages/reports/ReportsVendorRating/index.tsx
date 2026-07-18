@@ -9,12 +9,16 @@ export const ReportsVendorRating = ({ rating }: { rating: number }) => (
           key={i}
           className={cn(
             'size-3.5',
-            i < Math.floor(rating) ? 'fill-[#c4a882] text-[#c4a882]' : 'fill-none text-[#e0d6c8]',
+            i < Math.floor(rating)
+              ? 'fill-[#c4a882] text-[#c4a882]'
+              : 'fill-none text-[#e0d6c8]',
           )}
           strokeWidth={1.5}
         />
       ))}
     </div>
-    <span className="font-inter text-sm tabular-nums text-[#9a7b5c]">{rating.toFixed(1)}</span>
+    <span className="font-inter text-sm tabular-nums text-[#9a7b5c]">
+      {rating.toFixed(1)}
+    </span>
   </div>
 );

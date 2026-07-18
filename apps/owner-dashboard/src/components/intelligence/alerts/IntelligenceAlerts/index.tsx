@@ -27,7 +27,11 @@ const styles = {
   },
 };
 
-export const IntelligenceAlerts = ({ alerts }: { alerts: IntelligenceAlert[] }) => (
+export const IntelligenceAlerts = ({
+  alerts,
+}: {
+  alerts: IntelligenceAlert[];
+}) => (
   <IntelCard className="flex h-full min-h-0 flex-col p-4">
     <h3 className="text-sm font-medium text-intel-text">Intelligence Alerts</h3>
     <ul className="mt-3 flex flex-col gap-2">

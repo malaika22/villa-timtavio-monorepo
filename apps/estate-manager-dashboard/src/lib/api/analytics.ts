@@ -23,6 +23,5 @@ export const emAnalyticsApi = {
   experiences: (period?: string) =>
     api.get<ExperiencePerformanceItem[]>(API.analytics.experiences(period)),
   upcomingStays: () => api.get<UpcomingStay[]>(API.analytics.upcomingStays),
-  intelligenceAlerts: () =>
-    api.get<string[]>(API.analytics.intelligenceAlerts),
+  intelligenceAlerts: () => api.get<string[]>(API.analytics.intelligenceAlerts),
 };

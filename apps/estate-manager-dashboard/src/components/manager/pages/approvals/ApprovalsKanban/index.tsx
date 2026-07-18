@@ -7,18 +7,21 @@ import { GuestAvatar } from '@/components/manager/ui/GuestAvatar';
 import { useApproveRequest, useDeclineRequest } from '@/hooks/useApprovals';
 import type { ApprovalQueueItem, ApprovalQueueStatus } from '@/types';
 
-const COLUMNS: { status: ApprovalQueueStatus; label: string; tint: string }[] = [
-  { status: 'Pending', label: 'Pending', tint: 'bg-[#fef6eb]' },
-  { status: 'Confirmed', label: 'Confirmed', tint: 'bg-[#eef4ff]' },
-  { status: 'In Progress', label: 'In Progress', tint: 'bg-[#f0f7f2]' },
-];
+const COLUMNS: { status: ApprovalQueueStatus; label: string; tint: string }[] =
+  [
+    { status: 'Pending', label: 'Pending', tint: 'bg-[#fef6eb]' },
+    { status: 'Confirmed', label: 'Confirmed', tint: 'bg-[#eef4ff]' },
+    { status: 'In Progress', label: 'In Progress', tint: 'bg-[#f0f7f2]' },
+  ];
 
 export const ApprovalsKanban = ({ rows }: { rows: ApprovalQueueItem[] }) => {
   const approve = useApproveRequest();
   const decline = useDeclineRequest();
 
   const byStatus = (s: ApprovalQueueStatus) =>
-    rows.filter((r) => r.status === s || (s === 'Pending' && r.status === 'Conflict'));
+    rows.filter(
+      (r) => r.status === s || (s === 'Pending' && r.status === 'Conflict'),
+    );
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -59,7 +62,8 @@ export const ApprovalsKanban = ({ rows }: { rows: ApprovalQueueItem[] }) => {
                     <p className="mt-2 text-xs text-manager-text-muted">
                       {row.requestedDate} · {row.requestedTime}
                     </p>
-                    {(row.status === 'Pending' || row.status === 'Conflict') && (
+                    {(row.status === 'Pending' ||
+                      row.status === 'Conflict') && (
                       <div className="mt-2 flex gap-2">
                         <Button
                           size="sm"
@@ -70,7 +74,8 @@ export const ApprovalsKanban = ({ rows }: { rows: ApprovalQueueItem[] }) => {
                               { id: row.id, dto: {} },
                               {
                                 onSuccess: () => toast.success('Confirmed'),
-                                onError: (e) => toast.error((e as Error).message),
+                                onError: (e) =>
+                                  toast.error((e as Error).message),
                               },
                             )
                           }
@@ -87,7 +92,8 @@ export const ApprovalsKanban = ({ rows }: { rows: ApprovalQueueItem[] }) => {
                               { id: row.id, dto: { declineReason: undefined } },
                               {
                                 onSuccess: () => toast.success('Declined'),
-                                onError: (e) => toast.error((e as Error).message),
+                                onError: (e) =>
+                                  toast.error((e as Error).message),
                               },
                             )
                           }

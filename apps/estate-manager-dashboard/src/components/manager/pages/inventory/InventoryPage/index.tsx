@@ -62,7 +62,10 @@ export const InventoryPage = () => {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-24 animate-pulse rounded-xl bg-manager-border" />
+          <div
+            key={i}
+            className="h-24 animate-pulse rounded-xl bg-manager-border"
+          />
         ))}
       </div>
     );
@@ -125,8 +128,13 @@ export const InventoryPage = () => {
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {catItems.map((item) => {
               const level = levelOf(item);
-              const max = item.maxStock ?? Math.max(item.reorderThreshold * 2, item.currentStock, 1);
-              const pct = Math.min(100, Math.round((item.currentStock / max) * 100));
+              const max =
+                item.maxStock ??
+                Math.max(item.reorderThreshold * 2, item.currentStock, 1);
+              const pct = Math.min(
+                100,
+                Math.round((item.currentStock / max) * 100),
+              );
               const barColor =
                 level === 'out'
                   ? 'bg-[#b42318]'
@@ -140,19 +148,27 @@ export const InventoryPage = () => {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-medium text-manager-text">{item.name}</p>
+                      <p className="font-medium text-manager-text">
+                        {item.name}
+                      </p>
                       <p className="text-xs text-manager-text-muted">
                         Reorder at {item.reorderThreshold} {item.unit}
                       </p>
                     </div>
                     <span className="text-sm font-semibold tabular-nums text-manager-text">
                       {item.currentStock}
-                      <span className="text-manager-text-muted"> {item.unit}</span>
+                      <span className="text-manager-text-muted">
+                        {' '}
+                        {item.unit}
+                      </span>
                     </span>
                   </div>
 
                   <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-manager-border">
-                    <div className={cn('h-full rounded-full', barColor)} style={{ width: `${pct}%` }} />
+                    <div
+                      className={cn('h-full rounded-full', barColor)}
+                      style={{ width: `${pct}%` }}
+                    />
                   </div>
 
                   <div className="mt-3 flex items-center justify-between">

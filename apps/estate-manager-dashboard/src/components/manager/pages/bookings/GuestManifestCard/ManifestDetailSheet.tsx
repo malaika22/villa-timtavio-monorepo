@@ -93,7 +93,8 @@ export function ManifestDetailSheet({
               <AlertTriangle className="size-4 text-[#c53030] shrink-0 mt-0.5" />
               <p className="text-sm text-[#9a3a30]">
                 <span className="font-semibold">Allergy alerts present.</span>{' '}
-                Review each guest's allergy details carefully before approval.
+                Review each guest&apos;s allergy details carefully before
+                approval.
               </p>
             </div>
           )}
@@ -212,12 +213,13 @@ function GuestCard({
   const [allergies, setAllergies] = useState(guest.allergies ?? '');
 
   const roomName = guest.roomNumber
-    ? roomSummary.find((r) => r.roomNumber === guest.roomNumber)?.roomName ??
-      `Room ${guest.roomNumber}`
+    ? (roomSummary.find((r) => r.roomNumber === guest.roomNumber)?.roomName ??
+      `Room ${guest.roomNumber}`)
     : null;
 
   const hasDietary = guest.dietaryRestrictions?.length > 0;
-  const hasExtra = guest.allergies || guest.beveragePreferences || guest.specialNotes;
+  const hasExtra =
+    guest.allergies || guest.beveragePreferences || guest.specialNotes;
 
   const startEdit = () => {
     setFirstName(guest.firstName);
@@ -329,7 +331,9 @@ function GuestCard({
             <p className="text-sm font-medium text-[#1a1614] leading-none">
               {guest.firstName} {guest.lastName}
             </p>
-            <p className="text-xs text-[#8a8178] mt-0.5 truncate">{guest.email}</p>
+            <p className="text-xs text-[#8a8178] mt-0.5 truncate">
+              {guest.email}
+            </p>
             {guest.relationship && (
               <p className="text-[10px] uppercase tracking-wider text-[#b0aaa0] mt-0.5">
                 {guest.relationship}
@@ -396,7 +400,9 @@ function GuestCard({
               <p className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178] mb-1">
                 Beverages
               </p>
-              <p className="text-sm text-[#3d3530]">{guest.beveragePreferences}</p>
+              <p className="text-sm text-[#3d3530]">
+                {guest.beveragePreferences}
+              </p>
             </div>
           )}
           {guest.specialNotes && (
@@ -428,11 +434,34 @@ function GuestCard({
 // ─── StatusBadge ─────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-    INCOMPLETE: { label: 'Incomplete', bg: '#fef9e7', text: '#9a6a23', dot: '#e67e22' },
-    IN_PROGRESS: { label: 'In Progress', bg: '#fef9e7', text: '#9a6a23', dot: '#e67e22' },
-    SUBMITTED: { label: 'Submitted', bg: '#e8f1e9', text: '#3a6448', dot: '#4a7c59' },
-    APPROVED: { label: 'Approved', bg: '#e8f1e9', text: '#3a6448', dot: '#4a7c59' },
+  const map: Record<
+    string,
+    { label: string; bg: string; text: string; dot: string }
+  > = {
+    INCOMPLETE: {
+      label: 'Incomplete',
+      bg: '#fef9e7',
+      text: '#9a6a23',
+      dot: '#e67e22',
+    },
+    IN_PROGRESS: {
+      label: 'In Progress',
+      bg: '#fef9e7',
+      text: '#9a6a23',
+      dot: '#e67e22',
+    },
+    SUBMITTED: {
+      label: 'Submitted',
+      bg: '#e8f1e9',
+      text: '#3a6448',
+      dot: '#4a7c59',
+    },
+    APPROVED: {
+      label: 'Approved',
+      bg: '#e8f1e9',
+      text: '#3a6448',
+      dot: '#4a7c59',
+    },
   };
   const s = map[status] ?? map.INCOMPLETE!;
   return (

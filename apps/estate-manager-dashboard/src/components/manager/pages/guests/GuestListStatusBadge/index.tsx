@@ -4,7 +4,11 @@ import type { GuestListStatus, GuestStayStatus } from '@/types';
 const isStayStatus = (s: GuestListStatus): s is GuestStayStatus =>
   s === 'Settled' || s === 'Departing' || s === 'Arriving';
 
-export const GuestListStatusBadge = ({ status }: { status: GuestListStatus }) => {
+export const GuestListStatusBadge = ({
+  status,
+}: {
+  status: GuestListStatus;
+}) => {
   if (isStayStatus(status)) {
     return <GuestStatusDot status={status} />;
   }

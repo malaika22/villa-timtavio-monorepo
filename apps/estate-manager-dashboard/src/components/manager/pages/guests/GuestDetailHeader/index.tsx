@@ -9,7 +9,11 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-export const GuestDetailHeader = ({ profile }: { profile: GuestDNAProfile }) => (
+export const GuestDetailHeader = ({
+  profile,
+}: {
+  profile: GuestDNAProfile;
+}) => (
   <div className="flex shrink-0 flex-col gap-3 border-b border-[#ebe6df] bg-[#f9f7f2] px-5 py-4 lg:px-6">
     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div className="flex gap-3">

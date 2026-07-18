@@ -69,17 +69,20 @@ export const ContentCatalogPage = () => {
   const toggleActive = useToggleCatalogItem();
   const importCsv = useImportCatalogCsv();
 
-  const openExperienceForm = useCallback((experienceId?: string) => {
-    if (experienceId) {
-      const match = (catalogData ?? [])
-        .map(mapCatalogItemToContentExperience)
-        .find((item) => item.id === experienceId);
-      setEditingExperience(match ?? null);
-    } else {
-      setEditingExperience(null);
-    }
-    setExperienceFormOpen(true);
-  }, [catalogData]);
+  const openExperienceForm = useCallback(
+    (experienceId?: string) => {
+      if (experienceId) {
+        const match = (catalogData ?? [])
+          .map(mapCatalogItemToContentExperience)
+          .find((item) => item.id === experienceId);
+        setEditingExperience(match ?? null);
+      } else {
+        setEditingExperience(null);
+      }
+      setExperienceFormOpen(true);
+    },
+    [catalogData],
+  );
 
   useEffect(() => {
     registerOpenExperienceForm(openExperienceForm);
@@ -104,7 +107,6 @@ export const ContentCatalogPage = () => {
     importCsv.mutate(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
-
 
   return (
     <div className="font-inter space-y-6">

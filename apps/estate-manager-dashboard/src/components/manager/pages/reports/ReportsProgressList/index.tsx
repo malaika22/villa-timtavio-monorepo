@@ -10,8 +10,12 @@ export const ReportsProgressList = ({ rows, footer }: Props) => (
     {rows.map((row) => (
       <li key={row.id}>
         <div className="mb-1.5 flex items-center justify-between gap-3">
-          <span className="font-inter text-sm text-manager-text">{row.label}</span>
-          <span className="font-inter shrink-0 text-sm text-manager-text-muted">{row.detail}</span>
+          <span className="font-inter text-sm text-manager-text">
+            {row.label}
+          </span>
+          <span className="font-inter shrink-0 text-sm text-manager-text-muted">
+            {row.detail}
+          </span>
         </div>
         <div className="h-2 overflow-hidden rounded-full bg-[#ebe6df]">
           <div
@@ -23,8 +27,12 @@ export const ReportsProgressList = ({ rows, footer }: Props) => (
     ))}
     {footer ? (
       <li className="flex items-center justify-between border-t border-[#ebe6df] pt-4">
-        <span className="font-inter text-sm font-medium text-manager-text">{footer.label}</span>
-        <span className="font-cormorant text-xl leading-none text-manager-text">{footer.value}</span>
+        <span className="font-inter text-sm font-medium text-manager-text">
+          {footer.label}
+        </span>
+        <span className="font-cormorant text-xl leading-none text-manager-text">
+          {footer.value}
+        </span>
       </li>
     ) : null}
   </ul>

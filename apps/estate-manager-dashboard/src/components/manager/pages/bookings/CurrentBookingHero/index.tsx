@@ -5,14 +5,20 @@ import type { CurrentBooking } from '@/types';
 
 const Stat = ({ value, label }: { value: string | number; label: string }) => (
   <div className="min-w-[52px] text-center">
-    <p className="font-cormorant text-[32px] leading-none text-manager-text">{value}</p>
+    <p className="font-cormorant text-[32px] leading-none text-manager-text">
+      {value}
+    </p>
     <p className="mt-1 text-[11px] font-medium tracking-[0.14em] text-[#a8a29e] uppercase">
       {label}
     </p>
   </div>
 );
 
-export const CurrentBookingHero = ({ booking }: { booking: CurrentBooking }) => (
+export const CurrentBookingHero = ({
+  booking,
+}: {
+  booking: CurrentBooking;
+}) => (
   <div className="flex flex-col gap-3">
     <div className="overflow-hidden rounded-xl border border-[#e8e4de] bg-white shadow-[0_1px_3px_rgba(26,22,20,0.06)]">
       <div className="flex flex-col px-5 py-4 lg:flex-row lg:items-center lg:gap-8 lg:px-6 lg:py-5">
@@ -67,8 +73,13 @@ export const CurrentBookingHero = ({ booking }: { booking: CurrentBooking }) => 
 
     <div className="flex flex-col gap-2 rounded-xl border border-[#e8d4b8] bg-[#fff8f0] px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between lg:px-6">
       <div className="flex items-start gap-2.5 sm:items-center">
-        <Info className="mt-0.5 size-4 shrink-0 text-[#b45309] sm:mt-0" strokeWidth={2} />
-        <p className="text-sm leading-snug text-[#8b6914]">{booking.manifestAlert}</p>
+        <Info
+          className="mt-0.5 size-4 shrink-0 text-[#b45309] sm:mt-0"
+          strokeWidth={2}
+        />
+        <p className="text-sm leading-snug text-[#8b6914]">
+          {booking.manifestAlert}
+        </p>
       </div>
       <Link
         href="#manifest"

@@ -45,13 +45,17 @@ const GuestListRow = ({
     <GuestAvatar initials={guest.initials} className="size-9 text-[11px]" />
     <div className="min-w-0 flex-1">
       <div className="flex items-start justify-between gap-1.5">
-        <p className="text-[13px] font-semibold leading-tight text-manager-text">{guest.name}</p>
+        <p className="text-[13px] font-semibold leading-tight text-manager-text">
+          {guest.name}
+        </p>
         <GuestListStatusBadge status={guest.status} />
       </div>
       <p className="mt-0.5 text-sm leading-snug text-manager-text-muted">
         {guest.villa} · {guest.dates}
       </p>
-      <p className="mt-0.5 text-sm leading-snug text-[#8a8178]">{metaLine2(guest)}</p>
+      <p className="mt-0.5 text-sm leading-snug text-[#8a8178]">
+        {metaLine2(guest)}
+      </p>
     </div>
   </button>
 );

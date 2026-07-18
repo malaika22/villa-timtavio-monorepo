@@ -26,7 +26,11 @@ const DIET_BADGES: { key: keyof MenuItem; label: string; tone: string }[] = [
   { key: 'isVegan', label: 'Vegan', tone: 'bg-[#e8f1e9] text-[#3a6448]' },
   { key: 'isGlutenFree', label: 'GF', tone: 'bg-[#eef0f5] text-[#3a4a6b]' },
   { key: 'containsNuts', label: 'Nuts', tone: 'bg-[#fef6f4] text-[#9a3a30]' },
-  { key: 'containsShellfish', label: 'Shellfish', tone: 'bg-[#fef6f4] text-[#9a3a30]' },
+  {
+    key: 'containsShellfish',
+    label: 'Shellfish',
+    tone: 'bg-[#fef6f4] text-[#9a3a30]',
+  },
 ];
 
 export const MenusTabView = () => {
@@ -51,7 +55,10 @@ export const MenusTabView = () => {
       {isLoading ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-28 animate-pulse rounded-xl bg-manager-border" />
+            <div
+              key={i}
+              className="h-28 animate-pulse rounded-xl bg-manager-border"
+            />
           ))}
         </div>
       ) : (items?.length ?? 0) === 0 ? (

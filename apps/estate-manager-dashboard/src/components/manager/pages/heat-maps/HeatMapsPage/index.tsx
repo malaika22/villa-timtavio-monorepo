@@ -20,7 +20,8 @@ export const HeatMapsPage = () => {
   const timeBlocks = Array.from(new Set((cells ?? []).map((c) => c.timeBlock)));
   const maxScore = Math.max(1, ...(cells ?? []).map((c) => c.activityScore));
   const scoreFor = (space: string, tb: string) =>
-    cells?.find((c) => c.space === space && c.timeBlock === tb)?.activityScore ?? 0;
+    cells?.find((c) => c.space === space && c.timeBlock === tb)
+      ?.activityScore ?? 0;
 
   const maxPeak = Math.max(1, ...(peak ?? []).map((p) => p.activityIndex));
 
@@ -86,14 +87,21 @@ export const HeatMapsPage = () => {
         {peak && peak.length > 0 ? (
           <div className="flex h-32 items-end gap-2">
             {peak.map((p) => (
-              <div key={p.timeBlock} className="flex flex-1 flex-col items-center gap-1.5">
+              <div
+                key={p.timeBlock}
+                className="flex flex-1 flex-col items-center gap-1.5"
+              >
                 <div className="flex w-full flex-1 items-end">
                   <div
                     className="w-full rounded-t bg-[#c4a882]"
-                    style={{ height: `${Math.max(2, (p.activityIndex / maxPeak) * 100)}%` }}
+                    style={{
+                      height: `${Math.max(2, (p.activityIndex / maxPeak) * 100)}%`,
+                    }}
                   />
                 </div>
-                <span className="text-[9px] text-manager-text-muted">{p.timeBlock}</span>
+                <span className="text-[9px] text-manager-text-muted">
+                  {p.timeBlock}
+                </span>
               </div>
             ))}
           </div>

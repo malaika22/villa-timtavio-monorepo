@@ -135,7 +135,10 @@ export function ChefsBriefSheet({ open, onClose, brief }: Props) {
               ) : (
                 <ul className="space-y-1.5">
                   {brief.beveragePreferences.map((b, i) => (
-                    <li key={`${b.guest}-${i}`} className="text-sm text-[#3d3530]">
+                    <li
+                      key={`${b.guest}-${i}`}
+                      className="text-sm text-[#3d3530]"
+                    >
                       <span className="font-medium">{b.guest}:</span>{' '}
                       {b.preference}
                     </li>
