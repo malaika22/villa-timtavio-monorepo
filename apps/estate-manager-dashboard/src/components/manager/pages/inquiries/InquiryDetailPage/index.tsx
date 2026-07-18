@@ -22,6 +22,33 @@ function formatDate(iso?: string | null) {
   }
 }
 
+/**
+ * Website inquiries pack extra fields the API has no column for into `message`
+ * as "Label: Value · Label: Value". Parse that back into structured pairs so we
+ * can render them cleanly; returns null for free-form messages (render as prose).
+ */
+function parseStructuredMessage(
+  message: string,
+): { label: string; value: string }[] | null {
+  const segments = message
+    .split(/\s·\s|\s\|\s/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (segments.length < 2) return null;
+
+  const fields = segments.map((seg) => {
+    const idx = seg.indexOf(':');
+    if (idx === -1) return null;
+    const label = seg.slice(0, idx).trim();
+    const value = seg.slice(idx + 1).trim();
+    return label && value ? { label, value } : null;
+  });
+
+  return fields.every((f): f is { label: string; value: string } => f !== null)
+    ? fields
+    : null;
+}
+
 function DetailRow({
   label,
   value,
@@ -81,6 +108,9 @@ export function InquiryDetailPage({ id }: { id: string }) {
 
   const pill = STATUS_PILL[inquiry.status];
   const linkedInUrl = toLinkedInUrl(inquiry.socialHandle);
+  const messageFields = inquiry.message
+    ? parseStructuredMessage(inquiry.message)
+    : null;
   const isPending = inquiry.status === 'NEW';
   const isApproved = inquiry.status === 'APPROVED';
   const isConverted = inquiry.status === 'CONVERTED';
@@ -153,11 +183,29 @@ export function InquiryDetailPage({ id }: { id: string }) {
         {inquiry.message ? (
           <div className="mt-4 rounded-lg bg-manager-main p-4">
             <p className="text-xs font-medium uppercase tracking-wider text-manager-text-muted">
-              Message
+              {messageFields ? 'Additional details' : 'Message'}
             </p>
-            <p className="mt-2 text-sm leading-relaxed text-manager-text">
-              {inquiry.message}
-            </p>
+            {messageFields ? (
+              <dl className="mt-3 grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+                {messageFields.map((f) => (
+                  <div
+                    key={f.label}
+                    className="flex items-baseline justify-between gap-3 border-b border-manager-border/70 py-2 last:border-0"
+                  >
+                    <dt className="text-xs uppercase tracking-wide text-manager-text-muted">
+                      {f.label}
+                    </dt>
+                    <dd className="text-right text-sm font-medium text-manager-text">
+                      {f.value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            ) : (
+              <p className="mt-2 text-sm leading-relaxed text-manager-text">
+                {inquiry.message}
+              </p>
+            )}
           </div>
         ) : null}
 
