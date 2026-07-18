@@ -97,11 +97,17 @@ export const CategoryManageDialog = ({ open, onOpenChange }: Props) => {
         setConfirmDelete(null);
       },
       onError: (error) => {
+        const message = error instanceof Error ? error.message : '';
+        // The category is already gone (stale list) — treat it as removed;
+        // the list refetches via onSettled and the phantom entry disappears.
+        if (/not found/i.test(message)) {
+          toast.success('Category removed');
+          if (editing?.id === category.id) resetForm();
+          setConfirmDelete(null);
+          return;
+        }
         toast.error('Could not delete category', {
-          description:
-            error instanceof Error
-              ? error.message
-              : 'Categories with experiences cannot be removed.',
+          description: message || 'Categories with experiences cannot be removed.',
         });
       },
     });

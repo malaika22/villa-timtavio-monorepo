@@ -51,7 +51,9 @@ export function useDeleteExperienceCategory() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => experienceCategoriesApi.delete(id),
-    onSuccess: () => {
+    // Refetch after every attempt (success OR error) so a stale/already-deleted
+    // category can't get stuck in the list and keep 404-ing.
+    onSettled: () => {
       void queryClient.invalidateQueries({
         queryKey: ['experience-categories'],
       });
