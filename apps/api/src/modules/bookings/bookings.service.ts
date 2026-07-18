@@ -5,6 +5,7 @@ import { BookingStatus } from '@prisma/client';
 import { InquiriesService } from '../inqueries/inquiries.service';
 import { PusherService } from '../pusher/pusher.service';
 import { PaymentsService } from '../payments/payments.service';
+import { realFirstName } from '../../commons/utils/name.util';
 
 @Injectable()
 export class BookingsService {
@@ -209,16 +210,30 @@ export class BookingsService {
       where: { email: guestEmail },
     });
 
-    if (!guest) {
-      guest = await this.prisma.guest.create({
-        data: {
-          email: guestEmail,
-          firstName: lodgifyData.guest?.first_name || 'Guest',
-          lastName: lodgifyData.guest?.last_name || '',
-          phone: lodgifyData.guest?.phone,
-          role: 'PRIMARY',
-        },
-      });
+    // Seed/backfill the guest name. Lodgify often has no name (defaults to the
+    // "Guest" placeholder), so fall back to the linked inquiry's real name.
+    if (!guest || !realFirstName(guest.firstName)) {
+      const inquiry = await this.inquiriesService.findLatestByEmail(guestEmail);
+      const firstName =
+        lodgifyData.guest?.first_name || inquiry?.firstName || 'Guest';
+      const lastName = lodgifyData.guest?.last_name || inquiry?.lastName || '';
+
+      if (!guest) {
+        guest = await this.prisma.guest.create({
+          data: {
+            email: guestEmail,
+            firstName,
+            lastName,
+            phone: lodgifyData.guest?.phone,
+            role: 'PRIMARY',
+          },
+        });
+      } else {
+        guest = await this.prisma.guest.update({
+          where: { id: guest.id },
+          data: { firstName, lastName },
+        });
+      }
     }
 
     const booking = await this.prisma.booking.create({

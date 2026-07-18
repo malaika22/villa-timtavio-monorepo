@@ -275,6 +275,16 @@ export class InquiriesService {
     return { success: true };
   }
 
+  // ─── Most recent inquiry for an email (used to backfill a booking's guest
+  //     name when Lodgify provides none) ────────────────────────────────────
+
+  async findLatestByEmail(email: string) {
+    return this.prisma.inquiry.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   // ─── Link inquiry to booking after Lodgify webhook fires ─────────────────
 
   async linkToBooking(email: string, bookingId: string) {
