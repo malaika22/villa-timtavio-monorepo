@@ -1,0 +1,181 @@
+{%- comment -%}
+  Villa TimTavio — Auth0 New Universal Login page template (Liquid).
+
+  WHERE THIS GOES:
+    Auth0 Dashboard → Branding → Universal Login → Advanced Options → Page Templates
+    (Requires a verified CUSTOM DOMAIN on the tenant — Page Templates are gated behind it.)
+
+  WHAT IT DOES:
+    Renders the page CHROME around Auth0's injected login widget: branded split
+    layout, cream/navy palette, Cormorant + Inter fonts, villa wordmark.
+    The WIDGET ITSELF (button colour, input styling, radius) is themed separately
+    via Branding → Universal Login → Styles, or the Management API branding theme.
+    Use the values in ./branding-theme.json for that so the two halves match.
+
+  REQUIRED TAGS (do not remove): {%- auth0:head -%} and {%- auth0:widget -%}
+{%- endcomment -%}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    {%- auth0:head -%}
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ prompt.screen.texts.pageTitle | default: "Villa TimTavio" }}</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --tt-navy: #0f1f2e;
+        --tt-navy-mid: #1a3040;
+        --tt-background: #f5f3f0;
+        --tt-surface: #ffffff;
+        --tt-border: #e3e0da;
+        --tt-muted: #797168;
+        --tt-crater-brown: #8c7261;
+        --tt-brown-dark: #5e4737;
+        --tt-maroon: #5e3a31;
+        --tt-gold: #c4a882;
+        --font-display: "Cormorant Garamond", Georgia, serif;
+        --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      html, body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        font-family: var(--font-body);
+        background: var(--tt-background);
+        color: var(--tt-navy);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .tt-shell {
+        display: grid;
+        grid-template-columns: 1.1fr 1fr;
+        min-height: 100vh;
+      }
+
+      /* ── Left: branded panel ───────────────────────────────── */
+      .tt-brand {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 3.5rem;
+        color: #fff;
+        background:
+          radial-gradient(120% 120% at 0% 0%, var(--tt-navy-mid) 0%, var(--tt-navy) 55%);
+        overflow: hidden;
+      }
+      .tt-brand::after {
+        /* subtle gold hairline accent */
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(90deg, transparent 0%, rgba(196, 168, 130, 0.14) 100%);
+        pointer-events: none;
+      }
+      .tt-wordmark {
+        position: relative;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 1.5rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .tt-wordmark span { color: var(--tt-gold); }
+      .tt-hero {
+        position: relative;
+        max-width: 26rem;
+      }
+      .tt-hero h1 {
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: 2.6rem;
+        line-height: 1.15;
+        margin: 0 0 1rem;
+      }
+      .tt-hero p {
+        font-size: 0.95rem;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.72);
+        margin: 0;
+      }
+      .tt-rule {
+        width: 3rem;
+        height: 2px;
+        background: var(--tt-gold);
+        border: 0;
+        margin: 0 0 1.5rem;
+      }
+      .tt-brand-foot {
+        position: relative;
+        font-size: 0.75rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.45);
+      }
+
+      /* ── Right: widget column ──────────────────────────────── */
+      .tt-widget-col {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2.5rem;
+        background: var(--tt-background);
+      }
+      .tt-widget-wrap {
+        width: 100%;
+        max-width: 25rem;
+      }
+
+      /* ── Mobile: stack, hide the marketing hero copy ───────── */
+      @media (max-width: 820px) {
+        .tt-shell { grid-template-columns: 1fr; }
+        .tt-brand {
+          padding: 2rem;
+          flex-direction: row;
+          align-items: center;
+          justify-content: center;
+          min-height: auto;
+        }
+        .tt-hero, .tt-brand-foot { display: none; }
+        .tt-wordmark { font-size: 1.25rem; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="tt-shell">
+      <aside class="tt-brand">
+        <div class="tt-wordmark">Villa Tim<span>Tavio</span></div>
+
+        <div class="tt-hero">
+          <hr class="tt-rule" />
+          <h1>Estate Manager Portal</h1>
+          <p>
+            Secure access to bookings, guests, folios and daily operations
+            for the Villa TimTavio estate.
+          </p>
+        </div>
+
+        <div class="tt-brand-foot">Private &middot; Authorised access only</div>
+      </aside>
+
+      <main class="tt-widget-col">
+        <div class="tt-widget-wrap">
+          {%- auth0:widget -%}
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

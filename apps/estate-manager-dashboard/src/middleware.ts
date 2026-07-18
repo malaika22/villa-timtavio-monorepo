@@ -67,7 +67,9 @@ export async function middleware(request: NextRequest) {
   try {
     const session = await auth0.getSession(request);
     if (!session?.user) {
-      const loginUrl = new URL('/api/auth/login', request.url);
+      // Send to our own branded /login page (not straight to Auth0). The page
+      // presents the "Continue to sign in" button that starts the Auth0 flow.
+      const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('returnTo', pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -101,7 +103,7 @@ export async function middleware(request: NextRequest) {
     return authResponse;
   } catch (error) {
     console.error(error);
-    const loginUrl = new URL('/api/auth/login', request.url);
+    const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('returnTo', pathname);
     return NextResponse.redirect(loginUrl);
   }

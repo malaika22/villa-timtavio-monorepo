@@ -4,13 +4,22 @@ import { AUTH_FAILED_HINTS } from './constants';
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; reason?: string }>;
+  searchParams: Promise<{ error?: string; reason?: string; returnTo?: string }>;
 }) {
-  const { error, reason } = await searchParams;
+  const { error, reason, returnTo } = await searchParams;
   const hint =
     reason && AUTH_FAILED_HINTS[reason]
       ? AUTH_FAILED_HINTS[reason]
       : AUTH_FAILED_HINTS.access_denied;
+
+  // Only allow app-relative returnTo values (prevent open-redirect to external URLs).
+  const safeReturnTo =
+    returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')
+      ? returnTo
+      : undefined;
+  const signInHref = safeReturnTo
+    ? `/api/auth/login?returnTo=${encodeURIComponent(safeReturnTo)}`
+    : '/api/auth/login';
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-[#f7f5f1] px-6">
@@ -28,7 +37,7 @@ export default async function LoginPage({
           </div>
         )}
         <a
-          href="/api/auth/login"
+          href={signInHref}
           className="mt-6 inline-flex h-11 w-full items-center justify-center rounded-lg bg-manager-accent text-sm font-medium text-white transition-colors hover:opacity-90"
         >
           Continue to sign in
