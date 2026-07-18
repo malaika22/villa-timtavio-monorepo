@@ -179,6 +179,16 @@ function diffNights(arrival: string, departure: string): number {
 export function normalizeLodgifyBooking(
   raw: Record<string, unknown>,
 ): LodgifySyncPayload | null {
+  // Skip reservations that were deleted/cancelled in Lodgify — otherwise the
+  // 5-minute pull keeps resurrecting a booking the user already removed.
+  if (
+    raw.is_deleted === true ||
+    raw.status === 'Deleted' ||
+    raw.canceled_at != null
+  ) {
+    return null;
+  }
+
   const id = raw.id ?? raw.booking_id ?? raw.bookingId;
   const arrival = (raw.arrival ??
     raw.date_arrival ??
