@@ -3,18 +3,17 @@
 import { useMemo } from 'react';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
-import { heatMapHotZones } from '@/lib/mock-data';
 import { useHeatMap } from '@/hooks/useAnalytics';
 
 type Zone = { id: string; label: string; score: number };
 
 export const HotZonesPanel = ({ category }: { category?: string }) => {
-  const { data } = useHeatMap(category);
+  const { data, isLoading } = useHeatMap(category);
 
   // Busiest spaces = sum of activity across all time blocks, normalised to the
-  // hottest space (0–100), top 6. Falls back to sample data when empty.
+  // hottest space (0–100), top 6.
   const zones = useMemo<Zone[]>(() => {
-    if (!data || data.length === 0) return heatMapHotZones;
+    if (!data || data.length === 0) return [];
     const bySpace = new Map<string, number>();
     for (const cell of data) {
       bySpace.set(
@@ -24,7 +23,7 @@ export const HotZonesPanel = ({ category }: { category?: string }) => {
     }
     const ranked = [...bySpace.entries()].sort((a, b) => b[1] - a[1]);
     const max = ranked[0]?.[1] ?? 0;
-    if (max === 0) return heatMapHotZones;
+    if (max === 0) return [];
     return ranked.slice(0, 6).map(([space, total]) => ({
       id: space,
       label: space,
@@ -35,7 +34,16 @@ export const HotZonesPanel = ({ category }: { category?: string }) => {
   return (
     <IntelCard className="p-4">
       <h3 className="text-sm font-semibold text-intel-text">Hot Zones</h3>
-      <ul className="mt-4 space-y-3.5">
+      {isLoading ? (
+        <div className="mt-4 space-y-3.5">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-4 animate-pulse rounded bg-[#f0ede8]" />
+          ))}
+        </div>
+      ) : zones.length === 0 ? (
+        <p className="mt-4 text-xs text-intel-text-muted">No activity yet.</p>
+      ) : (
+        <ul className="mt-4 space-y-3.5">
         {zones.map((zone) => (
           <li key={zone.id}>
             <div className="mb-1 flex items-center justify-between gap-2 text-xs">
@@ -51,8 +59,9 @@ export const HotZonesPanel = ({ category }: { category?: string }) => {
               />
             </div>
           </li>
-        ))}
-      </ul>
+          ))}
+        </ul>
+      )}
     </IntelCard>
   );
 };

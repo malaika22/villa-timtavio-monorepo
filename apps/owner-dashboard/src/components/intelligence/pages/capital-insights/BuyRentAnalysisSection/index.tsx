@@ -1,7 +1,7 @@
 'use client';
 
 import { BuyRentDecisionCard } from '@/components/intelligence/pages/capital-insights/BuyRentDecisionCard';
-import { buyRentAnalysisItems } from '@/lib/mock-data';
+import { BlockSkeleton } from '@/components/intelligence/ui/Skeletons';
 import { useEquipmentAnalysis } from '@/hooks/useAnalytics';
 import type { EquipmentRow } from '@/lib/api/analytics';
 import type {
@@ -78,11 +78,8 @@ function toDecisionItem(row: EquipmentRow): BuyRentAnalysisItem {
 }
 
 export const BuyRentAnalysisSection = () => {
-  const { data } = useEquipmentAnalysis();
-  const items: BuyRentAnalysisItem[] =
-    data && data.items.length > 0
-      ? data.items.map(toDecisionItem)
-      : buyRentAnalysisItems;
+  const { data, isLoading } = useEquipmentAnalysis();
+  const items: BuyRentAnalysisItem[] = data?.items.map(toDecisionItem) ?? [];
 
   return (
     <section>
@@ -94,11 +91,23 @@ export const BuyRentAnalysisSection = () => {
           Based on tracked utilization + projected annual demand
         </p>
       </div>
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        {items.map((item) => (
-          <BuyRentDecisionCard key={item.id} item={item} />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <BlockSkeleton key={i} className="h-48" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <p className="py-8 text-center text-sm text-intel-text-muted">
+          No tracked equipment yet — add assets to see buy-vs-rent guidance.
+        </p>
+      ) : (
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {items.map((item) => (
+            <BuyRentDecisionCard key={item.id} item={item} />
+          ))}
+        </div>
+      )}
     </section>
   );
 };

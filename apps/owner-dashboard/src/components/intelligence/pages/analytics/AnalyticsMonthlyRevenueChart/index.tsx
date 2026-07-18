@@ -12,7 +12,7 @@ import { Area, CartesianGrid, ComposedChart, XAxis, YAxis } from 'recharts';
 import { ANALYTICS_CHART } from '@/components/intelligence/pages/analytics/chart-theme';
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
 import { IntelPillToggle } from '@/components/intelligence/ui/IntelPillToggle';
-import { analyticsRevenueByMonth } from '@/lib/mock-data';
+import { BlockSkeleton } from '@/components/intelligence/ui/Skeletons';
 import { useRevenueTrend } from '@/hooks/useAnalytics';
 
 const chartConfig = {
@@ -57,12 +57,9 @@ const endPointDot =
 export const AnalyticsMonthlyRevenueChart = () => {
   const [metric, setMetric] = useState<MetricView>('revenue');
   const [yearView, setYearView] = useState<YearView>('2026');
-  const { data: liveTrend } = useRevenueTrend(2026, 2025);
+  const { data: liveTrend, isLoading } = useRevenueTrend(2026, 2025);
 
-  const source =
-    liveTrend && liveTrend.some((m) => m.y2026 || m.y2025)
-      ? liveTrend
-      : analyticsRevenueByMonth;
+  const source = liveTrend ?? [];
   const lastIndex = source.length - 1;
 
   const chartData = useMemo(() => {
@@ -78,6 +75,8 @@ export const AnalyticsMonthlyRevenueChart = () => {
   const show2026 = yearView === '2026' || yearView === 'both';
   const show2025 =
     yearView === '2025' || yearView === 'both' || yearView === '2026';
+
+  if (isLoading) return <BlockSkeleton className="h-[360px]" />;
 
   return (
     <IntelCard className="flex flex-col rounded-xl p-5">

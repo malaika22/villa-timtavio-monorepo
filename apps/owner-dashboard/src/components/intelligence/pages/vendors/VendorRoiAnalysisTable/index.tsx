@@ -4,7 +4,6 @@ import { cn } from '@repo/ui/lib/utils';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
 import { ExportMenu } from '@/components/intelligence/ui/ExportMenu';
-import { vendorRoiRows } from '@/lib/mock-data';
 import type { VendorRoiRow } from '@/types';
 import { useVendorsAsRoiRows } from '@/hooks/useVendors';
 
@@ -52,8 +51,8 @@ const StatusBadge = ({ status }: { status: VendorRoiRow['status'] }) => (
 );
 
 export const VendorRoiAnalysisTable = () => {
-  const { data: apiRows } = useVendorsAsRoiRows();
-  const rows: VendorRoiRow[] = apiRows ?? vendorRoiRows;
+  const { data: apiRows, isLoading } = useVendorsAsRoiRows();
+  const rows: VendorRoiRow[] = apiRows ?? [];
 
   const csvRows = rows.map((r) => ({
     Vendor: r.name,
@@ -94,6 +93,16 @@ export const VendorRoiAnalysisTable = () => {
               </tr>
             </thead>
             <tbody>
+              {(isLoading || rows.length === 0) && (
+                <tr>
+                  <td
+                    colSpan={COLUMNS.length}
+                    className="px-4 py-10 text-center text-sm text-intel-text-muted"
+                  >
+                    {isLoading ? 'Loading vendor data…' : 'No vendor data yet.'}
+                  </td>
+                </tr>
+              )}
               {rows.map((row, i) => (
                 <tr
                   key={row.id}

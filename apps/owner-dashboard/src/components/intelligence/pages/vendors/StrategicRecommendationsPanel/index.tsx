@@ -4,7 +4,6 @@ import { cn } from '@repo/ui/lib/utils';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
-import { vendorStrategicRecommendations } from '@/lib/mock-data';
 import { useVendorPerformance, useVendorForecast } from '@/hooks/useAnalytics';
 import type { VendorPerfRow, VendorForecastRow } from '@/lib/api/analytics';
 import type { VendorRecommendation } from '@/types';
@@ -153,8 +152,8 @@ export const StrategicRecommendationsPanel = () => {
   const { data: perf } = useVendorPerformance();
   const { data: forecast } = useVendorForecast();
 
-  const live = perf && forecast ? buildRecommendations(perf, forecast) : [];
-  const items = live.length > 0 ? live : vendorStrategicRecommendations;
+  const items =
+    perf && forecast ? buildRecommendations(perf, forecast) : [];
 
   return (
     <section className="flex h-full min-h-0 flex-col">
@@ -162,11 +161,17 @@ export const StrategicRecommendationsPanel = () => {
         Strategic Recommendations
       </h3>
       <IntelCard className="flex flex-1 flex-col rounded-xl p-4">
-        <ul className="flex flex-col gap-2.5">
-          {items.map((item) => (
-            <RecommendationItem key={item.id} item={item} />
-          ))}
-        </ul>
+        {items.length === 0 ? (
+          <p className="py-6 text-center text-xs text-intel-text-muted">
+            Recommendations appear once there&apos;s vendor activity to analyze.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2.5">
+            {items.map((item) => (
+              <RecommendationItem key={item.id} item={item} />
+            ))}
+          </ul>
+        )}
       </IntelCard>
     </section>
   );

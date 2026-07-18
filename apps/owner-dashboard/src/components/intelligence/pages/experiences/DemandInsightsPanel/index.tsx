@@ -4,7 +4,6 @@ import { cn } from '@repo/ui/lib/utils';
 import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
-import { experienceDemandInsights } from '@/lib/mock-data';
 import {
   useExperienceRecommendations,
   useExperienceInsights,
@@ -71,7 +70,7 @@ export const DemandInsightsPanel = () => {
             title: '',
             message,
           }))
-        : experienceDemandInsights;
+        : [];
 
   return (
     <section className="flex h-full min-h-0 flex-col">
@@ -79,11 +78,17 @@ export const DemandInsightsPanel = () => {
         Demand Insights
       </h3>
       <IntelCard className="flex flex-1 flex-col rounded-xl p-4">
-        <ul className="flex flex-col gap-2.5">
-          {items.map((insight) => (
-            <InsightItem key={insight.id} insight={insight} />
-          ))}
-        </ul>
+        {items.length === 0 ? (
+          <p className="py-6 text-center text-xs text-intel-text-muted">
+            Demand insights appear once experiences start getting booked.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2.5">
+            {items.map((insight) => (
+              <InsightItem key={insight.id} insight={insight} />
+            ))}
+          </ul>
+        )}
       </IntelCard>
     </section>
   );

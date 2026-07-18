@@ -4,7 +4,6 @@ import { Star, ChevronDown, ArrowUpDown } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
-import { experiencePerformanceRows } from '@/lib/mock-data';
 import type { ExperiencePerformanceRow } from '@/types';
 import { useExperiencePerformance } from '@/hooks/useAnalytics';
 import { usePeriod } from '@/providers/period-provider';
@@ -37,12 +36,7 @@ const parseRevenue = (s: string) =>
 export const ExperiencePerformanceTable = () => {
   const { period } = usePeriod();
   const { data: apiRows } = useExperiencePerformance(period);
-  // Use live rows once at least one experience has activity; otherwise show the
-  // sample shape rather than an all-zero table.
-  const baseRows: ExperiencePerformanceRow[] =
-    apiRows && apiRows.some((r) => r.bookings > 0)
-      ? apiRows
-      : experiencePerformanceRows;
+  const baseRows: ExperiencePerformanceRow[] = apiRows ?? [];
 
   const [sortKey, setSortKey] = useState<SortKey>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');

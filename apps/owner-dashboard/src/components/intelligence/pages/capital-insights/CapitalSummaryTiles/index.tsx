@@ -1,7 +1,7 @@
 'use client';
 
 import { MetricCard } from '@/components/intelligence/cards/MetricCard';
-import { capitalInsightsMetrics } from '@/lib/mock-data';
+import { KpiSkeleton } from '@/components/intelligence/ui/Skeletons';
 import { useEquipmentAnalysis } from '@/hooks/useAnalytics';
 import type { MetricCard as MetricCardType } from '@/types';
 
@@ -15,9 +15,17 @@ const compactMoney = (n: number) => {
 // annual rental spend, projected own-asset savings and average payback all come
 // from the same rows the Equipment Tracker renders.
 export const CapitalSummaryTiles = () => {
-  const { data } = useEquipmentAnalysis();
+  const { data, isLoading } = useEquipmentAnalysis();
 
-  let tiles: MetricCardType[] = capitalInsightsMetrics;
+  let tiles: MetricCardType[] = [
+    { id: 'annual-rental-spend', label: 'ANNUAL RENTAL SPEND', value: '$0' },
+    {
+      id: 'own-asset-savings',
+      label: 'POTENTIAL OWN-ASSET SAVINGS',
+      value: '$0',
+    },
+    { id: 'payback-avg', label: 'PAYBACK PERIOD (AVG)', value: '—' },
+  ];
 
   if (data && data.items.length > 0) {
     const items = data.items;
@@ -59,6 +67,8 @@ export const CapitalSummaryTiles = () => {
       },
     ];
   }
+
+  if (isLoading) return <KpiSkeleton count={3} cols="lg:grid-cols-3" />;
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

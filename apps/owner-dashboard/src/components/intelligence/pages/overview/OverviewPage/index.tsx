@@ -5,12 +5,7 @@ import { OverviewTeasers } from '@/components/intelligence/pages/overview/Overvi
 import { RevenueTrendChart } from '@/components/intelligence/charts/RevenueTrendChart';
 import { IntelligenceAlerts } from '@/components/intelligence/alerts/IntelligenceAlerts';
 import { UpcomingStaysTable } from '@/components/intelligence/tables/UpcomingStaysTable';
-import {
-  intelligenceAlerts,
-  overviewMetrics,
-  revenueTrendData,
-  upcomingStays,
-} from '@/lib/mock-data';
+import { KpiSkeleton } from '@/components/intelligence/ui/Skeletons';
 import {
   useAnalyticsOverview,
   overviewToMetrics,
@@ -23,17 +18,14 @@ import { usePeriod, PERIOD_SHORT } from '@/providers/period-provider';
 export const OverviewPage = () => {
   const { period } = usePeriod();
   const { data: upcomingData, isLoading } = useUpcomingStaysAbbrev();
-  const { data: overview } = useAnalyticsOverview(period);
+  const { data: overview, isLoading: overviewLoading } =
+    useAnalyticsOverview(period);
   const { data: liveAlerts } = useIntelligenceAlerts();
   const { data: liveTrend } = useRevenueTrend(2026, 2025);
-  const staysToShow = upcomingData ?? upcomingStays;
-  const metrics = overview ? overviewToMetrics(overview) : overviewMetrics;
-  const alerts =
-    liveAlerts && liveAlerts.length > 0 ? liveAlerts : intelligenceAlerts;
-  const trend =
-    liveTrend && liveTrend.some((m) => m.y2026 || m.y2025)
-      ? liveTrend
-      : revenueTrendData;
+  const staysToShow = upcomingData ?? [];
+  const metrics = overview ? overviewToMetrics(overview) : [];
+  const alerts = liveAlerts ?? [];
+  const trend = liveTrend ?? [];
 
   return (
     <div className="space-y-6">
@@ -45,7 +37,7 @@ export const OverviewPage = () => {
         · change the range from the selector above.
       </p>
 
-      <MetricCardGrid metrics={metrics} />
+      {overviewLoading ? <KpiSkeleton count={4} /> : <MetricCardGrid metrics={metrics} />}
 
       <OverviewTeasers />
 

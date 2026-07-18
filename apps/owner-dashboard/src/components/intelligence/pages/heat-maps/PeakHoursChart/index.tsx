@@ -4,7 +4,7 @@ import { ChartContainer, type ChartConfig } from '@repo/ui/components/chart';
 import { Bar, BarChart, Cell, XAxis, YAxis } from 'recharts';
 
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
-import { heatMapPeakHours } from '@/lib/mock-data';
+import { BlockSkeleton } from '@/components/intelligence/ui/Skeletons';
 import { usePeakHours } from '@/hooks/useAnalytics';
 
 const chartConfig = {
@@ -14,12 +14,10 @@ const chartConfig = {
 const AXIS_LABELS = new Set(['6am', '12pm', '6pm', '11pm']);
 
 export const PeakHoursChart = () => {
-  const { data } = usePeakHours();
-  // Use live hourly activity when present; fall back to sample data. If the day
-  // has no events yet every bar is 0, so treat that as "no data" and show the
-  // sample shape rather than an empty chart.
-  const hasLive = !!data && data.some((d) => d.count > 0);
-  const bars = hasLive ? data! : heatMapPeakHours;
+  const { data, isLoading } = usePeakHours();
+  const bars = data ?? [];
+
+  if (isLoading) return <BlockSkeleton className="h-full min-h-[200px]" />;
 
   return (
     <IntelCard className="flex h-full min-h-0 flex-col p-4">

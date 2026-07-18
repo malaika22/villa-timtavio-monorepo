@@ -1,12 +1,12 @@
 'use client';
 
 import { MetricCardGrid } from '@/components/intelligence/cards/MetricCardGrid';
-import { analyticsMetrics } from '@/lib/mock-data';
+import { KpiSkeleton } from '@/components/intelligence/ui/Skeletons';
 import { useRevenueSummary } from '@/hooks/useAnalytics';
 
-// Revenue summary header — real MoM/YoY KPI tiles from /analytics/revenue,
-// with the sample tiles as a loading fallback.
+// Revenue summary header — real MoM/YoY KPI tiles from /analytics/revenue.
 export const LiveRevenueKpis = () => {
-  const { data } = useRevenueSummary();
-  return <MetricCardGrid metrics={data ?? analyticsMetrics} />;
+  const { data, isLoading } = useRevenueSummary();
+  if (isLoading) return <KpiSkeleton count={4} />;
+  return <MetricCardGrid metrics={data ?? []} />;
 };

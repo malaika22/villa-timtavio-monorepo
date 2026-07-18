@@ -10,7 +10,7 @@ import { Area, CartesianGrid, ComposedChart, XAxis, YAxis } from 'recharts';
 
 import { ANALYTICS_CHART } from '@/components/intelligence/pages/analytics/chart-theme';
 import { IntelCard } from '@/components/intelligence/ui/IntelCard';
-import { estateOccupancyByMonth } from '@/lib/mock-data';
+import { BlockSkeleton } from '@/components/intelligence/ui/Skeletons';
 import { useOccupancyMonthly } from '@/hooks/useAnalytics';
 
 const chartConfig = {
@@ -27,11 +27,9 @@ const chartConfig = {
 const MONTH_TICKS = new Set(['Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov', 'Dec']);
 
 export const EstateOccupancyChart = () => {
-  const { data: live } = useOccupancyMonthly();
-  const data =
-    live && live.some((m) => m.y2026 || m.y2025)
-      ? live
-      : estateOccupancyByMonth;
+  const { data: live, isLoading } = useOccupancyMonthly();
+  const data = live ?? [];
+  if (isLoading) return <BlockSkeleton className="h-full min-h-[280px]" />;
   return (
     <IntelCard className="flex h-full flex-col rounded-xl p-5">
       <div className="shrink-0">

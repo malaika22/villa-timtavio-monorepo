@@ -84,20 +84,16 @@ export const OverviewTeasers = () => {
           <Grid3x3 className="size-4 text-[#c2922d]" />
           Service Heat Map
         </h3>
-        <div className="grid flex-1 grid-cols-6 gap-1">
-          {Array.from({ length: 24 }).map((_, i) => {
-            const t = (Math.sin(i * 1.3) + 1) / 2;
-            const r = Math.round(247 + (194 - 247) * t);
-            const g = Math.round(244 + (146 - 244) * t);
-            const b = Math.round(239 + (45 - 239) * t);
-            return (
-              <span
-                key={i}
-                className="aspect-square rounded-[2px]"
-                style={{ background: `rgb(${r}, ${g}, ${b})` }}
-              />
-            );
-          })}
+        <div className="relative grid flex-1 grid-cols-6 gap-1">
+          {Array.from({ length: 24 }).map((_, i) => (
+            <span
+              key={i}
+              className="aspect-square rounded-[2px] bg-[#f0ede8]"
+            />
+          ))}
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[11px] text-intel-text-muted">
+            No activity yet
+          </span>
         </div>
         <Link
           href="/heat-maps"
