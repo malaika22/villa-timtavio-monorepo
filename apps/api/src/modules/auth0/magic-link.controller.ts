@@ -10,6 +10,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Public } from '../auth/decorators/public.decorator';
+import { recipientLabel } from '../../commons/utils/name.util';
 
 @Controller('api/v1/magic-link')
 export class MagicLinkController {
@@ -76,7 +77,11 @@ export class MagicLinkController {
     return {
       success: true,
       sentTo: booking.primaryGuest.email,
-      message: `Magic link sent to ${booking.primaryGuest.firstName} ${booking.primaryGuest.lastName}`,
+      message: `Magic link sent to ${recipientLabel(
+        booking.primaryGuest.firstName,
+        booking.primaryGuest.lastName,
+        booking.primaryGuest.email,
+      )}`,
     };
   }
 

@@ -14,6 +14,7 @@ import { Auth0ManagementService } from './auth0-management.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SendMagicLinkPayload } from './types';
 import { AUTH0_NAMESPACE } from '../auth/constants';
+import { greeting } from '../../commons/utils/name.util';
 
 @Injectable()
 export class MagicLinkService {
@@ -118,7 +119,7 @@ export class MagicLinkService {
                   <tr>
                     <td align="center" class="tt-pad" style="padding:24px 32px 0 32px;font-family:Georgia,'Times New Roman',serif;">
                       <p class="tt-h1" style="margin:0 0 12px 0;font-size:20px;color:#0f1f2e;">
-                        Welcome, ${payload.firstName}.
+                        ${greeting(payload.firstName)}
                       </p>
                       <p class="tt-body" style="margin:0;font-size:15px;line-height:1.7;color:#5f5e5a;">
                         Click below to access your stay at Villa TimTavio.

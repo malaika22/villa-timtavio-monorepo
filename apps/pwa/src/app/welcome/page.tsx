@@ -6,7 +6,13 @@ import { useAuthStore } from '@/store/auth/useAuthStore';
 
 export default function WelcomePage() {
   const router = useRouter();
-  const firstName = useAuthStore((s) => s.user?.firstName);
+  const storedFirstName = useAuthStore((s) => s.user?.firstName);
+  // Treat the "Guest" placeholder (used when a booking has no real name) as no
+  // name, so we greet with "Welcome" rather than the impersonal "Welcome, Guest".
+  const firstName =
+    storedFirstName && storedFirstName.trim().toLowerCase() !== 'guest'
+      ? storedFirstName.trim()
+      : '';
 
   useEffect(() => {
     const t = setTimeout(() => router.replace('/'), 3200);
