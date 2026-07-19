@@ -1,5 +1,3 @@
-import { EXPERIENCE_FILTER_CHIPS } from '@/data/experiencesMockData';
-import { ExperienceFilterId } from '@/types/experience';
 import { cn } from '@repo/ui/lib/utils';
 import { PAGE_SIZE } from './constants';
 
@@ -7,14 +5,21 @@ export const FilterChips = ({
   filter,
   setFilter,
   setVisibleCount,
+  categories,
 }: {
-  filter: ExperienceFilterId;
-  setFilter: (filter: ExperienceFilterId) => void;
+  filter: string;
+  setFilter: (filter: string) => void;
   setVisibleCount: (count: number) => void;
+  /** Distinct category names of the loaded experiences (EM-configured). */
+  categories: string[];
 }) => {
+  const chips = [
+    { id: 'all', label: 'All' },
+    ...categories.map((c) => ({ id: c, label: c })),
+  ];
   return (
     <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [-webkit-mask-image:linear-gradient(to_right,transparent,#000_1rem,#000_calc(100%-1rem),transparent)] [mask-image:linear-gradient(to_right,transparent,#000_1rem,#000_calc(100%-1rem),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {EXPERIENCE_FILTER_CHIPS.map((chip) => {
+      {chips.map((chip) => {
         const active = filter === chip.id;
         return (
           <button

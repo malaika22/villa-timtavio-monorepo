@@ -1,23 +1,22 @@
 'use client';
 
-import type { Experience, ExperienceFilterId } from '@/types/experience';
+import type { Experience } from '@/types/experience';
 import { ExperienceCard } from '@/components/Experience';
 import { ExperienceDetailSheet } from '@/components/ExperienceDetailSheet';
 import { cn } from '@repo/ui/lib/utils';
 import { ChevronDown, Search, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { EXPERIENCES_MOCK_DATA } from '@/data/experiencesMockData';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useBookingStore } from '@/store/useBookingStore';
 import { mapCatalogItemsToExperiences } from '@/lib/mappers/experience';
 import { FilterChips } from './FilterChips';
-import { bookingStatusMap, CATALOG_TOTAL, PAGE_SIZE } from './constants';
+import { bookingStatusMap, PAGE_SIZE } from './constants';
 import { staggerDelay } from './animations';
 import { Button } from '@repo/ui/components/button';
 
 export function ExperiencesCatalog() {
-  const [filter, setFilter] = useState<ExperienceFilterId>('all');
+  const [filter, setFilter] = useState<string>('all');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [selectedExperience, setSelectedExperience] =
     useState<Experience | null>(null);
@@ -30,16 +29,27 @@ export function ExperiencesCatalog() {
     : undefined;
 
   const { data: catalogItems } = useCatalog();
-  const apiExperiences = catalogItems
-    ? mapCatalogItemsToExperiences(catalogItems, bookingStatus)
-    : null;
+  const apiExperiences = useMemo(
+    () =>
+      catalogItems
+        ? mapCatalogItemsToExperiences(catalogItems, bookingStatus)
+        : null,
+    [catalogItems, bookingStatus],
+  );
   /** Drives RTL collapse: fixed to right edge while shrinking. Cleared after close. */
   const [shrinkFromRight, setShrinkFromRight] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  // Distinct dynamic categories of the loaded experiences drive the chips.
+  const categories = useMemo(
+    () =>
+      Array.from(new Set((apiExperiences ?? []).map((e) => e.filterCategory))),
+    [apiExperiences],
+  );
+
   const filtered = useMemo(() => {
-    const sourceData = apiExperiences ?? EXPERIENCES_MOCK_DATA;
+    const sourceData = apiExperiences ?? [];
     let list =
       filter === 'all'
         ? sourceData
@@ -55,10 +65,10 @@ export function ExperiencesCatalog() {
       );
     }
     return list;
-  }, [filter, searchQuery]);
+  }, [apiExperiences, filter, searchQuery]);
 
   const total = filtered.length;
-  const catalogTotal = apiExperiences ? apiExperiences.length : CATALOG_TOTAL;
+  const catalogTotal = apiExperiences?.length ?? 0;
   const visible = filtered.slice(0, visibleCount);
   const remaining = Math.max(0, total - visibleCount);
   const loadedCount = visible.length;
@@ -89,6 +99,7 @@ export function ExperiencesCatalog() {
         filter={filter}
         setVisibleCount={setVisibleCount}
         setFilter={setFilter}
+        categories={categories}
       />
 
       <div className="px-0.5">

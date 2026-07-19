@@ -48,6 +48,7 @@ export class CatalogService {
         ...(category && { category }),
       },
       include: {
+        experienceCategory: { select: { id: true, name: true } },
         vendor: {
           select: {
             id: true,
