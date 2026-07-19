@@ -225,6 +225,7 @@ export function RequestExperienceSheet({
               queuedOffline ? QUEUED_CONFIRMATION : ONLINE_CONFIRMATION
             }
             onSubmit={handleSubmitRequest}
+            onDismiss={onClose}
           />
         </div>
       </DrawerContent>
