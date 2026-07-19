@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@repo/ui';
+import { AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { GuestAvatar } from '@/components/manager/ui/GuestAvatar';
@@ -46,7 +47,11 @@ export const ApprovalsKanban = ({ rows }: { rows: ApprovalQueueItem[] }) => {
                 items.map((row) => (
                   <article
                     key={row.id}
-                    className={`rounded-lg ${col.tint} p-3`}
+                    className={`rounded-lg ${col.tint} p-3 ${
+                      row.status === 'Conflict'
+                        ? 'ring-1 ring-[#e8c496]'
+                        : ''
+                    }`}
                   >
                     <div className="flex items-center gap-2">
                       <GuestAvatar initials={row.initials} />
@@ -62,6 +67,18 @@ export const ApprovalsKanban = ({ rows }: { rows: ApprovalQueueItem[] }) => {
                     <p className="mt-2 text-xs text-manager-text-muted">
                       {row.requestedDate} · {row.requestedTime}
                     </p>
+                    {row.status === 'Conflict' && (
+                      <p className="mt-2 flex items-start gap-1.5 rounded-md bg-[#fef6eb] px-2 py-1.5 text-[11px] leading-snug text-[#b45309]">
+                        <AlertTriangle
+                          className="mt-0.5 size-3 shrink-0"
+                          strokeWidth={2}
+                        />
+                        <span>
+                          {row.conflictReason ??
+                            'Resource double-booked — reschedule or decline to resolve.'}
+                        </span>
+                      </p>
+                    )}
                     {(row.status === 'Pending' ||
                       row.status === 'Conflict') && (
                       <div className="mt-2 flex gap-2">

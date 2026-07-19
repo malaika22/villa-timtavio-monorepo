@@ -90,7 +90,9 @@ export class SettingsService {
       {
         key: 'breezeway',
         name: 'Breezeway',
-        connected: configured('BREEZEWAY_API_KEY', 'BREEZEWAY_ORG_ID'),
+        // The integration authenticates via OAuth client credentials, so the
+        // "connected" light must reflect those — not the legacy API_KEY/ORG_ID.
+        connected: configured('BREEZEWAY_CLIENT_ID', 'BREEZEWAY_CLIENT_SECRET'),
         lastSyncAt: null,
       },
       {

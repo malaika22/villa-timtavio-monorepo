@@ -183,6 +183,12 @@ export const ApprovalsQueueTable = ({
               “{row.declineReason}”
             </p>
           ) : null}
+          {row.status === 'Conflict' ? (
+            <p className="mt-0.5 text-xs text-[#b45309]">
+              {row.conflictReason ??
+                'Resource double-booked — reschedule or decline to resolve.'}
+            </p>
+          ) : null}
         </div>
       ),
     },

@@ -6,6 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { BreezeWayService } from '../breezeway/breezeway.service';
+import { ConflictService } from './conflict.service';
 import { PusherService } from '../pusher/pusher.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
@@ -30,6 +31,7 @@ export class RequestsService {
     private breezeWayService: BreezeWayService,
     private pusherService: PusherService,
     private notificationsService: NotificationsService,
+    private conflictService: ConflictService,
   ) {}
 
   // ─── Submit request ───────────────────────────────────────────────────────
@@ -439,8 +441,11 @@ export class RequestsService {
   async approve(id: string, dto: ConfirmRequestDto, approvedBy: string) {
     const request = await this.findOne(id);
 
-    if (request.status !== 'PENDING') {
-      throw new BadRequestException('Only pending requests can be approved');
+    // A conflicted request can be re-confirmed once the clash is resolved.
+    if (request.status !== 'PENDING' && request.status !== 'CONFLICT') {
+      throw new BadRequestException(
+        'Only pending or conflicted requests can be confirmed',
+      );
     }
 
     if (request.requiresPrimaryApproval && !request.primaryApproved) {
@@ -449,16 +454,67 @@ export class RequestsService {
       );
     }
 
+    const confirmedDate = dto.confirmedDate
+      ? new Date(dto.confirmedDate)
+      : request.preferredDate;
+    const confirmedTime = dto.confirmedTime || request.preferredTime;
+
+    // Conflict engine — if the resource (vendor, else the item itself) is
+    // already committed for an overlapping window, hold the request in CONFLICT
+    // instead of confirming. The EM resolves by rescheduling or declining, then
+    // re-confirms. No Breezeway task and no guest "confirmed" notice until clear.
+    const conflict = await this.conflictService.findResourceConflict({
+      requestId: id,
+      catalogItemId: request.catalogItemId,
+      vendorId: request.catalogItem.vendorId ?? null,
+      date: confirmedDate,
+      time: confirmedTime,
+      durationMin: request.catalogItem.durationMinutes ?? null,
+    });
+
+    if (conflict) {
+      const flagged = await this.prisma.experienceRequest.update({
+        where: { id },
+        data: {
+          status: 'CONFLICT',
+          statusUpdatedAt: new Date(),
+          confirmedDate,
+          confirmedTime,
+          emNotes: dto.emNotes,
+          conflictReason: conflict.reason,
+        },
+        include: {
+          catalogItem: true,
+          booking: { include: { primaryGuest: true } },
+        },
+      });
+
+      const remainingCount = await this.prisma.experienceRequest.count({
+        where: {
+          status: { in: ['PENDING', 'CONFLICT'] },
+          primaryApproved: true,
+        },
+      });
+      await this.pusherService.requestResolvedToEm({
+        requestId: id,
+        action: 'conflict',
+        remainingPendingCount: remainingCount,
+      });
+
+      // The conflict is recorded on the request itself (status + conflictReason
+      // + statusUpdatedAt); no dedicated AuditAction enum value for it.
+      return flagged;
+    }
+
     const updated = await this.prisma.experienceRequest.update({
       where: { id },
       data: {
         status: 'CONFIRMED',
         statusUpdatedAt: new Date(),
-        confirmedDate: dto.confirmedDate
-          ? new Date(dto.confirmedDate)
-          : request.preferredDate,
-        confirmedTime: dto.confirmedTime || request.preferredTime,
+        confirmedDate,
+        confirmedTime,
         emNotes: dto.emNotes,
+        conflictReason: null,
       },
       include: {
         catalogItem: true,

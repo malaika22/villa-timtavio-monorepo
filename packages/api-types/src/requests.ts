@@ -41,6 +41,8 @@ export interface ExperienceRequest {
   confirmedCost?: number | null;
   emNotes?: string | null;
   declineReason?: string | null;
+  /** Set when the request is held in CONFLICT — why the slot clashed. */
+  conflictReason?: string | null;
   setupPhotoUrl?: string | null;
   setupCompletedAt?: string | null;
   staffMemberName?: string | null;

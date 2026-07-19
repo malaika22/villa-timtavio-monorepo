@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { ApprovalsFilterBar } from '@/components/manager/pages/approvals/ApprovalsFilterBar';
 import { ApprovalsKanban } from '@/components/manager/pages/approvals/ApprovalsKanban';
 import { ApprovalsQueueTable } from '@/components/manager/pages/approvals/ApprovalsQueueTable';
+import { ConflictDetectedBanner } from '@/components/manager/pages/approvals/ConflictDetectedBanner';
 import { LayoutList, LayoutGrid } from 'lucide-react';
 import type { ApprovalFilterTab, ApprovalQueueItem } from '@/types';
 import {
@@ -60,6 +61,16 @@ export const ApprovalsPage = () => {
   const isLoading = queueLoading || activeLoading;
   const [view, setView] = useState<'list' | 'board'>('list');
 
+  const conflictItems = useMemo(
+    () => allItems.filter((i) => i.status === 'Conflict'),
+    [allItems],
+  );
+  const conflictMessage =
+    conflictItems.length === 1
+      ? (conflictItems[0]!.conflictReason ??
+        `${conflictItems[0]!.experience} clashes with another confirmed experience.`)
+      : `${conflictItems.length} experience requests need rescheduling — a vendor or resource is double-booked. Reschedule or decline to resolve.`;
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -89,6 +100,10 @@ export const ApprovalsPage = () => {
           </button>
         </div>
       </div>
+
+      {!isLoading && conflictItems.length > 0 && (
+        <ConflictDetectedBanner message={conflictMessage} />
+      )}
 
       {isLoading ? (
         <div className="space-y-3">
