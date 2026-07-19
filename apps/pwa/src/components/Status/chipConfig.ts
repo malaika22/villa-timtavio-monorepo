@@ -48,7 +48,8 @@ export const STATUS_CHIP_CONFIG: Record<
     cardBorderLeft: 'border-l-[#3A5E4860]',
   },
   [ExperienceStatus.CANCELLED]: {
-    label: 'CANCELLED',
+    // EM's "Decline" action lands here — surface the same word to the guest.
+    label: 'DECLINED',
     chip: 'border-[#a64b4b40] bg-[#a64b4b1a] text-[#a64b4b]',
     dot: 'bg-[#a64b4b]',
     cardBorderLeft: 'border-l-[#a64b4b60]',

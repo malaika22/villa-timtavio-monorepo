@@ -1,26 +1,24 @@
 'use client';
 
 import type { Experience } from '@/types/experience';
-import { ExperienceCard } from '@/components/Experience';
+import { ExperienceCatalogCard } from './ExperienceCatalogCard';
 import { ExperienceDetailSheet } from '@/components/ExperienceDetailSheet';
 import { cn } from '@repo/ui/lib/utils';
-import { ChevronDown, Search, X } from 'lucide-react';
+import { ChevronDown, Compass, Search, X } from 'lucide-react';
 import { motion } from 'motion/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useBookingStore } from '@/store/useBookingStore';
 import { mapCatalogItemsToExperiences } from '@/lib/mappers/experience';
 import { FilterChips } from './FilterChips';
 import { bookingStatusMap, PAGE_SIZE } from './constants';
 import { staggerDelay } from './animations';
-import { Button } from '@repo/ui/components/button';
 
 export function ExperiencesCatalog() {
   const [filter, setFilter] = useState<string>('all');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [selectedExperience, setSelectedExperience] =
     useState<Experience | null>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
 
   const arrivalStatus = useBookingStore((s) => s.arrivalStatus);
 
@@ -28,7 +26,7 @@ export function ExperiencesCatalog() {
     ? bookingStatusMap[arrivalStatus]
     : undefined;
 
-  const { data: catalogItems } = useCatalog();
+  const { data: catalogItems, isLoading } = useCatalog();
   const apiExperiences = useMemo(
     () =>
       catalogItems
@@ -36,8 +34,6 @@ export function ExperiencesCatalog() {
         : null,
     [catalogItems, bookingStatus],
   );
-  /** Drives RTL collapse: fixed to right edge while shrinking. Cleared after close. */
-  const [shrinkFromRight, setShrinkFromRight] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,19 +69,13 @@ export function ExperiencesCatalog() {
   const remaining = Math.max(0, total - visibleCount);
   const loadedCount = visible.length;
 
-  useEffect(() => {
-    if (searchOpen) {
-      searchInputRef.current?.focus();
-    }
-  }, [searchOpen]);
-
   const countLabel =
     total === catalogTotal
       ? `${catalogTotal} experience${catalogTotal === 1 ? '' : 's'}`
       : `${total} of ${catalogTotal} experience${catalogTotal === 1 ? '' : 's'}`;
 
   return (
-    <div className="mx-auto max-w-md space-y-5 pb-28">
+    <div className="mx-auto min-h-[100dvh] max-w-md space-y-5 pb-28">
       <header className="space-y-1">
         <h1 className="font-cormorant text-[28px] font-medium italic leading-tight text-[#2B2824]">
           Experiences
@@ -103,129 +93,108 @@ export function ExperiencesCatalog() {
       />
 
       <div className="px-0.5">
-        <div className="relative flex h-11 w-full max-w-full items-center overflow-hidden rounded-full border border-[#E3E0DA] bg-white py-0.5 pl-0.5 pr-1 shadow-sm">
-          <button
-            type="button"
-            aria-expanded={searchOpen}
-            aria-controls="experiences-search-panel"
-            onClick={() => {
-              if (searchOpen) {
-                setShrinkFromRight(true);
-                setSearchOpen(false);
+        <div
+          className={cn(
+            'group flex h-11 w-full items-center gap-2.5 rounded-full border bg-[#FAF9F7] pl-4 pr-2',
+            'border-[#E3E0DA] shadow-[0_1px_2px_rgba(15,31,46,0.04)]',
+            'transition-all duration-300 ease-out',
+            'focus-within:border-[#C8A96E] focus-within:bg-white focus-within:shadow-[0_0_0_3px_rgba(200,169,110,0.22)]',
+          )}
+        >
+          <Search
+            className="size-4 shrink-0 text-[#9A9288] transition-colors duration-300 group-focus-within:text-[#0F1F2E]"
+            strokeWidth={1.75}
+            aria-hidden
+          />
+          <input
+            ref={searchInputRef}
+            type="search"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setVisibleCount(PAGE_SIZE);
+            }}
+            placeholder="Search experiences…"
+            className="min-w-0 flex-1 bg-transparent text-[13px] text-[#2B2824] outline-none [appearance:none] placeholder:text-[#B0AAA0] [&::-webkit-search-cancel-button]:appearance-none"
+            aria-label="Search experiences"
+          />
+          {searchQuery ? (
+            <button
+              type="button"
+              onClick={() => {
                 setSearchQuery('');
                 setVisibleCount(PAGE_SIZE);
-                searchInputRef.current?.blur();
-              } else {
-                setShrinkFromRight(false);
-                setSearchOpen(true);
-              }
-            }}
-            className="relative z-[2] flex size-9 shrink-0 items-center justify-center rounded-full text-[#797168] transition-colors hover:bg-[#F5F3F0]"
-          >
-            <span className="relative size-[18px]">
-              <Search
-                strokeWidth={1.75}
-                className={cn(
-                  'absolute inset-0 ease-[cubic-bezier(0.32,0.72,0,1)] transition-all duration-[380ms]',
-                  searchOpen ? 'scale-90 opacity-0' : 'scale-100 opacity-100',
-                )}
-                aria-hidden
-              />
-              <X
-                strokeWidth={2}
-                className={cn(
-                  'absolute inset-0 ease-[cubic-bezier(0.32,0.72,0,1)] transition-all duration-[380ms]',
-                  searchOpen ? 'scale-100 opacity-100' : 'scale-90 opacity-0',
-                )}
-                aria-hidden
-              />
-            </span>
-            <span className="sr-only">
-              {searchOpen ? 'Close search' : 'Open search'}
-            </span>
-          </button>
-
-          <motion.div
-            id="experiences-search-panel"
-            initial={false}
-            className="absolute inset-y-2 left-[42px] right-2 flex min-w-0 items-center gap-1.5"
-            style={{
-              transformOrigin:
-                searchOpen || !shrinkFromRight ? 'left center' : 'right center',
-              pointerEvents: searchOpen ? 'auto' : 'none',
-              willChange: 'transform',
-            }}
-            animate={{
-              scaleX: searchOpen ? 1 : 0,
-            }}
-            transition={{
-              duration: 0.38,
-              ease: [0.32, 0.72, 0, 1],
-            }}
-            onAnimationComplete={() => {
-              if (!searchOpen && shrinkFromRight) {
-                setShrinkFromRight(false);
-              }
-            }}
-          >
-            <input
-              ref={searchInputRef}
-              type="search"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setVisibleCount(PAGE_SIZE);
+                searchInputRef.current?.focus();
               }}
-              placeholder="Search experiences…"
-              className="min-w-0 flex-1 bg-transparent py-1 text-[13px] text-[#2B2824] outline-none placeholder:text-[#B0AAA0]"
-              aria-label="Search experiences"
-            />
-            {searchQuery ? (
-              <Button
-                type="button"
-                tabIndex={searchOpen ? 0 : -1}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSearchQuery('');
-                  setVisibleCount(PAGE_SIZE);
-                  searchInputRef.current?.focus();
-                }}
-                className="shrink-0 rounded-full p-1.5 text-[#797168] transition-colors hover:bg-[#F3F1ED]"
-                aria-label="Clear search text"
-              >
-                <X className="size-3.5" strokeWidth={2} aria-hidden />
-              </Button>
-            ) : null}
-          </motion.div>
+              className="flex size-7 shrink-0 items-center justify-center rounded-full text-[#797168] transition-colors hover:bg-[#F0EDE6] hover:text-[#2B2824]"
+              aria-label="Clear search text"
+            >
+              <X className="size-3.5" strokeWidth={2} aria-hidden />
+            </button>
+          ) : null}
         </div>
       </div>
 
-      <motion.div layout className="grid grid-cols-2 gap-3 items-stretch">
-        {visible.map((exp, index) => (
-          <motion.div
-            key={exp.id}
-            layout
-            initial={{ opacity: 0, y: 16, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{
-              type: 'spring',
-              stiffness: 380,
-              damping: 30,
-              mass: 0.85,
-              delay: staggerDelay(index, loadedCount),
-            }}
-            className="h-full"
-          >
-            <ExperienceCard
-              experience={exp}
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-3">
+          {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+            <div
+              key={i}
+              className="overflow-hidden rounded-[16px] border border-[#E3E0DA] bg-[#FAF9F7]"
+            >
+              <div className="aspect-[4/3] w-full animate-pulse bg-[#E8E5E0]" />
+              <div className="flex flex-col gap-2 px-3 pb-3 pt-3">
+                <div className="h-3.5 w-4/5 animate-pulse rounded-full bg-[#E8E5E0]" />
+                <div className="h-2.5 w-2/5 animate-pulse rounded-full bg-[#ECE9E4]" />
+                <div className="mt-1 h-2.5 w-1/2 animate-pulse rounded-full bg-[#ECE9E4]" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : total === 0 ? (
+        <div className="mt-2 flex flex-col items-center justify-center rounded-[16px] border border-dashed border-[#E3D9CD] bg-[#FAF8F4] px-6 py-12 text-center">
+          <span className="mb-3 flex size-12 items-center justify-center rounded-full border border-[#E3D9CD] bg-[#F3EDE4]">
+            <Compass className="size-5 text-[#8C7261]" strokeWidth={2} aria-hidden />
+          </span>
+          <p className="font-cormorant text-[18px] text-[#2B2824]">
+            {catalogTotal === 0
+              ? 'No experiences available yet'
+              : 'No experiences match your search'}
+          </p>
+          <p className="mt-1.5 max-w-[250px] text-[11px] leading-snug text-[#797168]">
+            {catalogTotal === 0
+              ? 'Your host is still curating the collection. Check back soon for curated adventures, dining, and wellness.'
+              : 'Try a different category or clear your search to see the full collection.'}
+          </p>
+        </div>
+      ) : (
+        <motion.div layout className="grid grid-cols-2 gap-3 items-stretch">
+          {visible.map((exp, index) => (
+            <motion.div
+              key={exp.id}
+              layout
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{
+                type: 'spring',
+                stiffness: 380,
+                damping: 30,
+                mass: 0.85,
+                delay: staggerDelay(index, loadedCount),
+              }}
               className="h-full"
-              onClick={() => setSelectedExperience(exp)}
-            />
-          </motion.div>
-        ))}
-      </motion.div>
+            >
+              <ExperienceCatalogCard
+                experience={exp}
+                className="h-full"
+                onClick={() => setSelectedExperience(exp)}
+              />
+            </motion.div>
+          ))}
+        </motion.div>
+      )}
 
-      {remaining > 0 ? (
+      {remaining > 0 && !isLoading ? (
         <motion.button
           type="button"
           layout

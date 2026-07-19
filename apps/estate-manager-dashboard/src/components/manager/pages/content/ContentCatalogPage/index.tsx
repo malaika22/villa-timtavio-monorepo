@@ -210,6 +210,10 @@ export const ContentCatalogPage = () => {
                   onToggle={() => toggleActive.mutate(experience.id)}
                   onEdit={() => openExperienceForm(experience.id)}
                   onDelete={() => setDeletingExperience(experience)}
+                  togglePending={
+                    toggleActive.isPending &&
+                    toggleActive.variables === experience.id
+                  }
                 />
               ))}
               <AddExperienceCard onClick={() => openExperienceForm()} />

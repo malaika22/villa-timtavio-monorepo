@@ -36,7 +36,10 @@ export function RoomDetailSheet({ open, onClose, room }: RoomDetailSheetProps) {
 
   return (
     <Drawer open={open} onOpenChange={onClose}>
-      <DrawerContent className="max-h-[88vh] overflow-y-auto rounded-t-[20px] bg-white pb-10">
+      <DrawerContent className="flex max-h-[90vh] flex-col rounded-t-[20px] bg-white">
+        {/* Inner scroll region — keeps the sheet from clipping its last rows
+            when opened as a nested drawer over the manifest. */}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-10">
         {/* Hero image */}
         {room.imageUrl ? (
           <div className="relative -mt-1 mb-5 h-44 w-full overflow-hidden">
@@ -184,6 +187,7 @@ export function RoomDetailSheet({ open, onClose, room }: RoomDetailSheetProps) {
               </p>
             )}
           </Section>
+        </div>
         </div>
       </DrawerContent>
     </Drawer>

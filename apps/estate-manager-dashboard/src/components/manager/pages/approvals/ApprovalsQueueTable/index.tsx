@@ -160,7 +160,7 @@ export const ApprovalsQueueTable = ({
             <p className="text-sm font-semibold text-manager-text">
               {row.guestName}
             </p>
-            <p className="text-[15px] text-manager-text-muted">
+            <p className="text-sm text-manager-text-muted">
               {row.partyLabel}
             </p>
           </div>
@@ -175,7 +175,7 @@ export const ApprovalsQueueTable = ({
           <p className="text-sm font-semibold text-manager-text">
             {row.experience}
           </p>
-          <p className="text-[15px] text-manager-text-muted">
+          <p className="text-sm text-manager-text-muted">
             {row.experienceDetail}
           </p>
           {row.status === 'Declined' && row.declineReason ? (
@@ -201,7 +201,7 @@ export const ApprovalsQueueTable = ({
           <p className="text-sm font-semibold text-manager-text">
             {row.requestedDate}
           </p>
-          <p className="text-[15px] text-manager-text-muted">
+          <p className="text-sm text-manager-text-muted">
             {row.requestedTime}
           </p>
         </div>
@@ -218,7 +218,7 @@ export const ApprovalsQueueTable = ({
       key: 'submitted',
       header: 'Submitted',
       cell: (row) => (
-        <span className="text-[15px] text-manager-text-muted whitespace-nowrap">
+        <span className="text-sm text-manager-text-muted whitespace-nowrap">
           {row.submitted}
         </span>
       ),
@@ -252,7 +252,7 @@ export const ApprovalsQueueTable = ({
               </Button>
             );
           }
-          return <span className="text-[15px] text-manager-text-muted">—</span>;
+          return <span className="text-sm text-manager-text-muted">—</span>;
         }
         const busy =
           (approve.isPending && approve.variables?.id === row.id) ||

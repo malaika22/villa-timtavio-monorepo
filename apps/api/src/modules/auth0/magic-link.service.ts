@@ -81,7 +81,7 @@ export class MagicLinkService {
       await this.resend.emails.send({
         from: this.config.get('EMAIL_FROM') || 'reservations@villatimtavio.com',
         to: payload.email,
-        subject: 'Your Villa TimTavio access link',
+        subject: 'Your stay at Villa TimTavio awaits',
         html: `
           <style>
             @media only screen and (max-width:600px) {
@@ -122,8 +122,13 @@ export class MagicLinkService {
                         ${greeting(payload.firstName)}
                       </p>
                       <p class="tt-body" style="margin:0;font-size:15px;line-height:1.7;color:#5f5e5a;">
-                        Click below to access your stay at Villa TimTavio.
-                        This link expires in ${ttlMinutes} minutes.
+                        The doors to your private villa above the Pacific are open.
+                        Step inside to arrange your rooms, curate bespoke experiences,
+                        and shape every detail of your stay before you arrive.
+                      </p>
+                      <p class="tt-body" style="margin:14px 0 0 0;font-size:13px;line-height:1.7;color:#8c7261;">
+                        Your private link opens the moment you tap below — it rests
+                        for ${ttlMinutes} minutes before it quietly retires.
                       </p>
                     </td>
                   </tr>

@@ -6,6 +6,7 @@ import { motion } from 'motion/react';
 import { ArrowLeft, BedDouble, Bath, Users, DoorOpen } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
 import { useRoomAvailability } from '@/hooks/useRoomAvailability';
+import { useAuth } from '@/hooks/useAuth';
 import { RoomDetailSheet } from '@/components/manifest/RoomDetailSheet';
 import {
   AMENITY_LABELS,
@@ -22,9 +23,20 @@ function totalBedCount(beds: Bed[] | undefined, fallback: number): number {
 export const RoomsBrowse = () => {
   const router = useRouter();
   const { data: rooms, isLoading } = useRoomAvailability();
+  const { isPrimary, email } = useAuth();
   const [detailRoom, setDetailRoom] = useState<RoomWithAvailability | null>(
     null,
   );
+
+  // A secondary guest browses rooms read-only; highlight the one they're in.
+  const myRoomNumber =
+    !isPrimary && email
+      ? ((rooms ?? []).find((r) =>
+          r.assignedGuests.some(
+            (g) => g.email?.toLowerCase() === email.toLowerCase(),
+          ),
+        )?.number ?? null)
+      : null;
 
   return (
     <div className="flex flex-col pb-12">
@@ -44,8 +56,9 @@ export const RoomsBrowse = () => {
       </div>
 
       <p className="mb-5 text-[11px] leading-relaxed text-[#797168]">
-        Explore each room&apos;s layout, beds and amenities to decide where your
-        guests will stay.
+        {isPrimary
+          ? 'Explore each room’s layout, beds and amenities to decide where your guests will stay.'
+          : 'Explore each room’s layout, beds and amenities. Your assigned room is highlighted below.'}
       </p>
 
       {isLoading ? (
@@ -77,6 +90,7 @@ export const RoomsBrowse = () => {
             const amenities = (room.amenities ?? []) as RoomAmenity[];
             const totalBeds = totalBedCount(beds, room.capacity);
             const filled = room.assignedGuests.length;
+            const isMyRoom = myRoomNumber === room.number;
 
             return (
               <motion.button
@@ -92,8 +106,18 @@ export const RoomsBrowse = () => {
                     transition: { duration: 0.4, ease: 'easeOut' },
                   },
                 }}
-                className="group overflow-hidden rounded-[16px] border border-[#E3E0DA] bg-white text-left shadow-[0_1px_6px_rgba(15,31,46,0.06)]"
+                className={cn(
+                  'group relative overflow-hidden rounded-[16px] border bg-white text-left shadow-[0_1px_6px_rgba(15,31,46,0.06)]',
+                  isMyRoom
+                    ? 'border-[#C7A046] ring-1 ring-[#C7A046]/40'
+                    : 'border-[#E3E0DA]',
+                )}
               >
+                {isMyRoom && (
+                  <span className="absolute right-3 top-3 z-10 rounded-full bg-[#C7A046] px-2.5 py-1 text-[8px] font-semibold uppercase tracking-[1.5px] text-white shadow-sm">
+                    Your room
+                  </span>
+                )}
                 {/* Photo */}
                 {room.imageUrl && (
                   <div className="relative h-40 w-full overflow-hidden">

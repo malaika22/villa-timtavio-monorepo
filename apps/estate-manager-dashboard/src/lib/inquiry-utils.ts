@@ -36,12 +36,18 @@ export function buildLookbookMailto(inquiry: Inquiry): string {
     `Villa TimTavio — Lookbook & reservation details for ${inquiry.firstName}`,
   );
   const dates = formatInquiryDateRange(inquiry);
+  const paymentLink = inquiry.stripePaymentLink?.trim();
+  const reservationLine = paymentLink
+    ? `Please find the lookbook attached. To confirm your reservation, use the secure payment link below:
+
+${paymentLink}`
+    : `Please find the lookbook attached. We will follow up shortly with a secure payment link to confirm your reservation.`;
   const body = encodeURIComponent(
     `Dear ${inquiry.firstName},
 
 Thank you for your interest in Villa TimTavio. We are pleased to share our lookbook and next steps for your stay (${dates}).
 
-Please find the lookbook attached, along with the secure payment link to confirm your reservation.
+${reservationLine}
 
 We look forward to welcoming you to Puerto Escondido.
 
