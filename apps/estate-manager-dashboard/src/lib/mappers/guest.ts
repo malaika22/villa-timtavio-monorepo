@@ -1,9 +1,29 @@
 import type { GuestProfile, GuestSummary } from '@repo/api-types';
 
-import type { GuestDNAProfile, GuestListItem } from '@/types';
+import type { GuestDNAProfile, GuestListItem, GuestListStatus } from '@/types';
 
 function initials(firstName: string, lastName: string) {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+}
+
+// Derive the guest-list badge from the real booking status instead of a
+// hardcoded value, so an arriving/departing guest isn't mislabelled "Settled".
+function deriveListStatus(
+  status: string | undefined,
+  isPast: boolean,
+): GuestListStatus {
+  if (isPast) return 'Departed';
+  switch (status) {
+    case 'DEPARTURE_TODAY':
+      return 'Departing';
+    case 'CONFIRMED':
+      return 'Arriving';
+    case 'CHECKED_OUT':
+    case 'CANCELLED':
+      return 'Departed';
+    default:
+      return 'Settled';
+  }
 }
 
 function formatDateRange(checkIn?: string, checkOut?: string) {
@@ -40,7 +60,7 @@ export function mapGuestSummaryToListItem(
     memberSince: guest.createdAt
       ? new Date(guest.createdAt).getFullYear().toString()
       : undefined,
-    status: isPast ? 'Departed' : 'Settled',
+    status: deriveListStatus(booking?.status, isPast),
     isPast,
     activeBookingId: booking?.id ?? null,
   };
