@@ -1,4 +1,10 @@
-import { ClockIcon, FileText, Home, LayoutDashboard } from 'lucide-react';
+import {
+  ClockIcon,
+  FileText,
+  Home,
+  LayoutDashboard,
+  Users,
+} from 'lucide-react';
 
 export type FooterLink = {
   label: string;
@@ -22,9 +28,16 @@ const MY_ORDERS: FooterLink = {
   href: '/my-orders',
   Icon: FileText,
 };
+// Primary-only hub: party overview + the approvals entry point.
+const PARTY: FooterLink = { label: 'Party', href: '/party', Icon: Users };
 
 export function getFooterLinks(isSecondary: boolean): FooterLink[] {
-  return [HOME, EXPLORE, isSecondary ? MY_ORDERS : FOLIO, STATUS];
+  // Secondary: Home · Explore · Orders · Status.
+  // Primary: Home · Explore · Folio · Party (Party replaces the standalone
+  // Status tab — it houses approvals + the party overview).
+  return isSecondary
+    ? [HOME, EXPLORE, MY_ORDERS, STATUS]
+    : [HOME, EXPLORE, FOLIO, PARTY];
 }
 
 export const FOOTER_LINKS = getFooterLinks(false);
