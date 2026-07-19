@@ -46,7 +46,8 @@ import {
   experienceFormSchema,
   type ExperienceFormValues,
 } from '@/lib/schemas/experience';
-import { readImageFile } from './helpers';
+import { toast } from 'sonner';
+import { uploadImage } from '@/lib/upload';
 import { ExperienceFormDialogProps } from './types';
 
 export const ExperienceFormDialog = ({
@@ -62,6 +63,7 @@ export const ExperienceFormDialog = ({
   const updateItem = useUpdateCatalogItem();
   const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const defaultCategoryId = categories[0]?.id ?? '';
 
@@ -193,9 +195,18 @@ export const ExperienceFormDialog = ({
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    const dataUrl = await readImageFile(file);
-    form.setValue('primaryPhotoUrl', dataUrl, { shouldValidate: true });
-    setImagePreview(dataUrl);
+    setUploadingImage(true);
+    try {
+      const url = await uploadImage(file, 'experiences');
+      form.setValue('primaryPhotoUrl', url, { shouldValidate: true });
+      setImagePreview(url);
+      toast.success('Image uploaded');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploadingImage(false);
+      event.target.value = '';
+    }
   };
 
   const isPending = createItem.isPending || updateItem.isPending;
@@ -274,9 +285,12 @@ export const ExperienceFormDialog = ({
                       type="file"
                       accept="image/*"
                       onChange={handleImageChange}
+                      disabled={uploadingImage}
                     />
                     <FormDescription>
-                      Upload a cover image for this experience card.
+                      {uploadingImage
+                        ? 'Uploading…'
+                        : 'Upload a cover image for this experience card.'}
                     </FormDescription>
                   </div>
                 </div>
