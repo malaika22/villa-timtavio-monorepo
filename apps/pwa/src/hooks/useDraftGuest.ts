@@ -25,6 +25,15 @@ export function useDraftGuest(bookingId: string | null) {
 
   const clear = useMutation({
     mutationFn: () => manifestApi.deleteDraft(bookingId!),
+    // Clear the cached draft immediately (optimistic) and cancel any in-flight
+    // fetch, so reopening the form for the next guest can't refill it with the
+    // just-submitted guest's data before the delete round-trip lands (BUG-8).
+    onMutate: async () => {
+      await queryClient.cancelQueries({
+        queryKey: ['manifest-draft', bookingId],
+      });
+      queryClient.setQueryData(['manifest-draft', bookingId], null);
+    },
     onSuccess: () => {
       queryClient.setQueryData(['manifest-draft', bookingId], null);
     },

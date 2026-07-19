@@ -110,7 +110,10 @@ export const Home = () => {
       <HeroCard />
       <ArrivalCountdown />
       {isAuthenticated &&
-        (isSettledOrLater ? (
+        // Only the primary manages the manifest. Secondary guests (and everyone
+        // once the stay is underway) get the read-only details view instead of
+        // the add/assign/submit prompt (which the API would reject anyway).
+        (isSettledOrLater || !isPrimary ? (
           <GuestDetailsCard guestsAdded={guestsAdded} roomsUsed={roomsUsed} />
         ) : (
           <GuestManifestPrompt

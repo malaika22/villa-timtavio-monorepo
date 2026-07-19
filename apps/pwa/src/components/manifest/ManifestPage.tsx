@@ -115,7 +115,7 @@ const STATUS_META: Record<
 
 export const ManifestPage = () => {
   const router = useRouter();
-  const { bookingId } = useAuth();
+  const { bookingId, isPrimary } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: manifest, isLoading: manifestLoading } = useManifest();
@@ -144,7 +144,9 @@ export const ManifestPage = () => {
       ? Math.min(100, Math.round((addedGuests / totalGuests) * 100))
       : 0;
 
-  const canSubmit = addedGuests > 0 && !isLocked;
+  // Only the primary member can manage the manifest (add/edit/submit); the
+  // backend enforces this too, so we hide the controls for secondary guests.
+  const canSubmit = isPrimary && addedGuests > 0 && !isLocked;
 
   const openAddForm = () => {
     setEditingGuest(null);
@@ -355,7 +357,9 @@ export const ManifestPage = () => {
                 key={guest.id}
                 guest={guest}
                 rooms={rooms ?? []}
-                onEdit={isLocked ? undefined : () => openEditForm(guest)}
+                onEdit={
+                  isLocked || !isPrimary ? undefined : () => openEditForm(guest)
+                }
               />
             ))}
           </motion.div>
@@ -418,19 +422,21 @@ export const ManifestPage = () => {
             )}
           </AnimatePresence>
 
-          <Button
-            onClick={openAddForm}
-            variant={addedGuests === 0 ? 'default' : 'outline'}
-            className={cn(
-              'w-full h-12 rounded-[12px] text-[10px] font-semibold uppercase tracking-[2px] gap-2',
-              addedGuests === 0
-                ? 'bg-[#0F1F2E] text-white hover:bg-[#1A3040]'
-                : 'border-[#0F1F2E] bg-white text-[#0F1F2E] hover:bg-[#F5F3F0]',
-            )}
-          >
-            <Plus className="size-4" aria-hidden />
-            Add guest
-          </Button>
+          {isPrimary && (
+            <Button
+              onClick={openAddForm}
+              variant={addedGuests === 0 ? 'default' : 'outline'}
+              className={cn(
+                'w-full h-12 rounded-[12px] text-[10px] font-semibold uppercase tracking-[2px] gap-2',
+                addedGuests === 0
+                  ? 'bg-[#0F1F2E] text-white hover:bg-[#1A3040]'
+                  : 'border-[#0F1F2E] bg-white text-[#0F1F2E] hover:bg-[#F5F3F0]',
+              )}
+            >
+              <Plus className="size-4" aria-hidden />
+              Add guest
+            </Button>
+          )}
         </div>
       )}
 
