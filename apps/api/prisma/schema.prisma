@@ -336,11 +336,16 @@ model CatalogItem {
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
   createdBy               String?
+  // Soft-delete marker. Distinct from isActive (which is the guest-visibility
+  // toggle): a deleted item is excluded from every catalog list, while an
+  // inactive one still shows in the EM catalog but is hidden from guests.
+  deletedAt               DateTime?
 
   experienceRequests      ExperienceRequest[]
 
   @@index([category])
   @@index([experienceCategoryId])
+  @@index([deletedAt])
   @@index([isActive])
   @@index([isIncluded])
 }
