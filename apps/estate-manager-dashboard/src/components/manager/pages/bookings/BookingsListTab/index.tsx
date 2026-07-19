@@ -80,7 +80,11 @@ export const BookingsListTab = ({
             >
               <td className="px-4 py-3">
                 <Link
-                  href={`/guests?guest=${guest.id}`}
+                  href={
+                    mode === 'manifest-review'
+                      ? '/bookings#manifest'
+                      : `/guests?guest=${guest.id}`
+                  }
                   className="font-medium text-manager-text hover:underline"
                 >
                   {guest.firstName} {guest.lastName}

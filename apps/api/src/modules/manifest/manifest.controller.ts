@@ -63,6 +63,50 @@ export class ManifestController {
     return this.manifestService.deleteDraft(bookingId);
   }
 
+  // ─── Guest PWA: Primary updates their own manifest details ───────────────
+  // Room assignment + dietary/allergy/beverage preferences for the primary
+
+  @Patch(':bookingId/primary-details')
+  @Roles('primary_member', 'estate_manager')
+  updatePrimaryDetails(
+    @Param('bookingId') bookingId: string,
+    @Body()
+    dto: {
+      roomNumber?: number | null;
+      dietaryRestrictions?: string[];
+      allergies?: string | null;
+      beveragePreferences?: string | null;
+    },
+    @CurrentUser() user: any,
+  ) {
+    return this.manifestService.updatePrimaryDetails(bookingId, dto, user.email);
+  }
+
+  // ─── Estate Manager: set a secondary guest's presence status (REQ-5) ─────
+
+  @Patch(':bookingId/guests/:guestId/arrival-status')
+  @Roles('estate_manager')
+  setGuestArrivalStatus(
+    @Param('guestId') guestId: string,
+    @Body() body: { status: string },
+  ) {
+    return this.manifestService.setGuestArrivalStatus(guestId, body.status);
+  }
+
+  // ─── Estate Manager: set the primary member's presence status (REQ-5) ────
+
+  @Patch(':bookingId/primary-arrival-status')
+  @Roles('estate_manager')
+  setPrimaryArrivalStatus(
+    @Param('bookingId') bookingId: string,
+    @Body() body: { status: string },
+  ) {
+    return this.manifestService.setPrimaryArrivalStatus(
+      bookingId,
+      body.status,
+    );
+  }
+
   // ─── Guest PWA: Add a guest ───────────────────────────────────────────────
   // Primary member only
 

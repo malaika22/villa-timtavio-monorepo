@@ -30,6 +30,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { GuestManifestForm } from '@/components/GuestManifestForm';
 import type { GuestManifestFormValues } from '@/components/GuestManifestForm';
 import { GuestAddedSheet } from './GuestAddedSheet';
+import { PrimaryDetailsCard } from './PrimaryDetailsCard';
 import type {
   CreateManifestGuestDto,
   ManifestGuest,
@@ -115,7 +116,7 @@ const STATUS_META: Record<
 
 export const ManifestPage = () => {
   const router = useRouter();
-  const { bookingId } = useAuth();
+  const { bookingId, isPrimary } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: manifest, isLoading: manifestLoading } = useManifest();
@@ -144,7 +145,13 @@ export const ManifestPage = () => {
       ? Math.min(100, Math.round((addedGuests / totalGuests) * 100))
       : 0;
 
-  const canSubmit = addedGuests > 0 && !isLocked;
+  // Only the primary member can manage the manifest (add/edit/submit); the
+  // backend enforces this too, so we hide the controls for secondary guests.
+  const canSubmit = isPrimary && addedGuests > 0 && !isLocked;
+  // The party counter includes the primary (+1), so it's full once the added
+  // count reaches the reservation headcount — stop offering "Add guest" then.
+  const secondaryCount = manifest?.guests?.length ?? 0;
+  const partyFull = totalGuests > 0 && addedGuests >= totalGuests;
 
   const openAddForm = () => {
     setEditingGuest(null);
@@ -218,18 +225,26 @@ export const ManifestPage = () => {
           <span className="text-[8px] uppercase tracking-[3px] text-[#797168]">
             Guests added
           </span>
-          <motion.span
-            key={addedGuests}
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25 }}
-            className="font-cormorant text-[22px] italic text-[#2B2824] leading-none"
-          >
-            {addedGuests}
-            <span className="text-[#B0AAA0] text-[16px]"> / {totalGuests}</span>
-          </motion.span>
+          {manifestLoading ? (
+            <div className="h-5 w-16 animate-pulse rounded bg-[#E3E0DA]" />
+          ) : (
+            <motion.span
+              key={addedGuests}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="font-cormorant text-[22px] italic text-[#2B2824] leading-none"
+            >
+              {addedGuests}
+              <span className="text-[#B0AAA0] text-[16px]"> / {totalGuests}</span>
+            </motion.span>
+          )}
         </div>
-        <Progress value={pct} className="h-[3px] rounded-full bg-[#E3E0DA]" />
+        {manifestLoading ? (
+          <div className="h-[3px] w-full animate-pulse rounded-full bg-[#E3E0DA]" />
+        ) : (
+          <Progress value={pct} className="h-[3px] rounded-full bg-[#E3E0DA]" />
+        )}
       </div>
 
       {/* ─── Locked status banner (submitted / approved) ────────── */}
@@ -334,6 +349,21 @@ export const ManifestPage = () => {
         </Link>
       )}
 
+      {/* ─── Your details (primary member) ──────────────────────── */}
+      {manifest?.primaryGuest && (
+        <div className="mt-6">
+          <p className="text-[8px] uppercase tracking-[2.5px] text-[#9A9288] mb-3">
+            Your details
+          </p>
+          <PrimaryDetailsCard
+            primary={manifest.primaryGuest}
+            rooms={rooms ?? []}
+            isPrimary={isPrimary}
+            isLocked={isLocked}
+          />
+        </div>
+      )}
+
       {/* ─── Guest list ─────────────────────────────────────────── */}
       {(manifest?.guests?.length ?? 0) > 0 && (
         <div className="mt-6">
@@ -355,7 +385,9 @@ export const ManifestPage = () => {
                 key={guest.id}
                 guest={guest}
                 rooms={rooms ?? []}
-                onEdit={isLocked ? undefined : () => openEditForm(guest)}
+                onEdit={
+                  isLocked || !isPrimary ? undefined : () => openEditForm(guest)
+                }
               />
             ))}
           </motion.div>
@@ -418,19 +450,26 @@ export const ManifestPage = () => {
             )}
           </AnimatePresence>
 
-          <Button
-            onClick={openAddForm}
-            variant={addedGuests === 0 ? 'default' : 'outline'}
-            className={cn(
-              'w-full h-12 rounded-[12px] text-[10px] font-semibold uppercase tracking-[2px] gap-2',
-              addedGuests === 0
-                ? 'bg-[#0F1F2E] text-white hover:bg-[#1A3040]'
-                : 'border-[#0F1F2E] bg-white text-[#0F1F2E] hover:bg-[#F5F3F0]',
-            )}
-          >
-            <Plus className="size-4" aria-hidden />
-            Add guest
-          </Button>
+          {isPrimary && !partyFull && (
+            <Button
+              onClick={openAddForm}
+              variant={secondaryCount === 0 ? 'default' : 'outline'}
+              className={cn(
+                'w-full h-12 rounded-[12px] text-[10px] font-semibold uppercase tracking-[2px] gap-2',
+                secondaryCount === 0
+                  ? 'bg-[#0F1F2E] text-white hover:bg-[#1A3040]'
+                  : 'border-[#0F1F2E] bg-white text-[#0F1F2E] hover:bg-[#F5F3F0]',
+              )}
+            >
+              <Plus className="size-4" aria-hidden />
+              Add guest
+            </Button>
+          )}
+          {isPrimary && partyFull && (
+            <p className="text-center text-[10px] text-[#797168]">
+              Everyone in your party has been added.
+            </p>
+          )}
         </div>
       )}
 

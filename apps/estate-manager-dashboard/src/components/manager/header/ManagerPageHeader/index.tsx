@@ -66,6 +66,7 @@ export const ManagerPageHeader = ({
           className={outlineBtn}
           onClick={onExport}
           disabled={!onExport || isExporting}
+          title={!onExport ? 'Nothing to export yet' : undefined}
         >
           <Download className="size-3.5 text-manager-text-muted" />
           {isExporting ? 'Exporting…' : (meta.exportLabel ?? 'Export')}

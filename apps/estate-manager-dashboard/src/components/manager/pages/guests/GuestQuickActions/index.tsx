@@ -9,7 +9,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@repo/ui';
-import { Mail, ChevronDown, DollarSign, LogOut, Loader2 } from 'lucide-react';
+import {
+  Mail,
+  ChevronDown,
+  DollarSign,
+  LogOut,
+  Loader2,
+  Check,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import type { BookingStatus } from '@repo/api-types';
 
@@ -87,18 +94,26 @@ export const GuestQuickActions = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
-          {STATUS_CYCLE.map((s) => (
-            <DropdownMenuItem
-              key={s}
-              onSelect={(e) => {
-                e.preventDefault();
-                if (s !== profile.bookingStatus) statusMutation.mutate(s);
-              }}
-              className="text-sm"
-            >
-              {STATUS_LABELS[s]}
-            </DropdownMenuItem>
-          ))}
+          {STATUS_CYCLE.map((s) => {
+            const isCurrent = s === profile.bookingStatus;
+            return (
+              <DropdownMenuItem
+                key={s}
+                onSelect={(e) => {
+                  e.preventDefault();
+                  if (!isCurrent) statusMutation.mutate(s);
+                }}
+                className="flex items-center justify-between gap-2 text-sm"
+              >
+                <span className={isCurrent ? 'font-medium' : undefined}>
+                  {STATUS_LABELS[s]}
+                </span>
+                {isCurrent ? (
+                  <Check className="size-3.5 text-manager-accent" />
+                ) : null}
+              </DropdownMenuItem>
+            );
+          })}
         </DropdownMenuContent>
       </DropdownMenu>
 

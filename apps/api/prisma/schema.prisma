@@ -128,6 +128,12 @@ enum AuditAction {
 // BOOKING
 // ─────────────────────────────────────────────────────────────────────────────
 
+enum GuestArrivalStatus {
+  EXPECTED
+  IN_VILLA
+  DEPARTED
+}
+
 model Booking {
   id                      String         @id @default(cuid())
   lodgifyId               String         @unique
@@ -136,6 +142,13 @@ model Booking {
   checkOut                DateTime
   nights                  Int
   totalGuests             Int            @default(1)
+  // Primary member's own per-stay manifest details. The primary is NOT a
+  // ManifestGuest row — manifestGuests stays secondary-only so magic-link/
+  // approval flows are unchanged. Room + presence are per-stay and live here;
+  // dietary/allergies/beverage stay on the primary's Guest record (shared with
+  // chef's brief, guest DNA and CRM).
+  primaryRoomNumber          Int?
+  primaryArrivalStatus       GuestArrivalStatus @default(EXPECTED)
   status                  BookingStatus  @default(CONFIRMED)
   manifestStatus          ManifestStatus @default(INCOMPLETE)
   baseRate                Decimal        @db.Decimal(10, 2)
@@ -237,6 +250,9 @@ model ManifestGuest {
   relationship          String?
   roomNumber            Int?
   room                  Room?     @relation(fields: [roomNumber], references: [number])
+  // Per-guest presence (REQ-5) — tracked independently so a late arrival isn't
+  // shown as present just because the primary checked the booking in.
+  arrivalStatus         GuestArrivalStatus @default(EXPECTED)
   dietaryRestrictions   String[]  @default([])
   dietaryOtherDetails   String?
   allergies             String?
@@ -336,11 +352,16 @@ model CatalogItem {
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
   createdBy               String?
+  // Soft-delete marker. Distinct from isActive (which is the guest-visibility
+  // toggle): a deleted item is excluded from every catalog list, while an
+  // inactive one still shows in the EM catalog but is hidden from guests.
+  deletedAt               DateTime?
 
   experienceRequests      ExperienceRequest[]
 
   @@index([category])
   @@index([experienceCategoryId])
+  @@index([deletedAt])
   @@index([isActive])
   @@index([isIncluded])
 }

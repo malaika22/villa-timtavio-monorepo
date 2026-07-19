@@ -53,10 +53,13 @@ export function useRequestById(id: string | null) {
 
 export function usePendingApprovalRequests() {
   const bookingId = useBookingId();
+  // Only the primary member can act on pending approvals — gate the query so a
+  // secondary guest's client doesn't fire (and 403) against this endpoint.
+  const { isPrimary } = useAuth();
   return useQuery({
     queryKey: ['requests', bookingId, 'pending-approval'],
     queryFn: () => requestsApi.pendingApproval(bookingId!),
-    enabled: !!bookingId,
+    enabled: !!bookingId && isPrimary,
   });
 }
 

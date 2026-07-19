@@ -51,9 +51,16 @@ export function mapCatalogItemToExperience(
 
   return {
     id: item.id,
-    category: CATEGORY_LABEL[item.category] ?? item.category,
+    // Guest-facing category = the dynamic EM/CSV category (WYSIWYG), falling
+    // back to the enum label only for legacy items without an assigned category.
+    category:
+      item.experienceCategory?.name ??
+      CATEGORY_LABEL[item.category] ??
+      item.category,
     filterCategory:
-      (CATEGORY_TO_FILTER[item.category] as ExperienceCatalogFilter) ?? 'all',
+      item.experienceCategory?.name ??
+      (CATEGORY_TO_FILTER[item.category] as string) ??
+      'all',
     title: item.name,
     durationMinutes: item.durationMinutes ?? undefined,
     image:

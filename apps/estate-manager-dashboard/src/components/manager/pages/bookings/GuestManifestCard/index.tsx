@@ -40,7 +40,13 @@ export const GuestManifestCard = ({
     approveManifest.mutate(bookingId);
   };
 
-  const canReview = (manifest?.guests?.length ?? 0) > 0;
+  const isSubmitted = manifest?.manifestStatus === 'SUBMITTED';
+  const isApproved = manifest?.manifestStatus === 'APPROVED';
+  // The per-guest review drawer only makes sense once the guest has finished
+  // filling the manifest — gate it until SUBMITTED (and keep it reachable after
+  // approval for reference).
+  const canReview =
+    (manifest?.guests?.length ?? 0) > 0 && (isSubmitted || isApproved);
 
   return (
     <div
@@ -82,9 +88,11 @@ export const GuestManifestCard = ({
           </div>
         </div>
 
-        {manifest?.roomSummary && manifest.roomSummary.length > 0 && (
+        {manifest?.roomSummary?.some((r) => r.assignedGuests > 0) && (
           <div className="grid grid-cols-3 gap-3">
-            {manifest.roomSummary.map((room) => (
+            {manifest.roomSummary
+              .filter((r) => r.assignedGuests > 0)
+              .map((room) => (
               <div
                 key={room.roomNumber}
                 className="rounded-lg border border-[#dce5dc] bg-[#f4f7f4] px-3.5 py-3"
@@ -103,7 +111,22 @@ export const GuestManifestCard = ({
         )}
 
         <div className="flex gap-2 pt-1">
-          {manifest?.manifestStatus === 'SUBMITTED' ? (
+          {/* Per-guest review drawer — always present so reviewing before
+              approval stays possible, but gated until the manifest is submitted. */}
+          <Button
+            className="h-11 flex-[1] gap-2 rounded-lg border-0 bg-[#e8f1e9] text-sm font-medium text-[#4a7c59] shadow-none hover:bg-[#dce8de] disabled:opacity-50"
+            onClick={() => setShowDetail(true)}
+            disabled={!canReview}
+            title={
+              !canReview && !isSubmitted && !isApproved
+                ? 'Available once the manifest is submitted'
+                : undefined
+            }
+          >
+            <FileText className="size-4 shrink-0" strokeWidth={2} />
+            Review details
+          </Button>
+          {isSubmitted && (
             <Button
               className="h-11 flex-[1] gap-2 rounded-lg border-0 bg-[#4a7c59] text-sm font-medium text-white shadow-none hover:bg-[#3a6448]"
               onClick={handleApprove}
@@ -111,15 +134,6 @@ export const GuestManifestCard = ({
             >
               <CheckCircle2 className="size-4 shrink-0" strokeWidth={2} />
               {approveManifest.isPending ? 'Approving…' : 'Approve Manifest'}
-            </Button>
-          ) : (
-            <Button
-              className="h-11 flex-[1] gap-2 rounded-lg border-0 bg-[#e8f1e9] text-sm font-medium text-[#4a7c59] shadow-none hover:bg-[#dce8de] disabled:opacity-50"
-              onClick={() => setShowDetail(true)}
-              disabled={!canReview}
-            >
-              <FileText className="size-4 shrink-0" strokeWidth={2} />
-              Review Manifest
             </Button>
           )}
           {briefAvailable && (

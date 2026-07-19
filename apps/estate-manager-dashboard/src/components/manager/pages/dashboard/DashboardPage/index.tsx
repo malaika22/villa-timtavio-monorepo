@@ -55,7 +55,7 @@ export const DashboardPage = () => {
         ))}
 
       {isLoading ? (
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
@@ -64,7 +64,7 @@ export const DashboardPage = () => {
           ))}
         </div>
       ) : (
-        <MetricCardGrid metrics={metrics} variant="manager" columns={4} />
+        <MetricCardGrid metrics={metrics} variant="manager" columns={3} />
       )}
 
       <section

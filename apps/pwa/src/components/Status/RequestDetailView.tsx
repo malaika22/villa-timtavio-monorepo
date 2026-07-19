@@ -15,6 +15,7 @@ import {
   REQUEST_DETAIL_MOCK_DATA,
   STATUS_MOCK_DATA,
   type RequestTimelineStep,
+  type RequestDetail,
 } from './mockData';
 import { useRequestById } from '@/hooks/useRequests';
 import {
@@ -47,9 +48,14 @@ export const RequestDetailView = ({
     ? buildTimelineFromRequest(apiRequest)
     : (mockDetail?.timeline ?? null);
 
-  const detail = mockDetail
-    ? { ...mockDetail, timeline: timeline ?? mockDetail.timeline }
-    : null;
+  // Build the detail from the real request when available (only `timeline` is
+  // required on RequestDetail) so a live/cancelled request no longer falls
+  // through to "Request not found" just because it isn't in the mock data.
+  const detail: RequestDetail | null = apiRequest
+    ? { id: apiRequest.id, image: '/images/experience.png', timeline: timeline ?? [] }
+    : mockDetail
+      ? { ...mockDetail, timeline: timeline ?? mockDetail.timeline }
+      : null;
 
   return (
     <Drawer open={open} onOpenChange={(v) => !v && onClose()} direction="right">

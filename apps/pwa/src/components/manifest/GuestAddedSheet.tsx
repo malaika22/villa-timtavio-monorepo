@@ -93,7 +93,7 @@ export function GuestAddedSheet({
           </motion.div>
 
           {/* Divider */}
-          <div className="w-full h-px bg-[#E3E0DA]" />
+          <div className="mx-auto my-1 h-px w-2/3 bg-[#E3E0DA]" />
 
           {/* CTAs */}
           <motion.div

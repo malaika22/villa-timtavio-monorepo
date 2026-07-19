@@ -14,6 +14,7 @@ type Props = {
   onToggle?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  togglePending?: boolean;
 };
 
 function useCategoryPill(experience: ContentExperience) {
@@ -25,6 +26,7 @@ export const ExperienceCard = ({
   onToggle,
   onEdit,
   onDelete,
+  togglePending,
 }: Props) => {
   const tone = experience.imageTone ?? experience.category;
   const gradient = experienceImageTones[tone] ?? experienceImageTones.dining;
@@ -52,6 +54,7 @@ export const ExperienceCard = ({
             <ExperienceToggle
               active={experience.active}
               onChange={onToggle ? () => onToggle() : undefined}
+              pending={togglePending}
             />
           </div>
           <span

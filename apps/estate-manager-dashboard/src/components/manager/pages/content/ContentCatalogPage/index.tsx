@@ -10,7 +10,6 @@ import { ContentCatalogToolbar } from '@/components/manager/pages/content/Conten
 import { ContentInfoBanner } from '@/components/manager/pages/content/ContentInfoBanner';
 import { ExperienceCard } from '@/components/manager/pages/content/ExperienceCard';
 import { ExperienceFormDialog } from '@/components/manager/pages/content/ExperienceFormDialog';
-import { contentExperiences } from '@/lib/content-catalog-mock-data';
 import {
   registerOpenExperienceForm,
   unregisterOpenExperienceForm,
@@ -91,10 +90,10 @@ export const ContentCatalogPage = () => {
     return () => unregisterOpenExperienceForm();
   }, [openExperienceForm]);
 
-  const allExperiences = useMemo(() => {
-    if (catalogData) return catalogData.map(mapCatalogItemToContentExperience);
-    return contentExperiences;
-  }, [catalogData]);
+  const allExperiences = useMemo(
+    () => (catalogData ?? []).map(mapCatalogItemToContentExperience),
+    [catalogData],
+  );
 
   const filtered = useMemo(
     () => filterExperiences(allExperiences, activeFilter, search),
@@ -211,6 +210,10 @@ export const ContentCatalogPage = () => {
                   onToggle={() => toggleActive.mutate(experience.id)}
                   onEdit={() => openExperienceForm(experience.id)}
                   onDelete={() => setDeletingExperience(experience)}
+                  togglePending={
+                    toggleActive.isPending &&
+                    toggleActive.variables === experience.id
+                  }
                 />
               ))}
               <AddExperienceCard onClick={() => openExperienceForm()} />

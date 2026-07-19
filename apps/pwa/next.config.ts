@@ -3,7 +3,13 @@ import type { NextConfig } from 'next';
 const nextConfig: NextConfig = {
   transpilePackages: ['@repo/ui', '@repo/api-client', '@repo/api-types'],
   images: {
-    remotePatterns: [{ protocol: 'https', hostname: 'images.unsplash.com' }],
+    remotePatterns: [
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'res.cloudinary.com' },
+      { protocol: 'https', hostname: 'villa-timtavio-monorepo-pwa.vercel.app' },
+      { protocol: 'https', hostname: 'www.villatimtavio.com' },
+      { protocol: 'https', hostname: 'villatimtavio.com' },
+    ],
   },
 };
 

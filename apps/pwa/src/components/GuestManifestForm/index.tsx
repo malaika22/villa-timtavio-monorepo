@@ -18,7 +18,7 @@ import {
   type RelationshipValue,
   STEP1_TRIGGER_FIELDS,
 } from './schema';
-import { ROOM_OPTIONS, type RoomOption } from './rooms';
+import { type RoomOption } from './rooms';
 import { RoomPicker } from './RoomPicker';
 import { RoomDetailSheet } from '@/components/manifest/RoomDetailSheet';
 import { Textarea } from '@repo/ui/components/textarea';
@@ -95,18 +95,19 @@ export function GuestManifestForm({
   submitLabel = 'Save guest',
   bookingId,
 }: GuestManifestFormProps) {
-  const roomOptions: RoomOption[] = livRooms
-    ? livRooms.map((r) => ({
-        id: r.number.toString(),
-        name: `Room ${r.number}`,
-        suiteLabel: r.name,
-        filled: r.capacity - r.availableCapacity,
-        capacity: r.capacity,
-        bedConfig: r.bedConfig,
-        totalBeds: (r.beds ?? []).reduce((sum, b) => sum + b.count, 0),
-        bathrooms: r.bathrooms,
-      }))
-    : ROOM_OPTIONS;
+  // Derive room choices from the live rooms only — no dummy fallback. When
+  // there are none, the form shows an explicit empty state (see below) instead
+  // of a required picker with nothing to select.
+  const roomOptions: RoomOption[] = (livRooms ?? []).map((r) => ({
+    id: r.number.toString(),
+    name: `Room ${r.number}`,
+    suiteLabel: r.name,
+    filled: r.capacity - r.availableCapacity,
+    capacity: r.capacity,
+    bedConfig: r.bedConfig,
+    totalBeds: (r.beds ?? []).reduce((sum, b) => sum + b.count, 0),
+    bathrooms: r.bathrooms,
+  }));
 
   // Room detail sheet (only available when we have live room data)
   const [detailRoomId, setDetailRoomId] = useState<string | null>(null);
@@ -492,20 +493,28 @@ export function GuestManifestForm({
                   <label className={labelClass}>
                     Select room <span className="text-[#B42318]">*</span>
                   </label>
-                  <Controller
-                    name="roomId"
-                    control={control}
-                    render={({ field }) => (
-                      <RoomPicker
-                        rooms={roomOptions}
-                        value={field.value}
-                        onChange={field.onChange}
-                        onShowDetails={
-                          livRooms ? (id) => setDetailRoomId(id) : undefined
-                        }
-                      />
-                    )}
-                  />
+                  {roomOptions.length === 0 ? (
+                    <p className="rounded-[12px] border border-dashed border-[#D8D3CC] bg-[#F5F3F0] px-4 py-4 text-[12px] leading-relaxed text-[#797168]">
+                      No rooms have been configured for the villa yet. Please
+                      contact the estate — rooms need to be set up before guests
+                      can be assigned.
+                    </p>
+                  ) : (
+                    <Controller
+                      name="roomId"
+                      control={control}
+                      render={({ field }) => (
+                        <RoomPicker
+                          rooms={roomOptions}
+                          value={field.value}
+                          onChange={field.onChange}
+                          onShowDetails={
+                            livRooms ? (id) => setDetailRoomId(id) : undefined
+                          }
+                        />
+                      )}
+                    />
+                  )}
                   {errors.roomId && (
                     <p className="mt-2 text-[10px] text-[#B42318]">
                       {errors.roomId.message}

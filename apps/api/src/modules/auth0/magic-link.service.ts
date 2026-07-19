@@ -81,7 +81,7 @@ export class MagicLinkService {
       await this.resend.emails.send({
         from: this.config.get('EMAIL_FROM') || 'reservations@villatimtavio.com',
         to: payload.email,
-        subject: 'Your Villa TimTavio access link',
+        subject: 'Your stay at Villa TimTavio awaits',
         html: `
           <style>
             @media only screen and (max-width:600px) {
@@ -122,8 +122,13 @@ export class MagicLinkService {
                         ${greeting(payload.firstName)}
                       </p>
                       <p class="tt-body" style="margin:0;font-size:15px;line-height:1.7;color:#5f5e5a;">
-                        Click below to access your stay at Villa TimTavio.
-                        This link expires in ${ttlMinutes} minutes.
+                        The doors to your private villa above the Pacific are open.
+                        Step inside to arrange your rooms, curate bespoke experiences,
+                        and shape every detail of your stay before you arrive.
+                      </p>
+                      <p class="tt-body" style="margin:14px 0 0 0;font-size:13px;line-height:1.7;color:#8c7261;">
+                        Your private link opens the moment you tap below — it rests
+                        for ${ttlMinutes} minutes before it quietly retires.
                       </p>
                     </td>
                   </tr>
@@ -308,6 +313,63 @@ export class MagicLinkService {
   }
 
   // ─── Resend Magic Link ────────────────────────────────────────────────────────
+
+  /**
+   * Guest self-service recovery: given an email, find a live booking it belongs
+   * to (as the primary member or a manifest guest) and send a fresh magic link.
+   * Always resolves without revealing whether the email matched a reservation
+   * (anti-enumeration) — the controller returns a neutral message either way.
+   */
+  async requestByEmail(rawEmail: string): Promise<void> {
+    const email = rawEmail?.trim();
+    if (!email) return;
+    const notEnded: any = { notIn: ['CANCELLED', 'CHECKED_OUT'] };
+
+    const primaryBooking = await this.prisma.booking.findFirst({
+      where: {
+        status: notEnded,
+        primaryGuest: { is: { email: { equals: email, mode: 'insensitive' } } },
+      },
+      include: { primaryGuest: true },
+      orderBy: { checkOut: 'desc' },
+    });
+    if (primaryBooking) {
+      await this.sendMagicLink({
+        email: primaryBooking.primaryGuest.email,
+        firstName: primaryBooking.primaryGuest.firstName,
+        lastName: primaryBooking.primaryGuest.lastName,
+        bookingId: primaryBooking.id,
+        role: 'primary_member',
+        guestTier: 'primary',
+        checkOutDate: primaryBooking.checkOut,
+      });
+      return;
+    }
+
+    const guest = await this.prisma.manifestGuest.findFirst({
+      where: {
+        email: { equals: email, mode: 'insensitive' },
+        booking: { status: notEnded },
+      },
+      include: { booking: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (guest) {
+      await this.sendMagicLink({
+        email: guest.email,
+        firstName: guest.firstName,
+        lastName: guest.lastName,
+        bookingId: guest.bookingId,
+        role: 'secondary_guest',
+        guestTier: 'secondary',
+        checkOutDate: guest.booking.checkOut,
+      });
+      await this.prisma.manifestGuest.update({
+        where: { id: guest.id },
+        data: { pwaLinkSent: true, pwaLinkSentAt: new Date() },
+      });
+    }
+  }
 
   async resendToManifestGuest(manifestGuestId: string): Promise<void> {
     const guest = await this.prisma.manifestGuest.findUnique({

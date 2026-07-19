@@ -128,7 +128,9 @@ function buildChecklist(
       title: 'Guest manifest submitted',
       status: submitted
         ? 'completed'
-        : s(manifestStatus === 'IN_PROGRESS', true),
+        : manifestStatus === 'IN_PROGRESS'
+          ? 'pending'
+          : 'upcoming',
     },
     {
       id: 'c4',

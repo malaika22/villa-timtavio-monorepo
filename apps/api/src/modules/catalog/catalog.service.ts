@@ -44,9 +44,11 @@ export class CatalogService {
     return this.prisma.catalogItem.findMany({
       where: {
         isActive: true,
+        deletedAt: null,
         ...(category && { category }),
       },
       include: {
+        experienceCategory: { select: { id: true, name: true } },
         vendor: {
           select: {
             id: true,
@@ -65,7 +67,7 @@ export class CatalogService {
 
   async findIncluded() {
     return this.prisma.catalogItem.findMany({
-      where: { isActive: true, isIncluded: true },
+      where: { isActive: true, isIncluded: true, deletedAt: null },
       orderBy: { sortOrder: 'asc' },
     });
   }
@@ -74,7 +76,7 @@ export class CatalogService {
 
   async findAll(category?: CatalogCategory) {
     return this.prisma.catalogItem.findMany({
-      where: { ...(category && { category }) },
+      where: { deletedAt: null, ...(category && { category }) },
       include: { vendor: true, experienceCategory: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
@@ -181,10 +183,12 @@ export class CatalogService {
   async remove(id: string, deletedBy: string) {
     await this.findOne(id);
 
-    // Soft delete — set inactive rather than hard delete
+    // Soft delete — mark deletedAt (distinct from the isActive visibility
+    // toggle) so the item disappears from every catalog list while history
+    // (experience requests, audit) is preserved.
     const item = await this.prisma.catalogItem.update({
       where: { id },
-      data: { isActive: false },
+      data: { deletedAt: new Date(), isActive: false },
     });
 
     await this.prisma.auditLog.create({

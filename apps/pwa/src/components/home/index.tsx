@@ -76,6 +76,7 @@ export const Home = () => {
   // Once the party has settled in, the manifest "prompt" is no longer relevant —
   // swap it for a read-only entry into the guest details.
   const isSettledOrLater =
+    displayArrivalStatus === ArrivalStatus.CHECKED_IN ||
     displayArrivalStatus === ArrivalStatus.SETTLED ||
     displayArrivalStatus === ArrivalStatus.DEPARTURE_TODAY ||
     displayArrivalStatus === ArrivalStatus.CHECKOUT_OUT;
@@ -109,7 +110,10 @@ export const Home = () => {
       <HeroCard />
       <ArrivalCountdown />
       {isAuthenticated &&
-        (isSettledOrLater ? (
+        // Only the primary manages the manifest. Secondary guests (and everyone
+        // once the stay is underway) get the read-only details view instead of
+        // the add/assign/submit prompt (which the API would reject anyway).
+        (isSettledOrLater || !isPrimary ? (
           <GuestDetailsCard guestsAdded={guestsAdded} roomsUsed={roomsUsed} />
         ) : (
           <GuestManifestPrompt

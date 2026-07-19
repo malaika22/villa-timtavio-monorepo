@@ -3,6 +3,7 @@ import { manifestApi } from '@/lib/api/manifest';
 import type {
   CreateManifestGuestDto,
   UpdateManifestGuestDto,
+  UpdatePrimaryDetailsDto,
 } from '@repo/api-types';
 import { useBookingStore } from '@/store/useBookingStore';
 
@@ -52,6 +53,19 @@ export function useRemoveManifestGuest() {
   return useMutation({
     mutationFn: (guestId: string) =>
       manifestApi.removeGuest(bookingId!, guestId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['manifest', bookingId] });
+      void queryClient.invalidateQueries({ queryKey: ['booking', 'current'] });
+    },
+  });
+}
+
+export function useUpdatePrimaryDetails() {
+  const queryClient = useQueryClient();
+  const bookingId = useBookingStore((s) => s.bookingId);
+  return useMutation({
+    mutationFn: (dto: UpdatePrimaryDetailsDto) =>
+      manifestApi.updatePrimaryDetails(bookingId!, dto),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['manifest', bookingId] });
       void queryClient.invalidateQueries({ queryKey: ['booking', 'current'] });

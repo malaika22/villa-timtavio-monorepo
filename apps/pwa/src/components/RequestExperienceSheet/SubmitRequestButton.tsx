@@ -9,12 +9,16 @@ interface Props {
   confirmationMessage?: string;
   onSubmit?: () => Promise<void>;
   disabled?: boolean;
+  /** Closes the parent request sheet (date-selection step) so navigating away
+   *  doesn't leave it open behind the confirmation. */
+  onDismiss?: () => void;
 }
 
 export const SubmitRequestButton = ({
   confirmationMessage = "We'll confirm your request within the hour. You'll be notified.",
   onSubmit,
   disabled,
+  onDismiss,
 }: Props) => {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,11 +38,13 @@ export const SubmitRequestButton = ({
 
   const handleTrackRequest = () => {
     setOpen(false);
+    onDismiss?.();
     router.push('/status');
   };
 
   const handleBackToExperiences = () => {
     setOpen(false);
+    onDismiss?.();
     router.push('/experiences');
   };
   return (

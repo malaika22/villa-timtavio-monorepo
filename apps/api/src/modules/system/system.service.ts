@@ -16,11 +16,12 @@ export class SystemService {
     };
   }
 
-  async getSystemAlerts(category?: string, isDismissed = false) {
+  async getSystemAlerts(category?: string, isDismissed?: boolean) {
     return this.prisma.systemAlert.findMany({
       where: {
         ...(category ? { category } : {}),
-        isDismissed,
+        // undefined => no filter (full history for the notifications page).
+        ...(isDismissed === undefined ? {} : { isDismissed }),
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -29,6 +30,13 @@ export class SystemService {
   async dismissAlert(id: string) {
     return this.prisma.systemAlert.update({
       where: { id },
+      data: { isDismissed: true, dismissedAt: new Date(), dismissedBy: 'em' },
+    });
+  }
+
+  async markAllAlertsRead() {
+    return this.prisma.systemAlert.updateMany({
+      where: { isDismissed: false },
       data: { isDismissed: true, dismissedAt: new Date(), dismissedBy: 'em' },
     });
   }

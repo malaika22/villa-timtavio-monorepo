@@ -5,7 +5,7 @@ export const systemApi = {
   lodgifySyncStatus: () =>
     api.get<LodgifySyncStatus>(API.system.lodgifySyncStatus),
 
-  alerts: (params?: { category?: string; isDismissed?: boolean }) => {
+  alerts: (params?: { category?: string; isDismissed?: boolean | 'all' }) => {
     const search = new URLSearchParams();
     if (params?.category) search.set('category', params.category);
     if (params?.isDismissed !== undefined) {
@@ -17,4 +17,6 @@ export const systemApi = {
 
   dismissAlert: (id: string) =>
     api.patch<SystemAlert>(API.system.dismissAlert(id)),
+
+  markAllRead: () => api.post<void>(`${API.system.alerts}/read-all`),
 };

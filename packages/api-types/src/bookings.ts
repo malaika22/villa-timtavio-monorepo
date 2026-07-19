@@ -14,6 +14,9 @@ export type ManifestStatus =
 
 export type RoomType = 'KING_MASTER_SUITE' | 'LUXURY_BUNK_ROOM'; // canonical definition — re-exported from rooms.ts
 
+/** Per-guest physical presence in the villa (EM-controlled). */
+export type GuestArrivalStatus = 'EXPECTED' | 'IN_VILLA' | 'DEPARTED';
+
 export interface ManifestGuest {
   id: string;
   bookingId: string;
@@ -31,6 +34,7 @@ export interface ManifestGuest {
   specialNotes?: string | null;
   pwaLinkSent: boolean;
   pwaLinkOpened: boolean;
+  arrivalStatus: GuestArrivalStatus;
   createdAt: string;
   updatedAt: string;
   /** Experiences this guest has requested (grouped by guest email). */

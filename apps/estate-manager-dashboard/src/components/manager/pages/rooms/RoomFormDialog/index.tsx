@@ -36,6 +36,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useCreateRoom, useUpdateRoom } from '@/hooks/useRooms';
+import { ImageUpload } from '@/components/manager/ui/ImageUpload';
 import {
   AMENITY_OPTIONS,
   BED_TYPE_OPTIONS,
@@ -116,6 +117,11 @@ export const RoomFormDialog = ({ open, onOpenChange, room }: Props) => {
     } else {
       form.reset(BLANK);
     }
+  } else if (!open && activeSessionKey !== 'closed') {
+    // Re-arm on close so the next open always resets — even for another blank
+    // "new" room, whose key ("true:new") would otherwise match the previous
+    // session and skip the reset, leaving the old room's data in the form.
+    setActiveSessionKey('closed');
   }
 
   const amenities = useWatch({ control: form.control, name: 'amenities' });
@@ -415,14 +421,22 @@ export const RoomFormDialog = ({ open, onOpenChange, room }: Props) => {
               name="imageUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Room image URL (optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="url"
-                      placeholder="https://…/room-photo.jpg"
-                      {...field}
+                  <FormLabel>Room image (optional)</FormLabel>
+                  <div className="flex gap-2">
+                    <FormControl>
+                      <Input
+                        type="url"
+                        placeholder="Upload a photo or paste a URL…"
+                        {...field}
+                      />
+                    </FormControl>
+                    <ImageUpload
+                      folder="rooms"
+                      label="Upload"
+                      className="shrink-0"
+                      onUploaded={(url) => field.onChange(url)}
                     />
-                  </FormControl>
+                  </div>
                   <FormMessage />
                   {imageUrl ? (
                     <div className="mt-2 overflow-hidden rounded-lg border border-manager-border">

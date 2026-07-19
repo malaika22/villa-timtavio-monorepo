@@ -18,11 +18,17 @@ import {
   Check,
 } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
-import type { ManifestResponse, ManifestGuest } from '@repo/api-types';
+import type {
+  ManifestResponse,
+  ManifestGuest,
+  GuestArrivalStatus,
+} from '@repo/api-types';
 import {
   useApproveManifest,
   useResendGuestLink,
   useUpdateManifestGuest,
+  useSetGuestArrivalStatus,
+  useSetPrimaryArrivalStatus,
 } from '@/hooks/useManifest';
 import { toast } from 'sonner';
 
@@ -42,9 +48,20 @@ export function ManifestDetailSheet({
   const approveManifest = useApproveManifest();
   const resendLink = useResendGuestLink();
   const updateGuest = useUpdateManifestGuest(bookingId);
+  const setGuestArrival = useSetGuestArrivalStatus(bookingId);
+  const setPrimaryArrival = useSetPrimaryArrivalStatus(bookingId);
 
   // EM can correct guest details while reviewing a submitted manifest.
   const canEdit = manifest.manifestStatus === 'SUBMITTED';
+  // Presence tracking only becomes meaningful once guests are confirmed.
+  const showPresence = manifest.manifestStatus === 'APPROVED';
+
+  const handleSetArrival = (guestId: string, status: GuestArrivalStatus) => {
+    setGuestArrival.mutate(
+      { guestId, status },
+      { onError: () => toast.error('Failed to update presence') },
+    );
+  };
 
   const handleApprove = async () => {
     await approveManifest.mutateAsync(bookingId);
@@ -99,6 +116,19 @@ export function ManifestDetailSheet({
             </div>
           )}
 
+          {/* Primary guest */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8a8178]">
+              Primary guest
+            </h3>
+            <PrimaryGuestCard
+              primary={manifest.primaryGuest}
+              roomSummary={manifest.roomSummary}
+              showPresence={showPresence}
+              onSetArrival={(status) => setPrimaryArrival.mutate(status)}
+            />
+          </div>
+
           {/* Guest list */}
           <div className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8a8178]">
@@ -121,6 +151,8 @@ export function ManifestDetailSheet({
                   toast.success('Guest updated');
                 }}
                 saving={updateGuest.isPending}
+                showPresence={showPresence}
+                onSetArrival={(status) => handleSetArrival(guest.id, status)}
               />
             ))}
           </div>
@@ -189,6 +221,8 @@ function GuestCard({
   canEdit,
   onSave,
   saving,
+  showPresence,
+  onSetArrival,
 }: {
   guest: ManifestGuest;
   roomSummary: ManifestResponse['roomSummary'];
@@ -202,6 +236,8 @@ function GuestCard({
     allergies?: string;
   }) => Promise<void>;
   saving?: boolean;
+  showPresence?: boolean;
+  onSetArrival?: (status: GuestArrivalStatus) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -367,6 +403,19 @@ function GuestCard({
         </div>
       </div>
 
+      {/* Presence (post-approval) */}
+      {showPresence && onSetArrival && (
+        <div className="flex items-center justify-between px-4 py-2 border-t border-[#f0ece6] bg-[#fbfaf8]">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178]">
+            Presence
+          </span>
+          <ArrivalStatusPills
+            value={guest.arrivalStatus}
+            onChange={onSetArrival}
+          />
+        </div>
+      )}
+
       {/* Expanded details */}
       {expanded && (
         <div className="px-4 pb-4 space-y-3 border-t border-[#f0ece6]">
@@ -427,6 +476,141 @@ function GuestCard({
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── PrimaryGuestCard ────────────────────────────────────────────────────────
+
+function PrimaryGuestCard({
+  primary,
+  roomSummary,
+  showPresence,
+  onSetArrival,
+}: {
+  primary: ManifestResponse['primaryGuest'];
+  roomSummary: ManifestResponse['roomSummary'];
+  showPresence?: boolean;
+  onSetArrival: (status: GuestArrivalStatus) => void;
+}) {
+  const roomName = primary.roomNumber
+    ? (roomSummary.find((r) => r.roomNumber === primary.roomNumber)?.roomName ??
+      `Room ${primary.roomNumber}`)
+    : null;
+  const hasDietary = (primary.dietaryRestrictions?.length ?? 0) > 0;
+
+  return (
+    <div className="rounded-xl border border-[#e3d3a8] bg-[#fdfaf2] overflow-hidden">
+      <div className="flex items-start justify-between px-4 py-3.5 gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center justify-center size-8 rounded-full bg-[#c7a046] text-xs font-bold text-white shrink-0">
+            {`${primary.firstName[0] ?? ''}${primary.lastName[0] ?? ''}`.toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-[#1a1614] leading-none">
+              {primary.firstName} {primary.lastName}
+            </p>
+            <p className="text-xs text-[#8a8178] mt-0.5 truncate">
+              {primary.email}
+            </p>
+            <p className="text-[10px] uppercase tracking-wider text-[#b08a2e] mt-0.5">
+              Primary guest
+            </p>
+          </div>
+        </div>
+        {roomName && (
+          <span className="text-xs font-medium text-[#4a7c59] bg-[#e8f1e9] rounded-full px-2.5 py-0.5 shrink-0">
+            {roomName}
+          </span>
+        )}
+      </div>
+
+      {(hasDietary || primary.allergies || primary.beveragePreferences) && (
+        <div className="px-4 pb-3 space-y-2 border-t border-[#f0e9d6]">
+          {hasDietary && (
+            <div className="pt-2 flex flex-wrap gap-1.5">
+              {primary.dietaryRestrictions.map((d) => (
+                <span
+                  key={d}
+                  className="rounded-full border border-[#3a6448]/25 bg-[#e8f1e9] px-2.5 py-0.5 text-xs font-medium text-[#3a6448] capitalize"
+                >
+                  {d.replace(/_/g, ' ')}
+                </span>
+              ))}
+            </div>
+          )}
+          {primary.allergies && (
+            <p className="text-sm text-[#6b2626]">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#c53030]">
+                ⚠ Allergy:{' '}
+              </span>
+              {primary.allergies}
+            </p>
+          )}
+          {primary.beveragePreferences && (
+            <p className="text-sm text-[#3d3530]">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178]">
+                Beverages:{' '}
+              </span>
+              {primary.beveragePreferences}
+            </p>
+          )}
+        </div>
+      )}
+
+      {showPresence && (
+        <div className="flex items-center justify-between px-4 py-2 border-t border-[#f0e9d6] bg-[#faf6ea]">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178]">
+            Presence
+          </span>
+          <ArrivalStatusPills
+            value={primary.arrivalStatus}
+            onChange={onSetArrival}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ArrivalStatusPills ──────────────────────────────────────────────────────
+
+const ARRIVAL_OPTIONS: {
+  value: GuestArrivalStatus;
+  label: string;
+  active: string;
+}[] = [
+  { value: 'EXPECTED', label: 'Expected', active: 'bg-[#e8e4de] text-[#3d3530]' },
+  { value: 'IN_VILLA', label: 'In villa', active: 'bg-[#4a7c59] text-white' },
+  { value: 'DEPARTED', label: 'Departed', active: 'bg-[#3d3530] text-white' },
+];
+
+function ArrivalStatusPills({
+  value,
+  onChange,
+}: {
+  value: GuestArrivalStatus;
+  onChange: (status: GuestArrivalStatus) => void;
+}) {
+  return (
+    <div className="inline-flex gap-0.5 rounded-lg border border-[#e8e4de] bg-white p-0.5">
+      {ARRIVAL_OPTIONS.map((opt) => {
+        const isActive = value === opt.value;
+        return (
+          <button
+            key={opt.value}
+            onClick={() => !isActive && onChange(opt.value)}
+            className={cn(
+              'rounded-md px-2 py-1 text-[10px] font-medium transition-colors',
+              isActive
+                ? opt.active
+                : 'text-[#8a8178] hover:text-[#3d3530]',
+            )}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -11,10 +11,10 @@ export type ExperienceFilterId = ExperienceCatalogFilter | 'all';
 
 export interface Experience {
   id: string;
-  /** Label shown on the image pill */
+  /** Label shown on the image pill — the dynamic (EM-configured) category name */
   category: string;
-  /** Used for filter chips on /experiences */
-  filterCategory: ExperienceCatalogFilter;
+  /** The dynamic category used for the /experiences filter chips (== category) */
+  filterCategory: string;
   title: string;
   /** Shown as "N HRS" when `durationMinutes` is not set */
   experienceHours?: number;

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 
-import { STATUS_MOCK_DATA } from './mockData';
 import { RequestDetailView } from './RequestDetailView';
 import { RequestSection } from './RequestSection';
 import { StatusSectionLabel } from './StatusSectionLabel';
@@ -13,16 +12,16 @@ import { mapRequestToStatusRequest } from '@/lib/mappers/request';
 import type { StatusRequest } from './mockData';
 
 export const Status = () => {
-  const [activeTab, setActiveTab] = useState<StatusTabId>('all');
+  // Status is the live tracker for the whole stay — it opens on what's in
+  // progress right now (My Orders is the personal, full-history view instead).
+  const [activeTab, setActiveTab] = useState<StatusTabId>('active');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { data: apiRequests, isLoading } = useBookingRequests();
 
-  const requests: StatusRequest[] = apiRequests
-    ? apiRequests.map(
-        (r) => mapRequestToStatusRequest(r) as unknown as StatusRequest,
-      )
-    : STATUS_MOCK_DATA;
+  const requests: StatusRequest[] = (apiRequests ?? []).map(
+    (r) => mapRequestToStatusRequest(r) as unknown as StatusRequest,
+  );
 
   const visibleRequests = requests.filter((r) => r.tabs.includes(activeTab));
 
@@ -31,7 +30,10 @@ export const Status = () => {
   return (
     <>
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="font-cormorant text-[22px] italic text-[#2B2824]">
+            Live Status
+          </h1>
           <div className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#1A1A18] px-3 py-1.5">
             <span
               className="size-[5px] rounded-full bg-[#4CAF50]"
@@ -42,10 +44,11 @@ export const Status = () => {
               {activeCount === 1 ? 'Request' : 'Requests'}
             </span>
           </div>
-          <p className="text-[9px] uppercase tracking-[1.4px] text-[#9A9288]">
-            We&apos;ll notify you when ready.
-          </p>
         </div>
+        <p className="-mt-1 text-[9px] uppercase tracking-[1.4px] text-[#9A9288]">
+          Tracking every experience for your stay — we&apos;ll notify you when
+          ready.
+        </p>
 
         <StatusTabFilter activeTab={activeTab} setActiveTab={setActiveTab} />
         <StatusSectionLabel activeTab={activeTab} />
@@ -58,6 +61,15 @@ export const Status = () => {
                 className="h-20 animate-pulse rounded-[12px] bg-[#E3E0DA]"
               />
             ))}
+          </div>
+        ) : requests.length === 0 ? (
+          <div className="rounded-[12px] border border-dashed border-[#D8D3C9] bg-[#F7F5F2] px-6 py-12 text-center">
+            <p className="font-cormorant text-[18px] italic text-[#2B2824]">
+              Nothing in progress
+            </p>
+            <p className="mt-1 text-[11px] text-[#797168]">
+              Experiences requested for your stay will be tracked here.
+            </p>
           </div>
         ) : (
           <RequestSection

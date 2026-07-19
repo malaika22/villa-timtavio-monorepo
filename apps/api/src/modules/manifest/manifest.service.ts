@@ -36,6 +36,9 @@ export class ManifestService {
             firstName: true,
             lastName: true,
             email: true,
+            dietaryRestrictions: true,
+            allergies: true,
+            beveragePreferences: true,
           },
         },
         manifestGuests: {
@@ -86,10 +89,15 @@ export class ManifestService {
       experiences: (byEmail.get(guest.email.toLowerCase()) ?? []).map(toSummary),
     }));
 
-    // Calculate progress
+    // Progress — the primary counts as one of the party (they aren't a
+    // manifestGuest row), so the added count always includes them. totalGuests
+    // is the whole party incl. the primary (Lodgify reservation headcount).
     const totalGuests = booking.totalGuests;
-    const addedGuests = booking.manifestGuests.length;
-    const progressPercent = Math.round((addedGuests / 16) * 100);
+    const addedGuests = booking.manifestGuests.length + 1;
+    const progressPercent =
+      totalGuests > 0
+        ? Math.min(100, Math.round((addedGuests / totalGuests) * 100))
+        : 0;
 
     return {
       bookingId,
@@ -97,7 +105,13 @@ export class ManifestService {
       totalGuests,
       addedGuests,
       progressPercent,
-      primaryGuest: booking.primaryGuest,
+      primaryGuest: {
+        ...booking.primaryGuest,
+        // Room + presence are per-stay (Booking); dietary/allergies/beverage
+        // come straight from the primary's Guest record.
+        roomNumber: booking.primaryRoomNumber,
+        arrivalStatus: booking.primaryArrivalStatus,
+      },
       guests,
       roomSummary,
     };
@@ -748,37 +762,136 @@ export class ManifestService {
 
   // ─── Private: Get room summary ────────────────────────────────────────────
 
-  private async getRoomSummary(bookingId: string) {
-    const rooms = await this.prisma.room.findMany({
-      where: { isActive: true },
-      orderBy: { number: 'asc' },
-      include: {
-        manifestGuests: {
-          where: { bookingId },
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            dietaryRestrictions: true,
-            allergies: true,
-            pwaLinkSent: true,
-            pwaLinkOpened: true,
-          },
-        },
+  // ─── Primary member: update their own manifest details (room + prefs) ─────
+
+  async updatePrimaryDetails(
+    bookingId: string,
+    dto: {
+      roomNumber?: number | null;
+      dietaryRestrictions?: string[];
+      allergies?: string | null;
+      beveragePreferences?: string | null;
+    },
+    requestingEmail?: string,
+  ) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        id: true,
+        primaryGuestId: true,
+        primaryGuest: { select: { email: true } },
       },
     });
+    if (!booking) throw new NotFoundException('Booking not found');
 
-    return rooms.map((room) => ({
-      number: room.number,
-      name: room.name,
-      type: room.type,
-      capacity: room.capacity,
-      bedConfig: room.bedConfig,
-      assignedCount: room.manifestGuests.length,
-      availableCapacity: room.capacity - room.manifestGuests.length,
-      isFull: room.manifestGuests.length >= room.capacity,
-      isEmpty: room.manifestGuests.length === 0,
-      guests: room.manifestGuests,
-    }));
+    // Only the booking's own primary (or an estate manager) may edit these
+    // details. EM tokens surface as an auth0| subject in `requestingEmail`.
+    if (
+      requestingEmail &&
+      requestingEmail !== booking.primaryGuest.email &&
+      !requestingEmail.startsWith('auth0|')
+    ) {
+      throw new ForbiddenException(
+        'You can only update your own manifest details',
+      );
+    }
+
+    // Room is per-stay → Booking. Dietary/allergies/beverage are guest-intrinsic
+    // → the primary's Guest record, which the chef's brief / guest DNA / CRM read.
+    const guestData = {
+      ...(dto.dietaryRestrictions !== undefined
+        ? { dietaryRestrictions: dto.dietaryRestrictions }
+        : {}),
+      ...(dto.allergies !== undefined ? { allergies: dto.allergies } : {}),
+      ...(dto.beveragePreferences !== undefined
+        ? { beveragePreferences: dto.beveragePreferences }
+        : {}),
+    };
+
+    await this.prisma.$transaction([
+      this.prisma.booking.update({
+        where: { id: bookingId },
+        data:
+          dto.roomNumber !== undefined
+            ? { primaryRoomNumber: dto.roomNumber }
+            : {},
+      }),
+      ...(Object.keys(guestData).length > 0
+        ? [
+            this.prisma.guest.update({
+              where: { id: booking.primaryGuestId },
+              data: guestData,
+            }),
+          ]
+        : []),
+    ]);
+
+    return this.getManifest(bookingId);
+  }
+
+  // ─── Estate Manager: per-guest / primary presence status (REQ-5) ──────────
+
+  private assertArrivalStatus(status: string) {
+    if (!['EXPECTED', 'IN_VILLA', 'DEPARTED'].includes(status)) {
+      throw new BadRequestException('Invalid arrival status');
+    }
+  }
+
+  async setGuestArrivalStatus(guestId: string, status: string) {
+    this.assertArrivalStatus(status);
+    return this.prisma.manifestGuest.update({
+      where: { id: guestId },
+      data: { arrivalStatus: status as any },
+    });
+  }
+
+  async setPrimaryArrivalStatus(bookingId: string, status: string) {
+    this.assertArrivalStatus(status);
+    return this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { primaryArrivalStatus: status as any },
+    });
+  }
+
+  private async getRoomSummary(bookingId: string) {
+    const [booking, rooms] = await Promise.all([
+      this.prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { primaryRoomNumber: true },
+      }),
+      this.prisma.room.findMany({
+        where: { isActive: true },
+        orderBy: { number: 'asc' },
+        include: {
+          manifestGuests: {
+            where: { bookingId },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              dietaryRestrictions: true,
+              allergies: true,
+              pwaLinkSent: true,
+              pwaLinkOpened: true,
+            },
+          },
+        },
+      }),
+    ]);
+    const primaryRoom = booking?.primaryRoomNumber ?? null;
+
+    // Field names must match the shared RoomSummaryItem type (roomNumber /
+    // roomName / assignedGuests). Occupancy includes the primary's own room.
+    return rooms.map((room) => {
+      const assigned =
+        room.manifestGuests.length + (primaryRoom === room.number ? 1 : 0);
+      return {
+        roomNumber: room.number,
+        roomName: room.name,
+        capacity: room.capacity,
+        assignedGuests: assigned,
+        availableCapacity: room.capacity - assigned,
+      };
+    });
   }
 }

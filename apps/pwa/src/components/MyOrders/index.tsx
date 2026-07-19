@@ -50,6 +50,9 @@ export const MyOrders = () => {
             </span>
           </div>
         </div>
+        <p className="-mt-1 text-[9px] uppercase tracking-[1.4px] text-[#9A9288]">
+          Your requests — past and present.
+        </p>
 
         <StatusTabFilter activeTab={activeTab} setActiveTab={setActiveTab} />
         <StatusSectionLabel activeTab={activeTab} />

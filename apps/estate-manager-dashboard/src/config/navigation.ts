@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
   BarChart3,
+  Bell,
   BedDouble,
   BookMarked,
   Calendar,
@@ -70,6 +71,7 @@ export const managerNavSections: ManagerNavSection[] = [
   {
     label: 'System',
     items: [
+      { title: 'Notifications', href: '/notifications', icon: Bell },
       { title: 'Settings', href: '/settings', icon: Settings },
       { title: 'Audit Log', href: '/audit-log', icon: ScrollText },
     ],
@@ -205,6 +207,11 @@ export const pageMeta: Record<string, PageMeta> = {
     title: 'Audit Log',
     subtitle: 'Immutable record of every action',
     showNotifications: true,
+  },
+  '/notifications': {
+    title: 'Notifications',
+    subtitle: 'System alerts & activity across the estate',
+    showNotifications: false,
   },
   '/inventory': {
     title: 'Inventory',
