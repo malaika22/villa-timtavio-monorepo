@@ -85,6 +85,20 @@ export class MagicLinkController {
     };
   }
 
+  // ─── Guest self-service: request a fresh link by email (link-expired page) ──
+
+  @Post('request')
+  @Public()
+  async requestByEmail(@Body() body: { email?: string }) {
+    await this.magicLinkService.requestByEmail(body?.email ?? '');
+    // Neutral response — never reveal whether the email matched a reservation.
+    return {
+      success: true,
+      message:
+        'If that email is on a reservation, a new access link is on its way.',
+    };
+  }
+
   // ─── Verify OTP + issue JWT (called by PWA callback page) ───────────────
 
   @Post('verify')
