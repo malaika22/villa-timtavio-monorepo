@@ -76,6 +76,7 @@ export const Home = () => {
   // Once the party has settled in, the manifest "prompt" is no longer relevant —
   // swap it for a read-only entry into the guest details.
   const isSettledOrLater =
+    displayArrivalStatus === ArrivalStatus.CHECKED_IN ||
     displayArrivalStatus === ArrivalStatus.SETTLED ||
     displayArrivalStatus === ArrivalStatus.DEPARTURE_TODAY ||
     displayArrivalStatus === ArrivalStatus.CHECKOUT_OUT;
