@@ -184,6 +184,9 @@ export const API = {
     resendLink: (bookingId: string, guestId: string) => `/api/v1/manifest/${bookingId}/guests/${guestId}/resend-link`,
     linkOpened: '/api/v1/manifest/link-opened',
     draft: (bookingId: string) => `/api/v1/manifest/${bookingId}/draft`,
+    primaryDetails: (bookingId: string) => `/api/v1/manifest/${bookingId}/primary-details`,
+    guestArrivalStatus: (bookingId: string, guestId: string) => `/api/v1/manifest/${bookingId}/guests/${guestId}/arrival-status`,
+    primaryArrivalStatus: (bookingId: string) => `/api/v1/manifest/${bookingId}/primary-arrival-status`,
   },
   auditLog: '/api/v1/audit-log',
   inventory: {

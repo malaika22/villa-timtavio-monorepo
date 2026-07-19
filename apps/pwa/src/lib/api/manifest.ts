@@ -6,6 +6,7 @@ import type {
   ManifestDraftResponse,
   ManifestOptionsResponse,
   UpsertManifestDraftDto,
+  UpdatePrimaryDetailsDto,
 } from '@repo/api-types';
 
 export const manifestApi = {
@@ -31,6 +32,12 @@ export const manifestApi = {
   removeGuest: (bookingId: string, guestId: string) =>
     api.delete<{ message: string }>(
       API.manifest.removeGuest(bookingId, guestId),
+    ),
+
+  updatePrimaryDetails: (bookingId: string, dto: UpdatePrimaryDetailsDto) =>
+    api.patch<ManifestResponse>(
+      API.manifest.primaryDetails(bookingId),
+      dto,
     ),
 
   submit: (bookingId: string) =>

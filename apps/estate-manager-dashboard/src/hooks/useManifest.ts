@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { emManifestApi } from '@/lib/api/manifest';
-import type { UpdateManifestGuestDto } from '@repo/api-types';
+import type {
+  UpdateManifestGuestDto,
+  GuestArrivalStatus,
+} from '@repo/api-types';
 
 export function useManifest(bookingId: string | null) {
   return useQuery({
@@ -21,6 +24,33 @@ export function useUpdateManifestGuest(bookingId: string) {
       guestId: string;
       dto: UpdateManifestGuestDto;
     }) => emManifestApi.updateGuest(bookingId, guestId, dto),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['manifest', bookingId] });
+    },
+  });
+}
+
+export function useSetGuestArrivalStatus(bookingId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      guestId,
+      status,
+    }: {
+      guestId: string;
+      status: GuestArrivalStatus;
+    }) => emManifestApi.setGuestArrivalStatus(bookingId, guestId, status),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['manifest', bookingId] });
+    },
+  });
+}
+
+export function useSetPrimaryArrivalStatus(bookingId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (status: GuestArrivalStatus) =>
+      emManifestApi.setPrimaryArrivalStatus(bookingId, status),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['manifest', bookingId] });
     },

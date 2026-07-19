@@ -30,6 +30,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { GuestManifestForm } from '@/components/GuestManifestForm';
 import type { GuestManifestFormValues } from '@/components/GuestManifestForm';
 import { GuestAddedSheet } from './GuestAddedSheet';
+import { PrimaryDetailsCard } from './PrimaryDetailsCard';
 import type {
   CreateManifestGuestDto,
   ManifestGuest,
@@ -334,6 +335,21 @@ export const ManifestPage = () => {
             );
           })}
         </Link>
+      )}
+
+      {/* ─── Your details (primary member) ──────────────────────── */}
+      {manifest?.primaryGuest && (
+        <div className="mt-6">
+          <p className="text-[8px] uppercase tracking-[2.5px] text-[#9A9288] mb-3">
+            Your details
+          </p>
+          <PrimaryDetailsCard
+            primary={manifest.primaryGuest}
+            rooms={rooms ?? []}
+            isPrimary={isPrimary}
+            isLocked={isLocked}
+          />
+        </div>
       )}
 
       {/* ─── Guest list ─────────────────────────────────────────── */}

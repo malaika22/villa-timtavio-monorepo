@@ -1,4 +1,4 @@
-import type { ManifestGuest } from './bookings';
+import type { ManifestGuest, GuestArrivalStatus } from './bookings';
 
 export type { ManifestGuest };
 
@@ -13,6 +13,12 @@ export interface ManifestResponse {
     firstName: string;
     lastName: string;
     email: string;
+    /** The primary member's own manifest details (self-service). */
+    roomNumber?: number | null;
+    arrivalStatus: GuestArrivalStatus;
+    dietaryRestrictions: string[];
+    allergies?: string | null;
+    beveragePreferences?: string | null;
   };
   guests: ManifestGuest[];
   roomSummary: RoomSummaryItem[];
@@ -42,6 +48,17 @@ export interface CreateManifestGuestDto {
 }
 
 export type UpdateManifestGuestDto = Partial<CreateManifestGuestDto>;
+
+export interface UpdatePrimaryDetailsDto {
+  roomNumber?: number | null;
+  dietaryRestrictions?: string[];
+  allergies?: string | null;
+  beveragePreferences?: string | null;
+}
+
+export interface UpdateArrivalStatusDto {
+  status: import('./bookings').GuestArrivalStatus;
+}
 
 export interface UpsertManifestDraftDto {
   data: Record<string, unknown>;

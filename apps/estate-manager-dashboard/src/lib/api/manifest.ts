@@ -4,6 +4,7 @@ import type {
   ChefsBriefResponse,
   ManifestGuest,
   UpdateManifestGuestDto,
+  GuestArrivalStatus,
 } from '@repo/api-types';
 
 export const emManifestApi = {
@@ -16,6 +17,21 @@ export const emManifestApi = {
     dto: UpdateManifestGuestDto,
   ) =>
     api.patch<ManifestGuest>(API.manifest.updateGuest(bookingId, guestId), dto),
+
+  setGuestArrivalStatus: (
+    bookingId: string,
+    guestId: string,
+    status: GuestArrivalStatus,
+  ) =>
+    api.patch<ManifestGuest>(
+      API.manifest.guestArrivalStatus(bookingId, guestId),
+      { status },
+    ),
+
+  setPrimaryArrivalStatus: (bookingId: string, status: GuestArrivalStatus) =>
+    api.patch<{ id: string }>(API.manifest.primaryArrivalStatus(bookingId), {
+      status,
+    }),
 
   approve: (bookingId: string) =>
     api.post<{ manifestStatus: string }>(API.manifest.approve(bookingId), {}),
