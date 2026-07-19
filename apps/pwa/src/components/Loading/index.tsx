@@ -4,7 +4,7 @@ export const Loading = () => {
       role="status"
       aria-live="polite"
       aria-busy="true"
-      className="flex h-screen min-h-[100dvh] flex-col items-center justify-center gap-8 bg-black px-6"
+      className="fixed inset-0 z-[100] flex h-screen min-h-[100dvh] flex-col items-center justify-center gap-8 bg-black px-6"
     >
       <div className="h-11 w-px origin-center bg-[#ffffff4a]" aria-hidden />
 

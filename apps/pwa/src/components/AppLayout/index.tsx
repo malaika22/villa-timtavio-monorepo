@@ -8,7 +8,7 @@ import { PushRegistrar } from './PushRegistrar';
 // Pre-auth / error routes render bare — no header, bottom nav, or push
 // registration, so PWA feature entry points aren't shown to an unauthenticated
 // or errored visitor (e.g. the magic-link callback and link-expired screens).
-const BARE_ROUTES = ['/auth', '/link-expired'];
+const BARE_ROUTES = ['/auth', '/link-expired', '/welcome'];
 
 export const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
