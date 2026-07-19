@@ -82,9 +82,11 @@ export const GuestManifestCard = ({
           </div>
         </div>
 
-        {manifest?.roomSummary && manifest.roomSummary.length > 0 && (
+        {manifest?.roomSummary?.some((r) => r.assignedGuests > 0) && (
           <div className="grid grid-cols-3 gap-3">
-            {manifest.roomSummary.map((room) => (
+            {manifest.roomSummary
+              .filter((r) => r.assignedGuests > 0)
+              .map((room) => (
               <div
                 key={room.roomNumber}
                 className="rounded-lg border border-[#dce5dc] bg-[#f4f7f4] px-3.5 py-3"

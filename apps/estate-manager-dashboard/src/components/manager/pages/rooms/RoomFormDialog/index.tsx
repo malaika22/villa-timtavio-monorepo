@@ -116,6 +116,11 @@ export const RoomFormDialog = ({ open, onOpenChange, room }: Props) => {
     } else {
       form.reset(BLANK);
     }
+  } else if (!open && activeSessionKey !== 'closed') {
+    // Re-arm on close so the next open always resets — even for another blank
+    // "new" room, whose key ("true:new") would otherwise match the previous
+    // session and skip the reset, leaving the old room's data in the form.
+    setActiveSessionKey('closed');
   }
 
   const amenities = useWatch({ control: form.control, name: 'amenities' });

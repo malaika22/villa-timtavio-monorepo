@@ -768,17 +768,14 @@ export class ManifestService {
       },
     });
 
+    // Field names must match the shared RoomSummaryItem type (roomNumber /
+    // roomName / assignedGuests) — the EM manifest card and PWA home read those.
     return rooms.map((room) => ({
-      number: room.number,
-      name: room.name,
-      type: room.type,
+      roomNumber: room.number,
+      roomName: room.name,
       capacity: room.capacity,
-      bedConfig: room.bedConfig,
-      assignedCount: room.manifestGuests.length,
+      assignedGuests: room.manifestGuests.length,
       availableCapacity: room.capacity - room.manifestGuests.length,
-      isFull: room.manifestGuests.length >= room.capacity,
-      isEmpty: room.manifestGuests.length === 0,
-      guests: room.manifestGuests,
     }));
   }
 }
