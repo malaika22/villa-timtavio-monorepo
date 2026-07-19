@@ -34,6 +34,25 @@ export function useSystemAlerts(category?: string) {
   });
 }
 
+export function useAllSystemAlerts(category?: string) {
+  return useQuery({
+    queryKey: ['system', 'alerts', 'history', category ?? 'all'],
+    queryFn: () => systemApi.alerts({ category, isDismissed: 'all' }),
+    refetchInterval: 60_000,
+  });
+}
+
+export function useMarkAllAlertsRead() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => systemApi.markAllRead(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['system', 'alerts'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
 export function useDismissSystemAlert() {
   const queryClient = useQueryClient();
   return useMutation({
