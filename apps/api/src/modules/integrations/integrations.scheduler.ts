@@ -48,16 +48,23 @@ export class IntegrationsScheduler {
     for (const req of inProgress) {
       try {
         const task = await this.breezeway.getTask(req.breezeWayTaskId!);
+        // Breezeway task status is nested ({ code, name }); completion also
+        // surfaces as a finished_at timestamp.
+        const statusCode =
+          task?.status?.code ?? task?.status?.name ?? task?.status;
         const completed =
-          task?.status === 'completed' ||
-          !!task?.completed_at ||
-          !!task?.completion_photo_url;
+          statusCode === 'completed' ||
+          statusCode === 'finished' ||
+          !!task?.finished_at;
 
         if (completed) {
+          const photoUrl = Array.isArray(task?.photos)
+            ? task.photos[0]
+            : undefined;
           await this.requests.markReady(
             req.id,
-            task?.completion_photo_url ?? undefined,
-            task?.assigned_to_name ?? undefined,
+            photoUrl,
+            task?.finished_by?.full_name ?? undefined,
           );
           continue;
         }
