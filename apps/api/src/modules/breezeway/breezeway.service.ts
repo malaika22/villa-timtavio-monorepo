@@ -3,23 +3,30 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance } from 'axios';
 
+// Breezeway public API. Auth mints a 24h JWT from client_id/client_secret and
+// every request carries it as `Authorization: JWT <token>` (NOT Bearer).
+// Docs: https://developer.breezeway.io/docs/authentication
+const BREEZEWAY_BASE = 'https://api.breezeway.io/public';
+const BREEZEWAY_AUTH_URL = 'https://api.breezeway.io/public/auth/v1/';
+
 @Injectable()
 export class BreezeWayService {
   private readonly logger = new Logger(BreezeWayService.name);
   private client: AxiosInstance;
   private accessToken: string | null = null;
   private tokenExpiresAt = 0;
+  // The token endpoint is rate-limited to 1 req/min, so concurrent callers must
+  // share a single in-flight fetch rather than each POSTing their own.
+  private tokenPromise: Promise<string> | null = null;
 
   constructor(private config: ConfigService) {
-    this.client = axios.create({
-      baseURL: 'https://api.breezeway.io/v1',
-    });
+    this.client = axios.create({ baseURL: BREEZEWAY_BASE });
 
-    // Inject a fresh Bearer token before every request.
+    // Inject a fresh JWT before every request.
     this.client.interceptors.request.use(async (cfg) => {
       const token = await this.getToken();
       cfg.headers = cfg.headers ?? {};
-      cfg.headers['Authorization'] = `Bearer ${token}`;
+      cfg.headers['Authorization'] = `JWT ${token}`;
       cfg.headers['Content-Type'] = 'application/json';
       return cfg;
     });
@@ -29,7 +36,14 @@ export class BreezeWayService {
     if (this.accessToken && Date.now() < this.tokenExpiresAt - 60_000) {
       return this.accessToken;
     }
+    if (this.tokenPromise) return this.tokenPromise;
+    this.tokenPromise = this.fetchToken().finally(() => {
+      this.tokenPromise = null;
+    });
+    return this.tokenPromise;
+  }
 
+  private async fetchToken(): Promise<string> {
     const clientId = this.config.get<string>('BREEZEWAY_CLIENT_ID');
     const clientSecret = this.config.get<string>('BREEZEWAY_CLIENT_SECRET');
 
@@ -38,15 +52,15 @@ export class BreezeWayService {
     }
 
     const res = await axios.post(
-      'https://auth.breezeway.io/oauth/token',
-      { grant_type: 'client_credentials', client_id: clientId, client_secret: clientSecret },
+      BREEZEWAY_AUTH_URL,
+      { client_id: clientId, client_secret: clientSecret },
       { headers: { 'Content-Type': 'application/json' } },
     );
 
     this.accessToken = res.data.access_token as string;
-    // expires_in is in seconds; fall back to 23 h if not provided.
-    const expiresIn: number = res.data.expires_in ?? 82_800;
-    this.tokenExpiresAt = Date.now() + expiresIn * 1_000;
+    // Access tokens live 24h; getToken applies a 60s refresh skew. We don't use
+    // the refresh_token — re-authing is simpler and well within the rate limit.
+    this.tokenExpiresAt = Date.now() + 24 * 60 * 60 * 1000;
     this.logger.log('Breezeway token refreshed');
     return this.accessToken;
   }
@@ -56,33 +70,45 @@ export class BreezeWayService {
     description: string;
     propertyId: string;
     assigneeId: string;
-    dueDate: string;
-    requirePhoto: boolean;
+    dueDate: string; // ISO datetime — split into scheduled_date + scheduled_time
+    requirePhoto: boolean; // kept for signature compat; not a create-task field
     templateId?: string;
     metadata?: Record<string, any>;
   }) {
-    const response = await this.client.post('/tasks', {
+    const due = new Date(data.dueDate);
+    const scheduledDate = due.toISOString().slice(0, 10); // YYYY-MM-DD
+    const scheduledTime = due.toISOString().slice(11, 19); // HH:MM:SS
+
+    const body: Record<string, any> = {
       name: data.title,
       description: data.description,
-      property_id: data.propertyId,
-      assigned_to: data.assigneeId,
-      due_date: data.dueDate,
-      require_photo: data.requirePhoto,
-      template_id: data.templateId,
-      custom_fields: data.metadata,
-    });
+      // BREEZEWAY_PROPERTY_ID is the villa's Breezeway home id (numeric).
+      home_id: Number(data.propertyId),
+      type_department:
+        process.env.BREEZEWAY_TASK_DEPARTMENT || 'housekeeping',
+      scheduled_date: scheduledDate,
+      scheduled_time: scheduledTime,
+    };
+
+    // Breezeway assigns tasks via an array of person ids.
+    const assignee = Number(data.assigneeId);
+    if (Number.isFinite(assignee)) body.assignments = [assignee];
+
+    const template = Number(data.templateId);
+    if (Number.isFinite(template)) body.template_id = template;
+
+    const response = await this.client.post('/inventory/v1/task', body);
     return response.data;
   }
 
   async getTask(taskId: string) {
-    const response = await this.client.get(`/tasks/${taskId}`);
+    const response = await this.client.get(`/inventory/v1/task/${taskId}`);
     return response.data;
   }
 
   /**
    * Lists staff (people) so the EM can pick who a given experience routes to.
-   * Uses the public inventory people API (absolute URL — the interceptor still
-   * injects the Bearer token). Returns only active people, newest last.
+   * Returns only active people.
    */
   async getStaff(): Promise<
     Array<{
@@ -92,9 +118,7 @@ export class BreezeWayService {
       email: string | null;
     }>
   > {
-    const res = await this.client.get(
-      'https://api.breezeway.io/public/inventory/v1/people',
-    );
+    const res = await this.client.get('/inventory/v1/people');
     const people: any[] = Array.isArray(res.data)
       ? res.data
       : (res.data?.data ?? res.data?.results ?? []);

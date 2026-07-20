@@ -52,13 +52,16 @@ export class BreezeWayWebhookController {
       return { received: false };
     }
 
-    this.logger.log(`Breezeway webhook received: ${body.event}`);
+    this.logger.log(`Breezeway webhook received: ${body.event_type}`);
+
+    // Breezeway webhook payload: { event_type, task: {...}, last_updated }.
+    const task = body.task ?? {};
 
     try {
-      if (body.event === 'task.completed') {
-        const taskId = body.data.id;
-        const photoUrl = body.data.completion_photo_url;
-        const staffName = body.data.completed_by_name;
+      if (body.event_type === 'task-completed') {
+        const taskId = String(task.id);
+        const photoUrl = Array.isArray(task.photos) ? task.photos[0] : undefined;
+        const staffName = task.finished_by?.full_name;
 
         const request =
           await this.requestsService.findByBreezeWayTaskId(taskId);
@@ -69,8 +72,8 @@ export class BreezeWayWebhookController {
         }
       }
 
-      if (body.event === 'task.started') {
-        const taskId = body.data.id;
+      if (body.event_type === 'task-started') {
+        const taskId = String(task.id);
         const request =
           await this.requestsService.findByBreezeWayTaskId(taskId);
         if (request) {
