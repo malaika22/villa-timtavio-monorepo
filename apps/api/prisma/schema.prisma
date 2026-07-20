@@ -523,6 +523,7 @@ model ExperienceRequest {
   confirmedCost         Decimal?      @db.Decimal(10, 2)
   emNotes               String?
   declineReason         String?
+  conflictReason        String?
   breezeWayTaskId       String?       @unique
   breezeWayTaskCreatedAt DateTime?
   setupPhotoUrl         String?

@@ -85,6 +85,7 @@ export type ApprovalQueueItem = {
   submitted: string;
   status: ApprovalQueueStatus;
   declineReason?: string | null;
+  conflictReason?: string | null;
 };
 
 export type CurrentGuest = {

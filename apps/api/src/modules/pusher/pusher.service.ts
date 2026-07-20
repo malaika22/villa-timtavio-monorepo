@@ -314,7 +314,7 @@ export class PusherService implements OnModuleInit {
   // Request resolved (approved/declined) — fires to EM to update badge count
   async requestResolvedToEm(data: {
     requestId: string;
-    action: 'approved' | 'declined';
+    action: 'approved' | 'declined' | 'conflict';
     remainingPendingCount: number;
   }) {
     await this.trigger(

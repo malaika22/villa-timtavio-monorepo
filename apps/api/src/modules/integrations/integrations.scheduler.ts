@@ -31,7 +31,13 @@ export class IntegrationsScheduler {
   // ─── Breezeway: poll in-progress tasks for completion / overdue ───────────
   @Cron('*/10 * * * *')
   async pollBreezeway() {
-    if (!process.env.BREEZEWAY_API_KEY) return;
+    // Gate on the credentials the service actually authenticates with, so the
+    // completion poller runs whenever Breezeway is genuinely configured.
+    if (
+      !process.env.BREEZEWAY_CLIENT_ID ||
+      !process.env.BREEZEWAY_CLIENT_SECRET
+    )
+      return;
 
     const inProgress = await this.prisma.experienceRequest.findMany({
       where: { status: 'IN_PROGRESS', breezeWayTaskId: { not: null } },
