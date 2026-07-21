@@ -377,44 +377,40 @@ function GuestCard({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {roomName && (
-            <span className="text-xs font-medium text-[#4a7c59] bg-[#e8f1e9] rounded-full px-2.5 py-0.5">
-              {roomName}
-            </span>
-          )}
-          {canEdit && (
-            <button
-              onClick={startEdit}
-              className="flex items-center gap-1 text-[10px] font-medium text-[#4a7c59] underline underline-offset-2"
-            >
-              <Pencil className="size-3" />
-              Edit
-            </button>
-          )}
-          {(hasDietary || hasExtra) && (
-            <button
-              onClick={() => setExpanded((v) => !v)}
-              className="text-[10px] font-medium text-[#8a8178] underline underline-offset-2"
-            >
-              {expanded ? 'Less' : 'More'}
-            </button>
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <div className="flex items-center gap-1.5">
+            {roomName && (
+              <span className="text-xs font-medium text-[#4a7c59] bg-[#e8f1e9] rounded-full px-2.5 py-0.5">
+                {roomName}
+              </span>
+            )}
+            {canEdit && (
+              <button
+                onClick={startEdit}
+                className="flex items-center gap-1 text-[10px] font-medium text-[#4a7c59] underline underline-offset-2"
+              >
+                <Pencil className="size-3" />
+                Edit
+              </button>
+            )}
+            {(hasDietary || hasExtra) && (
+              <button
+                onClick={() => setExpanded((v) => !v)}
+                className="text-[10px] font-medium text-[#8a8178] underline underline-offset-2"
+              >
+                {expanded ? 'Less' : 'More'}
+              </button>
+            )}
+          </div>
+          {/* Presence (post-approval) — inline, no separate band */}
+          {showPresence && onSetArrival && (
+            <ArrivalStatusPills
+              value={guest.arrivalStatus}
+              onChange={onSetArrival}
+            />
           )}
         </div>
       </div>
-
-      {/* Presence (post-approval) */}
-      {showPresence && onSetArrival && (
-        <div className="flex items-center justify-between px-4 py-2 border-t border-[#f0ece6] bg-[#fbfaf8]">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178]">
-            Presence
-          </span>
-          <ArrivalStatusPills
-            value={guest.arrivalStatus}
-            onChange={onSetArrival}
-          />
-        </div>
-      )}
 
       {/* Expanded details */}
       {expanded && (
@@ -518,11 +514,19 @@ function PrimaryGuestCard({
             </p>
           </div>
         </div>
-        {roomName && (
-          <span className="text-xs font-medium text-[#4a7c59] bg-[#e8f1e9] rounded-full px-2.5 py-0.5 shrink-0">
-            {roomName}
-          </span>
-        )}
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          {roomName && (
+            <span className="text-xs font-medium text-[#4a7c59] bg-[#e8f1e9] rounded-full px-2.5 py-0.5">
+              {roomName}
+            </span>
+          )}
+          {showPresence && (
+            <ArrivalStatusPills
+              value={primary.arrivalStatus}
+              onChange={onSetArrival}
+            />
+          )}
+        </div>
       </div>
 
       {(hasDietary || primary.allergies || primary.beveragePreferences) && (
@@ -555,18 +559,6 @@ function PrimaryGuestCard({
               {primary.beveragePreferences}
             </p>
           )}
-        </div>
-      )}
-
-      {showPresence && (
-        <div className="flex items-center justify-between px-4 py-2 border-t border-[#f0ece6] bg-[#fbfaf8]">
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178]">
-            Presence
-          </span>
-          <ArrivalStatusPills
-            value={primary.arrivalStatus}
-            onChange={onSetArrival}
-          />
         </div>
       )}
     </div>
