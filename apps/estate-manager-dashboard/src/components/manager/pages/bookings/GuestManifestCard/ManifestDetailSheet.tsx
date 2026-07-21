@@ -500,7 +500,7 @@ function PrimaryGuestCard({
   const hasDietary = (primary.dietaryRestrictions?.length ?? 0) > 0;
 
   return (
-    <div className="rounded-xl border border-[#e3d3a8] bg-[#fdfaf2] overflow-hidden">
+    <div className="rounded-xl border border-[#e8e4de] bg-white overflow-hidden">
       <div className="flex items-start justify-between px-4 py-3.5 gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className="flex items-center justify-center size-8 rounded-full bg-[#c7a046] text-xs font-bold text-white shrink-0">
@@ -526,7 +526,7 @@ function PrimaryGuestCard({
       </div>
 
       {(hasDietary || primary.allergies || primary.beveragePreferences) && (
-        <div className="px-4 pb-3 space-y-2 border-t border-[#f0e9d6]">
+        <div className="px-4 pb-3 space-y-2 border-t border-[#f0ece6]">
           {hasDietary && (
             <div className="pt-2 flex flex-wrap gap-1.5">
               {primary.dietaryRestrictions.map((d) => (
@@ -575,17 +575,17 @@ function PrimaryGuestCard({
 
 // ─── ArrivalStatusPills ──────────────────────────────────────────────────────
 
-// One consistent segmented control for presence — the SELECTED pill looks the
-// same regardless of which status it is (a small per-status dot carries the
-// meaning), so the primary and secondary controls read identically.
+// Presence segmented control. Each status has a semantic active colour (like
+// the guest-facing status chips) and the SAME control renders for the primary
+// and secondaries, so they read identically.
 const ARRIVAL_OPTIONS: {
   value: GuestArrivalStatus;
   label: string;
-  dot: string;
+  active: string;
 }[] = [
-  { value: 'EXPECTED', label: 'Expected', dot: 'bg-[#b0aaa0]' },
-  { value: 'IN_VILLA', label: 'In villa', dot: 'bg-[#4a7c59]' },
-  { value: 'DEPARTED', label: 'Departed', dot: 'bg-[#8a8178]' },
+  { value: 'EXPECTED', label: 'Expected', active: 'bg-[#efece6] text-[#5b544c]' },
+  { value: 'IN_VILLA', label: 'In villa', active: 'bg-[#4a7c59] text-white' },
+  { value: 'DEPARTED', label: 'Departed', active: 'bg-[#6b6459] text-white' },
 ];
 
 function ArrivalStatusPills({
@@ -596,26 +596,21 @@ function ArrivalStatusPills({
   onChange: (status: GuestArrivalStatus) => void;
 }) {
   return (
-    <div className="inline-flex gap-0.5 rounded-lg border border-[#e8e4de] bg-white p-0.5">
+    <div className="inline-flex gap-0.5 rounded-full border border-[#e8e4de] bg-[#faf9f7] p-0.5">
       {ARRIVAL_OPTIONS.map((opt) => {
         const isActive = value === opt.value;
         return (
           <button
             key={opt.value}
+            type="button"
             onClick={() => !isActive && onChange(opt.value)}
             className={cn(
-              'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[10px] font-medium transition-colors',
+              'rounded-full px-3 py-1 text-[11px] font-medium transition-colors',
               isActive
-                ? 'bg-[#1a1614] text-white'
+                ? opt.active
                 : 'text-[#8a8178] hover:text-[#3d3530]',
             )}
           >
-            <span
-              className={cn(
-                'size-1.5 shrink-0 rounded-full',
-                isActive ? 'bg-white' : opt.dot,
-              )}
-            />
             {opt.label}
           </button>
         );
