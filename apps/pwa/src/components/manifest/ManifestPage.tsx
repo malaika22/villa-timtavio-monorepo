@@ -193,7 +193,7 @@ export const ManifestPage = () => {
   };
 
   return (
-    <div className={cn('flex flex-col', isLocked ? 'pb-10' : 'pb-36')}>
+    <div className={cn('flex flex-col', isLocked ? 'pb-28' : 'pb-52')}>
       {/* ─── Header ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-5">
         <button

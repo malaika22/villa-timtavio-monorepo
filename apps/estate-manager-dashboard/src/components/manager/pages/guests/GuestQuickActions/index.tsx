@@ -62,6 +62,10 @@ export const GuestQuickActions = ({
       toast.success('Status updated');
       void queryClient.invalidateQueries({ queryKey: ['guests'] });
       void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      // The Bookings + Manifest surfaces read booking status too — refresh them
+      // so the change is reflected without a manual reload.
+      void queryClient.invalidateQueries({ queryKey: ['bookings'] });
+      void queryClient.invalidateQueries({ queryKey: ['booking', 'current'] });
     },
     onError: (e) => toast.error((e as Error).message),
   });

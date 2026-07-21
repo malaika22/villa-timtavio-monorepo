@@ -34,7 +34,7 @@ export function GuestAddedSheet({
 
   return (
     <Drawer open={open} onOpenChange={onClose}>
-      <DrawerContent className="px-5 pb-10 pt-6 bg-white rounded-t-[20px]">
+      <DrawerContent className="px-5 pb-10 pt-9 bg-white rounded-t-[20px]">
         <div className="flex flex-col items-center gap-5">
           {/* Check circle */}
           <motion.div

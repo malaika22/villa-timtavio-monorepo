@@ -293,7 +293,11 @@ export class RequestsService {
 
   // ─── All other methods remain the same as before ──────────────────────────
 
-  async findByBooking(bookingId: string, filter?: 'active' | 'all' | 'today') {
+  async findByBooking(
+    bookingId: string,
+    filter?: 'active' | 'all' | 'today',
+    requestedByEmail?: string,
+  ) {
     const now = new Date();
     const todayStart = new Date(
       now.getFullYear(),
@@ -303,6 +307,15 @@ export class RequestsService {
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
     const where: any = { bookingId };
+
+    // Scope to the requesting guest's OWN experiences — each guest's Status /
+    // Orders shows only what they requested, never the rest of the party's.
+    if (requestedByEmail) {
+      where.requestedByEmail = {
+        equals: requestedByEmail,
+        mode: 'insensitive',
+      };
+    }
 
     if (filter === 'active') {
       where.status = { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'READY'] };
@@ -747,6 +760,20 @@ export class RequestsService {
       });
     } catch (error) {
       this.logger.error(`Breezeway task failed: ${getErrorMessage(error)}`);
+      // Don't let the failure stay silent — the request is confirmed but has no
+      // setup task, so raise an EM alert (surfaces in the bell + notifications).
+      await this.prisma.systemAlert
+        .create({
+          data: {
+            severity: 'warning',
+            title: 'Breezeway task not created',
+            message: `Setup task for "${request.catalogItem.name}" (${request.requestedByName}) couldn't be created in Breezeway. The experience is confirmed but has no setup task — check the Breezeway integration.`,
+            category: 'integration',
+            entityType: 'ExperienceRequest',
+            entityId: request.id,
+          },
+        })
+        .catch(() => undefined);
     }
   }
 }

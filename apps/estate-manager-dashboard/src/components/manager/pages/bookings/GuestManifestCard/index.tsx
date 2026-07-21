@@ -48,6 +48,26 @@ export const GuestManifestCard = ({
   const canReview =
     (manifest?.guests?.length ?? 0) > 0 && (isSubmitted || isApproved);
 
+  // While the manifest is still loading, show a skeleton instead of flashing
+  // "0 of 0 / 0%" before the real numbers arrive.
+  if (manifest === undefined) {
+    return (
+      <div
+        id="manifest"
+        className="overflow-hidden rounded-xl border border-[#e8e4de] bg-[#fdfdfb] p-6 shadow-[0_1px_3px_rgba(26,22,20,0.06)]"
+        aria-busy="true"
+      >
+        <div className="flex items-center justify-between">
+          <div className="h-6 w-40 animate-pulse rounded bg-[#ece8e1]" />
+          <div className="h-6 w-24 animate-pulse rounded-full bg-[#ece8e1]" />
+        </div>
+        <div className="mt-6 h-4 w-32 animate-pulse rounded bg-[#f0ece5]" />
+        <div className="mt-3 h-2 w-full animate-pulse rounded-full bg-[#f0ece5]" />
+        <div className="mt-6 h-11 w-full animate-pulse rounded-lg bg-[#ece8e1]" />
+      </div>
+    );
+  }
+
   return (
     <div
       id="manifest"

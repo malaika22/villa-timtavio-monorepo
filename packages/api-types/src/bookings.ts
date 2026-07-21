@@ -91,6 +91,8 @@ export interface EmCurrentBookingDetail {
   status: BookingStatus;
   manifestStatus: ManifestStatus;
   internalNotes?: string | null;
+  /** True once the primary's access (magic) link has been sent. */
+  primaryLinkSent?: boolean;
   primaryGuest: {
     id: string;
     firstName: string;

@@ -7,6 +7,8 @@ import { cn } from '@repo/ui/lib/utils';
 import { Button } from '@repo/ui/components/button';
 import { useUpdatePrimaryDetails } from '@/hooks/useManifest';
 import { DIETARY_VALUES } from '@/components/GuestManifestForm/schema';
+import { RoomPicker } from '@/components/GuestManifestForm/RoomPicker';
+import { type RoomOption } from '@/components/GuestManifestForm/rooms';
 import type { ManifestResponse, RoomWithAvailability } from '@repo/api-types';
 
 type Primary = ManifestResponse['primaryGuest'];
@@ -35,6 +37,18 @@ export function PrimaryDetailsCard({
   );
   const [allergies, setAllergies] = useState(primary.allergies ?? '');
   const [beverages, setBeverages] = useState(primary.beveragePreferences ?? '');
+
+  // Same shape the guest manifest form feeds its RoomPicker.
+  const roomOptions: RoomOption[] = rooms.map((r) => ({
+    id: r.number.toString(),
+    name: `Room ${r.number}`,
+    suiteLabel: r.name,
+    filled: r.capacity - r.availableCapacity,
+    capacity: r.capacity,
+    bedConfig: r.bedConfig,
+    totalBeds: (r.beds ?? []).reduce((sum, b) => sum + b.count, 0),
+    bathrooms: r.bathrooms,
+  }));
 
   const roomName = primary.roomNumber
     ? (rooms.find((r) => r.number === primary.roomNumber)?.name ??
@@ -176,23 +190,22 @@ export function PrimaryDetailsCard({
             className="overflow-hidden"
           >
             <div className="flex flex-col gap-3 border-t border-[#F0EDE6] pt-3">
-              {/* Room */}
-              <div className="flex flex-col gap-1">
+              {/* Room — same picker guests use, for a consistent experience */}
+              <div className="flex flex-col gap-1.5">
                 <label className="text-[8px] uppercase tracking-[2px] text-[#9A9288]">
                   Your room
                 </label>
-                <select
-                  value={roomId}
-                  onChange={(e) => setRoomId(e.target.value)}
-                  className="h-10 rounded-[10px] border border-[#E3E0DA] bg-white px-3 text-[12px] text-[#2B2824] outline-none focus:border-[#0F1F2E]"
-                >
-                  <option value="">No room selected</option>
-                  {rooms.map((r) => (
-                    <option key={r.number} value={r.number}>
-                      Room {r.number} — {r.name}
-                    </option>
-                  ))}
-                </select>
+                {roomOptions.length === 0 ? (
+                  <p className="rounded-[10px] border border-dashed border-[#D8D3C9] bg-[#F7F5F2] px-3 py-3 text-[10px] text-[#797168]">
+                    Rooms haven&apos;t been configured yet.
+                  </p>
+                ) : (
+                  <RoomPicker
+                    rooms={roomOptions}
+                    value={roomId}
+                    onChange={setRoomId}
+                  />
+                )}
               </div>
 
               {/* Dietary */}

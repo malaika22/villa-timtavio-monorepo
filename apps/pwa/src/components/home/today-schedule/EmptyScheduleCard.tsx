@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Button } from '@repo/ui/components/button';
 
 export const EmptyScheduleCard = () => {
@@ -9,8 +10,11 @@ export const EmptyScheduleCard = () => {
       <div className="text-[#797168] text-[10px] font-light">
         Your schedule will appear once you check in.
       </div>
-      <Button className="border border-[#E3E0DA] bg-white text-[#181818] uppercase text-[8px] font-medium w-[160px] h-[36px] tracking-[1.98px] font-[500] mt-1">
-        Browse Experiences
+      <Button
+        asChild
+        className="border border-[#E3E0DA] bg-white text-[#181818] uppercase text-[8px] font-medium w-[160px] h-[36px] tracking-[1.98px] font-[500] mt-1"
+      >
+        <Link href="/experiences">Browse Experiences</Link>
       </Button>
     </div>
   );
