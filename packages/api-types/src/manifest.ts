@@ -19,6 +19,8 @@ export interface ManifestResponse {
     dietaryRestrictions: string[];
     allergies?: string | null;
     beveragePreferences?: string | null;
+    /** The primary's own experience requests (for the party hub). */
+    experiences?: import('./bookings').GuestExperienceSummary[];
   };
   guests: ManifestGuest[];
   roomSummary: RoomSummaryItem[];
