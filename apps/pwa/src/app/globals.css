@@ -29,6 +29,18 @@
   background-color: #bdb6aa;
 }
 
+/* Opt-out utility — overrides the app-wide scrollbar above (higher specificity
+   than the `*` rules), so horizontal chip rows etc. scroll with no visible bar. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 /* ─── Manifest card entrance animation ─────────────────────────────────── */
 @keyframes manifest-card-in {
   from {

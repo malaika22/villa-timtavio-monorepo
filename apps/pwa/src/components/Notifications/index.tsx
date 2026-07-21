@@ -153,9 +153,10 @@ export const NotificationsDrawer = ({
                 value={tab.id}
                 className={cn(
                   'flex-1 overflow-y-auto mt-0',
-                  'data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:slide-in-from-bottom-1',
-                  'data-[state=inactive]:animate-out data-[state=inactive]:fade-out-0',
-                  'duration-200',
+                  // Just a quick fade on activate — no slide/animate-out, which
+                  // caused a visible jump on every filter switch (Radix unmounts
+                  // the inactive panel, so the exit animation never runs cleanly).
+                  'data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:duration-150',
                 )}
               >
                 {unread.length > 0 && (
