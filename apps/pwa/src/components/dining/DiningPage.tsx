@@ -230,6 +230,15 @@ export const DiningPage = () => {
                       key={item.id}
                       className="flex items-start gap-3 rounded-[12px] border border-[#E3E0DA] bg-white px-3.5 py-3"
                     >
+                      {item.photoUrl && (
+                        // External CDN image — deliberately a plain <img>.
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.photoUrl}
+                          alt={item.name}
+                          className="size-14 shrink-0 rounded-[10px] object-cover"
+                        />
+                      )}
                       <div className="min-w-0 flex-1">
                         <p className="text-[13px] font-medium text-[#2B2824]">{item.name}</p>
                         {item.description && (
@@ -530,7 +539,7 @@ function SittingSheet({
           </div>
         ) : (
           <>
-            <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+            <div className="flex-1 space-y-6 overflow-y-auto px-5 pt-5 pb-40">
               <Field label="Meal">
                 <div className="flex gap-2">
                   {MEAL_CATEGORIES.map((m) => (

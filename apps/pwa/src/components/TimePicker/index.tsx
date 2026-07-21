@@ -102,7 +102,23 @@ export function TimePicker({
   onChange: (t: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  // When the trigger sits low in the viewport, open the panel upward so its
+  // full height (incl. the "Prefer another time?" row) stays reachable and
+  // never hides behind a sticky CTA.
+  const [dropUp, setDropUp] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const toggleOpen = () =>
+    setOpen((o) => {
+      const next = !o;
+      if (next && btnRef.current) {
+        const rect = btnRef.current.getBoundingClientRect();
+        setDropUp(rect.bottom > window.innerHeight * 0.55);
+      }
+      return next;
+    });
 
   useEffect(() => {
     if (!open) return;
@@ -113,6 +129,18 @@ export function TimePicker({
     };
     document.addEventListener('pointerdown', onDown);
     return () => document.removeEventListener('pointerdown', onDown);
+  }, [open]);
+
+  // Nudge the opened panel fully into view within its scroll container.
+  useEffect(() => {
+    if (!open) return;
+    const id = window.setTimeout(() => {
+      dropdownRef.current?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+    }, 60);
+    return () => window.clearTimeout(id);
   }, [open]);
 
   const isKnown = groups.some((g) => g.chips.some((c) => c.time === value));
@@ -128,8 +156,9 @@ export function TimePicker({
   return (
     <div ref={ref} className="relative">
       <button
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={toggleOpen}
         className={cn(
           'flex w-full items-center gap-3 rounded-[14px] border bg-white px-4 py-3.5 text-left transition-colors',
           open ? 'border-[#0F1F2E] ring-2 ring-[#0F1F2E]/10' : 'border-[#E3E0DA]',
@@ -153,7 +182,15 @@ export function TimePicker({
       </button>
 
       {open && (
-        <div className="absolute z-30 mt-2 w-full origin-top overflow-hidden rounded-[16px] border border-[#E3E0DA] bg-white shadow-[0_18px_40px_rgba(30,26,20,0.14)] animate-in fade-in-0 slide-in-from-top-2 duration-200">
+        <div
+          ref={dropdownRef}
+          className={cn(
+            'absolute z-30 w-full overflow-hidden rounded-[16px] border border-[#E3E0DA] bg-white shadow-[0_18px_40px_rgba(30,26,20,0.14)] animate-in fade-in-0 duration-200',
+            dropUp
+              ? 'bottom-full mb-2 origin-bottom slide-in-from-bottom-2'
+              : 'top-full mt-2 origin-top slide-in-from-top-2',
+          )}
+        >
           {groups.map((g) => {
             const Icon = GROUP_ICONS[g.key] ?? Clock;
             return (
@@ -191,20 +228,101 @@ export function TimePicker({
           })}
 
           {/* Custom fallback — always available, even when slots exist */}
-          <div className="flex items-center justify-between gap-3 bg-[#FBFAF8] px-4 py-3">
-            <span className="flex items-center gap-1.5 text-[12px] font-medium text-[#453F38]">
+          <div className="bg-[#FBFAF8] px-4 py-3">
+            <div className="mb-2.5 flex items-center gap-1.5 text-[12px] font-medium text-[#453F38]">
               <Pencil className="size-3.5 text-[#C8A96E]" strokeWidth={2} />
               Prefer another time?
-            </span>
-            <input
-              type="time"
-              value={isKnown ? '' : value}
-              onChange={(e) => onChange(e.target.value)}
-              className="rounded-[10px] border border-[#E3E0DA] bg-white px-3 py-1.5 text-[12.5px] text-[#2B2824] outline-none focus:border-[#0F1F2E]"
-            />
+            </div>
+            <CustomTimeEntry value={value} onChange={onChange} />
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// A themed hour : minute + AM/PM picker, replacing the native <input type="time">
+// (which opens the OS wheel). Emits 24h "HH:MM" to match the rest of the picker.
+
+const MINUTES = ['00', '05', '10', '15', '20', '25', '30', '35', '40', '45', '50', '55'];
+
+function parseHM(t: string): { h: number; m: number } | null {
+  const m = t.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const h = parseInt(m[1]!, 10);
+  const min = parseInt(m[2]!, 10);
+  return h >= 0 && h <= 23 && min >= 0 && min <= 59 ? { h, m: min } : null;
+}
+
+function CustomTimeEntry({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (t: string) => void;
+}) {
+  const base = parseHM(value) ?? { h: 19, m: 0 };
+  const h12 = ((base.h + 11) % 12) + 1;
+  const ap: 'AM' | 'PM' = base.h >= 12 ? 'PM' : 'AM';
+  const mm = String((Math.round(base.m / 5) * 5) % 60).padStart(2, '0');
+
+  const emit = (nh12: number, nmm: string, nap: 'AM' | 'PM') => {
+    let h = nh12 % 12;
+    if (nap === 'PM') h += 12;
+    onChange(`${String(h).padStart(2, '0')}:${nmm}`);
+  };
+
+  const selCls =
+    'appearance-none rounded-[10px] border border-[#E3E0DA] bg-white py-1.5 pl-3 pr-7 text-[13px] font-medium text-[#2B2824] outline-none focus:border-[#0F1F2E]';
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="relative">
+        <select
+          aria-label="Hour"
+          value={h12}
+          onChange={(e) => emit(Number(e.target.value), mm, ap)}
+          className={selCls}
+        >
+          {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+            <option key={h} value={h}>
+              {h}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-[#B0AAA0]" />
+      </div>
+      <span className="text-[14px] font-semibold text-[#B0AAA0]">:</span>
+      <div className="relative">
+        <select
+          aria-label="Minute"
+          value={mm}
+          onChange={(e) => emit(h12, e.target.value, ap)}
+          className={selCls}
+        >
+          {MINUTES.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-[#B0AAA0]" />
+      </div>
+      <div className="ml-1 inline-flex rounded-[10px] border border-[#E3E0DA] bg-white p-0.5">
+        {(['AM', 'PM'] as const).map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => emit(h12, mm, p)}
+            className={cn(
+              'rounded-[8px] px-2.5 py-1 text-[11px] font-semibold transition-colors',
+              ap === p ? 'bg-[#0F1F2E] text-white' : 'text-[#797168]',
+            )}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

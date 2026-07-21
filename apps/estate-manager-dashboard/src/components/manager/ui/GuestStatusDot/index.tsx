@@ -4,6 +4,7 @@ import type { GuestStayStatus } from '@/types';
 
 const styles: Record<GuestStayStatus, string> = {
   Settled: 'bg-manager-success-bg text-[#1e7e34]',
+  'Checked in': 'bg-[#e6f6f4] text-[#0f766e]',
   Departing: 'bg-manager-info-bg text-[#1e429f]',
   Arriving: 'bg-manager-warning-bg text-[#b45309]',
   Departed: 'bg-[#eef0f2] text-[#64748b]',
@@ -11,6 +12,7 @@ const styles: Record<GuestStayStatus, string> = {
 
 const dotStyles: Record<GuestStayStatus, string> = {
   Settled: 'bg-[#1e7e34]',
+  'Checked in': 'bg-[#0f766e]',
   Departing: 'bg-[#1e429f]',
   Arriving: 'bg-[#b45309]',
   Departed: 'bg-[#64748b]',

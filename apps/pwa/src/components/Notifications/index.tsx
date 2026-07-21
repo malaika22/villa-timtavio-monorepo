@@ -193,14 +193,16 @@ export const NotificationsDrawer = ({
                   </p>
                 )}
 
-                <div className="px-5 py-5">
-                  <Button
-                    variant="ghost"
-                    className="w-full text-[10px] font-semibold uppercase tracking-[2px] text-[#797168] hover:text-[#2B2824] hover:bg-transparent"
-                  >
-                    All notifications
-                  </Button>
-                </div>
+                {filtered.length > 0 && (
+                  <div className="px-5 py-5">
+                    <Button
+                      variant="ghost"
+                      className="w-full text-[10px] font-semibold uppercase tracking-[2px] text-[#797168] hover:text-[#2B2824] hover:bg-transparent"
+                    >
+                      All notifications
+                    </Button>
+                  </div>
+                )}
               </TabsContent>
             );
           })}

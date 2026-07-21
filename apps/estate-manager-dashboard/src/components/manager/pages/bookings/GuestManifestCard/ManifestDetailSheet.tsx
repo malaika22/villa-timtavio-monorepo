@@ -15,6 +15,7 @@ import {
   Pencil,
   X,
   Check,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
 import type {
@@ -125,7 +126,7 @@ export function ManifestDetailSheet({
         // out-specify plain width utilities. Use `!` so our width actually
         // wins (otherwise the sheet renders at 384px and the right rail
         // overflows off-screen). overflow-x-hidden is a belt-and-braces clip.
-        className="w-full! sm:max-w-[820px]! overflow-y-auto overflow-x-hidden p-0 bg-[#fdfdfb]"
+        className="sheet-smooth-right w-full! sm:max-w-[820px]! overflow-y-auto overflow-x-hidden p-0 bg-[#fdfdfb]"
       >
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-[#e8e4de]">
           <div className="flex items-start justify-between gap-3">
@@ -513,40 +514,52 @@ function GuestCard({
           </div>
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
-          <div className="flex items-center gap-1.5">
+          {/* Room pill + quiet icon actions — decluttered from stacked text links */}
+          <div className="flex items-center gap-2">
             {roomName && (
-              <span className="text-xs font-medium text-[#4a7c59] bg-[#e8f1e9] rounded-full px-2.5 py-0.5">
+              <span className="whitespace-nowrap rounded-full bg-[#e8f1e9] px-2.5 py-0.5 text-xs font-medium text-[#4a7c59]">
                 {roomName}
               </span>
             )}
-            {canEdit && (
-              <button
-                onClick={startEdit}
-                className="flex items-center gap-1 text-[10px] font-medium text-[#4a7c59] underline underline-offset-2"
-              >
-                <Pencil className="size-3" />
-                Edit
-              </button>
-            )}
-            {/* Resend link — surfaced inline once the manifest is approved. */}
-            {onResend && (
-              <button
-                onClick={onResend}
-                disabled={resendPending}
-                className="flex items-center gap-1 text-[10px] font-medium text-[#4a7c59] underline underline-offset-2 disabled:opacity-50"
-              >
-                <Send className="size-3" />
-                Resend link
-              </button>
-            )}
-            {(hasDietary || hasExtra) && (
-              <button
-                onClick={() => setExpanded((v) => !v)}
-                className="text-[10px] font-medium text-[#8a8178] underline underline-offset-2"
-              >
-                {expanded ? 'Less' : 'More'}
-              </button>
-            )}
+            <div className="flex items-center gap-1">
+              {canEdit && (
+                <button
+                  onClick={startEdit}
+                  title="Edit guest"
+                  aria-label="Edit guest"
+                  className="flex size-6 items-center justify-center rounded-md border border-[#e8e4de] text-[#8a8178] transition-colors hover:border-[#cfe0d2] hover:bg-[#fafcfa] hover:text-[#4a7c59]"
+                >
+                  <Pencil className="size-3" />
+                </button>
+              )}
+              {/* Resend link — surfaced inline once the manifest is approved. */}
+              {onResend && (
+                <button
+                  onClick={onResend}
+                  disabled={resendPending}
+                  title="Resend magic link"
+                  aria-label="Resend magic link"
+                  className="flex size-6 items-center justify-center rounded-md border border-[#e8e4de] text-[#8a8178] transition-colors hover:border-[#cfe0d2] hover:bg-[#fafcfa] hover:text-[#4a7c59] disabled:opacity-50"
+                >
+                  <Send className="size-3" />
+                </button>
+              )}
+              {(hasDietary || hasExtra) && (
+                <button
+                  onClick={() => setExpanded((v) => !v)}
+                  title={expanded ? 'Show less' : 'Show more'}
+                  aria-label={expanded ? 'Show less' : 'Show more'}
+                  className="flex size-6 items-center justify-center rounded-md border border-[#e8e4de] text-[#8a8178] transition-colors hover:bg-[#faf9f7] hover:text-[#3d3530]"
+                >
+                  <ChevronDown
+                    className={cn(
+                      'size-3.5 transition-transform',
+                      expanded && 'rotate-180',
+                    )}
+                  />
+                </button>
+              )}
+            </div>
           </div>
           {/* Presence (post-approval) — inline, no separate band */}
           {showPresence && onSetArrival && (
@@ -560,9 +573,9 @@ function GuestCard({
 
       {/* Expanded details */}
       {expanded && (
-        <div className="px-4 pb-4 space-y-3 border-t border-[#f0ece6]">
+        <div className="px-4 pb-4 pt-3 space-y-3 border-t border-[#f0ece6]">
           {hasDietary && (
-            <div className="pt-3">
+            <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178] mb-1.5">
                 Dietary
               </p>
@@ -664,9 +677,9 @@ function PrimaryGuestCard({
       </div>
 
       {(hasDietary || primary.allergies || primary.beveragePreferences) && (
-        <div className="px-4 pb-3 space-y-2 border-t border-[#f0ece6]">
+        <div className="px-4 pb-3 pt-3 space-y-2 border-t border-[#f0ece6]">
           {hasDietary && (
-            <div className="pt-2 flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               {primary.dietaryRestrictions.map((d) => (
                 <span
                   key={d}

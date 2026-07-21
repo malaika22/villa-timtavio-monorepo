@@ -18,7 +18,7 @@ export const FilterChips = ({
     ...categories.map((c) => ({ id: c, label: c })),
   ];
   return (
-    <div className="no-scrollbar -mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [-webkit-mask-image:linear-gradient(to_right,transparent,#000_1rem,#000_calc(100%-1rem),transparent)] [mask-image:linear-gradient(to_right,transparent,#000_1rem,#000_calc(100%-1rem),transparent)]">
+    <div className="no-scrollbar -mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 [-webkit-mask-image:linear-gradient(to_right,#000_0,#000_calc(100%-1.5rem),transparent)] [mask-image:linear-gradient(to_right,#000_0,#000_calc(100%-1.5rem),transparent)]">
       {chips.map((chip) => {
         const active = filter === chip.id;
         return (
