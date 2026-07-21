@@ -35,15 +35,15 @@ const NOTIFY_KEYS: { key: keyof EstateSettings; label: string }[] = [
 
 export const SettingsPage = () => {
   return (
-    <Tabs defaultValue="staff" className="space-y-5">
-      <TabsList>
+    <Tabs defaultValue="staff" className="flex flex-col gap-5">
+      <TabsList className="h-9 w-fit border border-manager-border bg-manager-card p-1">
         <TabsTrigger value="staff">Staff</TabsTrigger>
         <TabsTrigger value="notifications">Notifications</TabsTrigger>
         <TabsTrigger value="integrations">Integrations</TabsTrigger>
         <TabsTrigger value="pricing">Pricing</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="staff">
+      <TabsContent value="staff" className="w-full">
         <StaffTab />
       </TabsContent>
       <TabsContent value="notifications">
