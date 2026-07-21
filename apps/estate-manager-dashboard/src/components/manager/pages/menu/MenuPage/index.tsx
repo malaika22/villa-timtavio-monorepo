@@ -5,6 +5,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
 import { useMenu, useDeleteMenuItem } from '@/hooks/useMenu';
 import { MenuFormDialog } from '@/components/manager/pages/menu/MenuFormDialog';
+import { SittingTimesCard } from '@/components/manager/pages/menu/SittingTimesCard';
 import type { MenuCategory, MenuItem } from '@repo/api-types';
 
 const TABS: { value: MenuCategory; label: string }[] = [
@@ -52,6 +53,8 @@ export const MenuPage = () => {
 
   return (
     <div className="font-inter space-y-5">
+      <SittingTimesCard />
+
       {/* Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
