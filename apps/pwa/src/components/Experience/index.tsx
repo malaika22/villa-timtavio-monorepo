@@ -46,39 +46,56 @@ export const ExperienceCard = ({
           : undefined
       }
       className={cn(
-        'flex flex-1 flex-col overflow-hidden rounded-[10px] border border-[#E3E0DA] bg-white shadow-[0_1px_4px_rgba(15,31,46,0.04)]',
-        onClick && 'cursor-pointer',
+        'group flex flex-1 flex-col overflow-hidden rounded-[14px] border border-[#E3E0DA] bg-white shadow-[0_1px_6px_rgba(15,31,46,0.06)] transition-shadow',
+        onClick && 'cursor-pointer hover:shadow-[0_4px_16px_rgba(15,31,46,0.10)]',
         className,
       )}
     >
       <div
         className={cn(
-          'relative w-full shrink-0 overflow-hidden rounded-t-[10px]',
+          'relative w-full shrink-0 overflow-hidden rounded-t-[14px]',
           imageHeight,
         )}
       >
-        <Image src={image} alt={title} fill className="object-cover" />
+        <Image
+          src={image}
+          alt={title}
+          fill
+          className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+        />
+        {/* Bottom scrim for depth + legibility */}
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/35 to-transparent"
+          aria-hidden
+        />
         <div className="absolute left-2 top-2 z-[2]">
           <ExperienceBadge experienceName={category.toUpperCase()} />
         </div>
         {isLocked ? (
           <>
             <div
-              className="pointer-events-none absolute inset-0 z-[1] bg-[rgba(128,128,128,0.5)]"
+              className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-[#0F1F2E]/70 via-[#0F1F2E]/40 to-[#0F1F2E]/25"
               aria-hidden
             />
             <div
               className="pointer-events-none absolute inset-0 z-[2] flex items-center justify-center"
               aria-hidden
             >
-              <Lock
-                className={
-                  density === 'compact'
-                    ? 'size-5 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.35)]'
-                    : 'size-7 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.35)]'
-                }
-                strokeWidth={2}
-              />
+              <span
+                className={cn(
+                  'flex items-center justify-center rounded-full border border-white/40 bg-white/15 backdrop-blur-[2px]',
+                  density === 'compact' ? 'size-8' : 'size-10',
+                )}
+              >
+                <Lock
+                  className={
+                    density === 'compact'
+                      ? 'size-4 text-white'
+                      : 'size-5 text-white'
+                  }
+                  strokeWidth={2}
+                />
+              </span>
             </div>
           </>
         ) : null}

@@ -747,6 +747,20 @@ export class RequestsService {
       });
     } catch (error) {
       this.logger.error(`Breezeway task failed: ${getErrorMessage(error)}`);
+      // Don't let the failure stay silent — the request is confirmed but has no
+      // setup task, so raise an EM alert (surfaces in the bell + notifications).
+      await this.prisma.systemAlert
+        .create({
+          data: {
+            severity: 'warning',
+            title: 'Breezeway task not created',
+            message: `Setup task for "${request.catalogItem.name}" (${request.requestedByName}) couldn't be created in Breezeway. The experience is confirmed but has no setup task — check the Breezeway integration.`,
+            category: 'integration',
+            entityType: 'ExperienceRequest',
+            entityId: request.id,
+          },
+        })
+        .catch(() => undefined);
     }
   }
 }

@@ -105,7 +105,10 @@ function buildChecklist(
   detail: EmCurrentBookingDetail,
 ): CurrentBooking['checklist'] {
   const { manifestStatus, status, manifestGuests, checkIn } = detail;
+  // The primary's access link (tracked server-side as primaryLinkSent) OR any
+  // secondary link sent OR manifest progress all count as "link sent".
   const linkSent =
+    detail.primaryLinkSent === true ||
     manifestGuests.some((g) => g.pwaLinkSent) ||
     manifestStatus !== 'INCOMPLETE';
   const submitted = ['SUBMITTED', 'APPROVED'].includes(manifestStatus);

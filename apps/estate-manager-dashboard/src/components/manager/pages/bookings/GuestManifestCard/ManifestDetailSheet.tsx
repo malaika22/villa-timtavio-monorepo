@@ -87,7 +87,7 @@ export function ManifestDetailSheet({
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-[520px] overflow-y-auto p-0 bg-[#fdfdfb]"
+        className="w-full sm:max-w-[640px] overflow-y-auto p-0 bg-[#fdfdfb]"
       >
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-[#e8e4de]">
           <div className="flex items-start justify-between gap-3">
@@ -103,7 +103,7 @@ export function ManifestDetailSheet({
           </div>
         </SheetHeader>
 
-        <div className="px-6 py-5 space-y-6">
+        <div className="px-6 py-6 space-y-8">
           {/* Allergy alert */}
           {hasAllergies && (
             <div className="flex items-start gap-3 rounded-xl border border-[#f0c4bc] bg-[#fef6f4] px-4 py-3">
@@ -559,7 +559,7 @@ function PrimaryGuestCard({
       )}
 
       {showPresence && (
-        <div className="flex items-center justify-between px-4 py-2 border-t border-[#f0e9d6] bg-[#faf6ea]">
+        <div className="flex items-center justify-between px-4 py-2 border-t border-[#f0ece6] bg-[#fbfaf8]">
           <span className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178]">
             Presence
           </span>
@@ -575,14 +575,17 @@ function PrimaryGuestCard({
 
 // ─── ArrivalStatusPills ──────────────────────────────────────────────────────
 
+// One consistent segmented control for presence — the SELECTED pill looks the
+// same regardless of which status it is (a small per-status dot carries the
+// meaning), so the primary and secondary controls read identically.
 const ARRIVAL_OPTIONS: {
   value: GuestArrivalStatus;
   label: string;
-  active: string;
+  dot: string;
 }[] = [
-  { value: 'EXPECTED', label: 'Expected', active: 'bg-[#e8e4de] text-[#3d3530]' },
-  { value: 'IN_VILLA', label: 'In villa', active: 'bg-[#4a7c59] text-white' },
-  { value: 'DEPARTED', label: 'Departed', active: 'bg-[#3d3530] text-white' },
+  { value: 'EXPECTED', label: 'Expected', dot: 'bg-[#b0aaa0]' },
+  { value: 'IN_VILLA', label: 'In villa', dot: 'bg-[#4a7c59]' },
+  { value: 'DEPARTED', label: 'Departed', dot: 'bg-[#8a8178]' },
 ];
 
 function ArrivalStatusPills({
@@ -601,12 +604,18 @@ function ArrivalStatusPills({
             key={opt.value}
             onClick={() => !isActive && onChange(opt.value)}
             className={cn(
-              'rounded-md px-2 py-1 text-[10px] font-medium transition-colors',
+              'flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[10px] font-medium transition-colors',
               isActive
-                ? opt.active
+                ? 'bg-[#1a1614] text-white'
                 : 'text-[#8a8178] hover:text-[#3d3530]',
             )}
           >
+            <span
+              className={cn(
+                'size-1.5 shrink-0 rounded-full',
+                isActive ? 'bg-white' : opt.dot,
+              )}
+            />
             {opt.label}
           </button>
         );

@@ -75,7 +75,7 @@ export function ExperiencesCatalog() {
       : `${total} of ${catalogTotal} experience${catalogTotal === 1 ? '' : 's'}`;
 
   return (
-    <div className="mx-auto min-h-[100dvh] max-w-md space-y-5 pb-28">
+    <div className="mx-auto max-w-md space-y-5 pb-28">
       <header className="space-y-1">
         <h1 className="font-cormorant text-[28px] font-medium italic leading-tight text-[#2B2824]">
           Experiences

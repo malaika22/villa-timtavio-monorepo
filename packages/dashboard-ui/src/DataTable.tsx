@@ -19,6 +19,7 @@ export const DataTable = <T extends { id: string }>({
   striped = true,
   embedded = false,
   gridLines = false,
+  emptyState,
 }: {
   columns: DataTableColumn<T>[];
   rows: T[];
@@ -27,6 +28,8 @@ export const DataTable = <T extends { id: string }>({
   /** No outer DashboardCard — table only (optionally framed by parent) */
   embedded?: boolean;
   gridLines?: boolean;
+  /** Shown in place of rows when there are none. Falls back to a generic line. */
+  emptyState?: ReactNode;
 }) => {
   const t = getDashboardTokens(variant);
   const isManager = variant === 'manager';
@@ -60,6 +63,19 @@ export const DataTable = <T extends { id: string }>({
           </tr>
         </thead>
         <tbody>
+          {rows.length === 0 ? (
+            <tr>
+              <td
+                colSpan={columns.length}
+                className={cn(
+                  'px-5 py-14 text-center text-sm',
+                  t.textMuted,
+                )}
+              >
+                {emptyState ?? 'Nothing to show yet.'}
+              </td>
+            </tr>
+          ) : null}
           {rows.map((row, i) => (
             <tr
               key={row.id}

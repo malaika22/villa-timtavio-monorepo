@@ -92,7 +92,7 @@ export class BookingsService {
         if (byGuests !== 0) return byGuests;
         return b.checkIn.getTime() - a.checkIn.getTime();
       });
-      return checkedIn[0];
+      return this.withPrimaryLinkSent(checkedIn[0]!);
     }
 
     // 2) Next upcoming arrival
@@ -101,13 +101,25 @@ export class BookingsService {
       orderBy: { checkIn: 'asc' },
       include,
     });
-    if (upcoming) return upcoming;
+    if (upcoming) return this.withPrimaryLinkSent(upcoming);
 
     // 3) Most recent booking as a fallback
-    return this.prisma.booking.findFirst({
+    const recent = await this.prisma.booking.findFirst({
       orderBy: { checkIn: 'desc' },
       include,
     });
+    return recent ? this.withPrimaryLinkSent(recent) : null;
+  }
+
+  // The primary's access link isn't a manifestGuest.pwaLinkSent (those are
+  // secondaries) — it's tracked as a MagicToken for the booking. Surface whether
+  // one exists so the pre-arrival checklist's "Magic link sent" item is accurate.
+  private async withPrimaryLinkSent<T extends { id: string }>(booking: T) {
+    const token = await this.prisma.magicToken.findFirst({
+      where: { bookingId: booking.id },
+      select: { id: true },
+    });
+    return { ...booking, primaryLinkSent: !!token };
   }
 
   async getCurrentForGuest(bookingId: string) {

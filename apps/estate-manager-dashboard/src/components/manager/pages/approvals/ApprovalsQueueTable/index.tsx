@@ -48,6 +48,34 @@ export const ApprovalsQueueTable = ({
   const [costId, setCostId] = useState<string | null>(null);
   const [costAmount, setCostAmount] = useState('');
   const [costNotes, setCostNotes] = useState('');
+  // Reschedule a conflicted request onto a new (non-overlapping) slot.
+  const [rescheduleId, setRescheduleId] = useState<string | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('');
+
+  const submitReschedule = () => {
+    if (!rescheduleId || !rescheduleDate) return;
+    approve.mutate(
+      {
+        id: rescheduleId,
+        dto: {
+          confirmedDate: rescheduleDate,
+          confirmedTime: rescheduleTime || undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          // If the new slot still clashes the backend keeps it in CONFLICT and
+          // the queue refetch shows the updated reason — so keep this neutral.
+          toast.success('Reschedule applied');
+          setRescheduleId(null);
+          setRescheduleDate('');
+          setRescheduleTime('');
+        },
+        onError: (e) => toast.error((e as Error).message),
+      },
+    );
+  };
 
   const submitCost = () => {
     const amount = Number(costAmount);
@@ -270,12 +298,21 @@ export const ApprovalsQueueTable = ({
               size="sm"
               className={primaryBtn}
               disabled={busy}
-              onClick={() => handleApprove(row.id)}
+              onClick={() => {
+                if (row.status === 'Conflict') {
+                  // Re-confirming the same slot just re-conflicts — reschedule.
+                  setRescheduleDate('');
+                  setRescheduleTime('');
+                  setRescheduleId(row.id);
+                } else {
+                  handleApprove(row.id);
+                }
+              }}
             >
               {busy && approve.isPending ? (
                 <Loader2 className="size-3.5 animate-spin" />
               ) : row.status === 'Conflict' ? (
-                'Resolve'
+                'Reschedule'
               ) : (
                 'Confirm'
               )}
@@ -340,6 +377,11 @@ export const ApprovalsQueueTable = ({
         rows={rows}
         variant="manager"
         striped={false}
+        emptyState={
+          <span className="text-manager-text-muted">
+            No experience requests to review.
+          </span>
+        }
       />
 
       <Dialog
@@ -446,6 +488,73 @@ export const ApprovalsQueueTable = ({
                 <Loader2 className="mr-1.5 size-3.5 animate-spin" />
               ) : null}
               Add to folio
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!rescheduleId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRescheduleId(null);
+            setRescheduleDate('');
+            setRescheduleTime('');
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reschedule &amp; confirm</DialogTitle>
+            <DialogDescription>
+              This experience clashes with another booking for the same
+              vendor/resource. Pick a new time to free the slot, then confirm.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-manager-text-muted">
+                New date
+              </label>
+              <Input
+                type="date"
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-manager-text-muted">
+                New time
+              </label>
+              <Input
+                type="time"
+                value={rescheduleTime}
+                onChange={(e) => setRescheduleTime(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setRescheduleId(null);
+                setRescheduleDate('');
+                setRescheduleTime('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              className={primaryBtn}
+              disabled={approve.isPending || !rescheduleDate}
+              onClick={submitReschedule}
+            >
+              {approve.isPending ? (
+                <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+              ) : null}
+              Reschedule &amp; confirm
             </Button>
           </DialogFooter>
         </DialogContent>
