@@ -28,3 +28,33 @@
 *::-webkit-scrollbar-thumb:hover {
   background-color: #b3aa9c;
 }
+
+/* ─── Manifest detail sheet: smooth full-width slide from the right ─────────
+   The shared Sheet only slides 2.5rem (slide-in-from-right-10), so the wide
+   820px manifest panel appears to pop/jerk. This glides the whole panel in
+   from fully off-screen with a smooth ease. Keyed on Radix's own data-state
+   attribute (independent of the utility variants) and left unlayered so it
+   wins over the tailwindcss-animate utilities layer. Only `transform` is
+   animated — the forced width never reflows mid-animation. */
+@keyframes sheet-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes sheet-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+.sheet-smooth-right[data-state='open'] {
+  animation: sheet-in-right 300ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.sheet-smooth-right[data-state='closed'] {
+  animation: sheet-out-right 300ms cubic-bezier(0.32, 0.72, 0, 1);
+}

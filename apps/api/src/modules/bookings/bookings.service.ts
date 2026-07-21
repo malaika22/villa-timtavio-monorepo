@@ -103,8 +103,10 @@ export class BookingsService {
     });
     if (upcoming) return this.withPrimaryLinkSent(upcoming);
 
-    // 3) Most recent booking as a fallback
+    // 3) Most recent still-active booking as a fallback. Exclude checked-out /
+    // cancelled stays — those belong under Past Bookings, not "Current".
     const recent = await this.prisma.booking.findFirst({
+      where: { status: { notIn: ['CHECKED_OUT', 'CANCELLED'] } },
       orderBy: { checkIn: 'desc' },
       include,
     });

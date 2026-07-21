@@ -1,6 +1,11 @@
 import { BookingStatus } from '@repo/api-types';
 
-export type GuestStayStatus = 'Settled' | 'Departing' | 'Arriving' | 'Departed';
+export type GuestStayStatus =
+  | 'Settled'
+  | 'Checked in'
+  | 'Departing'
+  | 'Arriving'
+  | 'Departed';
 
 export type GuestListStatus = GuestStayStatus;
 

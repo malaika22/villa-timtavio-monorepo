@@ -15,6 +15,7 @@ import {
   Pencil,
   X,
   Check,
+  ChevronDown,
 } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
 import type {
@@ -125,7 +126,7 @@ export function ManifestDetailSheet({
         // out-specify plain width utilities. Use `!` so our width actually
         // wins (otherwise the sheet renders at 384px and the right rail
         // overflows off-screen). overflow-x-hidden is a belt-and-braces clip.
-        className="w-full! sm:max-w-[820px]! overflow-y-auto overflow-x-hidden p-0 bg-[#fdfdfb]"
+        className="sheet-smooth-right w-full! sm:max-w-[820px]! overflow-y-auto overflow-x-hidden p-0 bg-[#fdfdfb]"
       >
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-[#e8e4de]">
           <div className="flex items-start justify-between gap-3">
@@ -513,38 +514,43 @@ function GuestCard({
           </div>
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
+          {/* Quiet actions — room moved into the details section for header space */}
           <div className="flex items-center gap-1.5">
-            {roomName && (
-              <span className="text-xs font-medium text-[#4a7c59] bg-[#e8f1e9] rounded-full px-2.5 py-0.5">
-                {roomName}
-              </span>
-            )}
             {canEdit && (
               <button
                 onClick={startEdit}
-                className="flex items-center gap-1 text-[10px] font-medium text-[#4a7c59] underline underline-offset-2"
+                title="Edit guest"
+                aria-label="Edit guest"
+                className="flex size-6 items-center justify-center rounded-md border border-[#e8e4de] text-[#8a8178] transition-colors hover:border-[#cfe0d2] hover:bg-[#fafcfa] hover:text-[#4a7c59]"
               >
                 <Pencil className="size-3" />
-                Edit
               </button>
             )}
-            {/* Resend link — surfaced inline once the manifest is approved. */}
+            {/* Resend magic link — surfaced inline once the manifest is approved. */}
             {onResend && (
               <button
                 onClick={onResend}
                 disabled={resendPending}
-                className="flex items-center gap-1 text-[10px] font-medium text-[#4a7c59] underline underline-offset-2 disabled:opacity-50"
+                title="Resend magic link"
+                className="flex items-center gap-1.5 rounded-md border border-[#e8e4de] px-2 py-1 text-[11px] font-medium text-[#8a8178] transition-colors hover:border-[#cfe0d2] hover:bg-[#fafcfa] hover:text-[#4a7c59] disabled:opacity-50"
               >
                 <Send className="size-3" />
-                Resend link
+                Resend magic link
               </button>
             )}
-            {(hasDietary || hasExtra) && (
+            {(hasDietary || hasExtra || roomName) && (
               <button
                 onClick={() => setExpanded((v) => !v)}
-                className="text-[10px] font-medium text-[#8a8178] underline underline-offset-2"
+                title={expanded ? 'Show less' : 'Show more'}
+                aria-label={expanded ? 'Show less' : 'Show more'}
+                className="flex size-6 items-center justify-center rounded-md border border-[#e8e4de] text-[#8a8178] transition-colors hover:bg-[#faf9f7] hover:text-[#3d3530]"
               >
-                {expanded ? 'Less' : 'More'}
+                <ChevronDown
+                  className={cn(
+                    'size-3.5 transition-transform',
+                    expanded && 'rotate-180',
+                  )}
+                />
               </button>
             )}
           </div>
@@ -560,9 +566,19 @@ function GuestCard({
 
       {/* Expanded details */}
       {expanded && (
-        <div className="px-4 pb-4 space-y-3 border-t border-[#f0ece6]">
+        <div className="px-4 pb-4 pt-3 space-y-3 border-t border-[#f0ece6]">
+          {roomName && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178] mb-1">
+                Room
+              </p>
+              <span className="inline-block rounded-full bg-[#e8f1e9] px-2.5 py-0.5 text-xs font-medium text-[#4a7c59]">
+                {roomName}
+              </span>
+            </div>
+          )}
           {hasDietary && (
-            <div className="pt-3">
+            <div>
               <p className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178] mb-1.5">
                 Dietary
               </p>
@@ -633,7 +649,7 @@ function PrimaryGuestCard({
     <div className="rounded-xl border border-[#e8e4de] bg-white overflow-hidden">
       <div className="flex items-start justify-between px-4 py-3.5 gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="flex items-center justify-center size-8 rounded-full bg-[#c7a046] text-xs font-bold text-white shrink-0">
+          <div className="flex items-center justify-center size-8 rounded-full bg-[#c7a046] text-xs font-bold text-white shrink-0 shadow-[0_0_0_3px_#f5ebd2]">
             {`${primary.firstName[0] ?? ''}${primary.lastName[0] ?? ''}`.toUpperCase()}
           </div>
           <div className="min-w-0">
@@ -649,11 +665,6 @@ function PrimaryGuestCard({
           </div>
         </div>
         <div className="flex flex-col items-end gap-2 shrink-0">
-          {roomName && (
-            <span className="text-xs font-medium text-[#4a7c59] bg-[#e8f1e9] rounded-full px-2.5 py-0.5">
-              {roomName}
-            </span>
-          )}
           {showPresence && (
             <ArrivalStatusPills
               value={primary.arrivalStatus}
@@ -663,10 +674,21 @@ function PrimaryGuestCard({
         </div>
       </div>
 
-      {(hasDietary || primary.allergies || primary.beveragePreferences) && (
-        <div className="px-4 pb-3 space-y-2 border-t border-[#f0ece6]">
+      {(hasDietary ||
+        primary.allergies ||
+        primary.beveragePreferences ||
+        roomName) && (
+        <div className="px-4 pb-3 pt-3 space-y-2 border-t border-[#f0ece6]">
+          {roomName && (
+            <p className="text-sm text-[#3d3530]">
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178]">
+                Room:{' '}
+              </span>
+              {roomName}
+            </p>
+          )}
           {hasDietary && (
-            <div className="pt-2 flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5">
               {primary.dietaryRestrictions.map((d) => (
                 <span
                   key={d}

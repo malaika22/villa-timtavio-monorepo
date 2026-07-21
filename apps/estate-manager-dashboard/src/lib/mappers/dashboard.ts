@@ -45,6 +45,7 @@ function mapBookingStatusToGuestStatus(
     case 'CHECKED_OUT':
       return 'Departed';
     case 'CHECKED_IN':
+      return 'Checked in';
     case 'SETTLED':
     default:
       return 'Settled';

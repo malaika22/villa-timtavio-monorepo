@@ -244,38 +244,49 @@ function TimelineStep({
   step: RequestTimelineStep;
   isLast: boolean;
 }) {
+  const isActive = step.state === 'active';
+  const isPending = step.state === 'pending';
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-3.5">
       <div className="flex flex-col items-center">
         <StepIndicator state={step.state} />
         {!isLast && (
           <div
             className={cn(
-              'w-px flex-1 my-1',
-              step.state === 'completed' ? 'bg-[#2B2824]' : 'bg-[#D9D5CE]',
+              'w-0.5 flex-1 my-1 rounded-full',
+              step.state === 'completed' ? 'bg-[#0F1F2E]' : 'bg-[#E3E0DA]',
             )}
           />
         )}
       </div>
-      <div className="pb-4">
+      <div className="pb-5">
         <p
           className={cn(
-            'text-[13px] font-medium leading-tight',
-            step.state === 'pending' ? 'text-[#C4C0B8]' : 'text-[#2B2824]',
+            'text-[13.5px] leading-tight',
+            isPending
+              ? 'font-medium text-[#B0AAA0]'
+              : isActive
+                ? 'font-semibold text-[#0F1F2E]'
+                : 'font-medium text-[#2B2824]',
           )}
         >
           {step.label}
         </p>
-        {step.detail && (
-          <p
-            className={cn(
-              'mt-0.5 text-[9px] font-medium uppercase tracking-[1.2px]',
-              step.state === 'pending' ? 'text-[#D9D5CE]' : 'text-[#9A9288]',
-            )}
-          >
-            {step.detail}
-          </p>
-        )}
+        {step.detail &&
+          (isActive ? (
+            <span className="mt-2 inline-block rounded-full bg-[#F5EFE3] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[1.2px] text-[#8A6D1E]">
+              {step.detail}
+            </span>
+          ) : (
+            <p
+              className={cn(
+                'mt-1 text-[9px] font-medium uppercase tracking-[1.2px]',
+                isPending ? 'text-[#CFC9BF]' : 'text-[#9A9288]',
+              )}
+            >
+              {step.detail}
+            </p>
+          ))}
       </div>
     </div>
   );
@@ -284,7 +295,7 @@ function TimelineStep({
 function StepIndicator({ state }: { state: RequestTimelineStep['state'] }) {
   if (state === 'completed') {
     return (
-      <div className="flex items-center justify-center w-5 h-5 rounded-full bg-[#2B2824] shrink-0">
+      <div className="flex items-center justify-center w-5 h-5 rounded-full bg-[#0F1F2E] shrink-0">
         <svg width="8" height="6" viewBox="0 0 8 6" fill="none" aria-hidden>
           <path
             d="M1 3L3 5L7 1"
@@ -298,14 +309,17 @@ function StepIndicator({ state }: { state: RequestTimelineStep['state'] }) {
     );
   }
   if (state === 'active') {
+    // Current step — navy node with a soft gold halo + gold centre.
     return (
-      <div className="flex items-center justify-center w-5 h-5 rounded-full border-[2.5px] border-[#2B2824] shrink-0">
-        <div className="w-2 h-2 rounded-full bg-[#2B2824]" />
+      <div className="flex items-center justify-center w-5 h-5 rounded-full bg-[#0F1F2E] shrink-0 ring-[3px] ring-[#C8A96E]/35">
+        <div className="w-2 h-2 rounded-full bg-[#C8A96E]" />
       </div>
     );
   }
   return (
-    <div className="w-5 h-5 rounded-full border-[1.5px] border-[#D9D5CE] bg-white shrink-0" />
+    <div className="flex items-center justify-center w-5 h-5 rounded-full border-[1.5px] border-[#DAD4C8] bg-white shrink-0">
+      <div className="w-1.5 h-1.5 rounded-full bg-[#E3E0DA]" />
+    </div>
   );
 }
 

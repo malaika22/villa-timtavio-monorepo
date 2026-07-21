@@ -269,22 +269,62 @@ export class FolioService {
     const money = (n: number) =>
       `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
+    const row = (label: string, value: string) =>
+      `<tr>
+         <td style="padding:9px 0;color:#8a8178;font-size:14px;font-family:Helvetica,Arial,sans-serif">${label}</td>
+         <td align="right" style="padding:9px 0;color:#2b2824;font-size:14px;font-family:Helvetica,Arial,sans-serif">${value}</td>
+       </tr>`;
+
     await this.resend.emails.send({
       from: process.env.EMAIL_FROM ?? 'reservations@villatimtavio.com',
       to,
       subject: 'Your Villa TimTavio receipt',
       html: `
-        <div style="font-family:Georgia,serif;max-width:520px;margin:0 auto;color:#2b2824">
-          <h2 style="font-weight:normal">Thank you, ${guestName}</h2>
-          <p style="color:#6b6661">Your stay has been settled. Here is your receipt.</p>
-          <table style="width:100%;border-collapse:collapse;margin-top:16px">
-            <tr><td style="padding:6px 0;color:#6b6661">Subtotal</td><td style="text-align:right">${money(summary.subtotal)}</td></tr>
-            <tr><td style="padding:6px 0;color:#6b6661">Tax</td><td style="text-align:right">${money(summary.taxAmount)}</td></tr>
-            <tr><td style="padding:6px 0;color:#6b6661">Service</td><td style="text-align:right">${money(summary.serviceAmount)}</td></tr>
-            <tr><td style="padding:10px 0;border-top:1px solid #e8e4de;font-weight:bold">Total charged</td><td style="text-align:right;padding-top:10px;border-top:1px solid #e8e4de;font-weight:bold">${money(summary.grandTotal)}</td></tr>
-          </table>
-          <p style="color:#9a9288;font-size:12px;margin-top:24px">Villa TimTavio · We hope to welcome you again.</p>
-        </div>
+      <div style="margin:0;padding:0;background:#f3efe8;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3efe8;padding:32px 12px;">
+          <tr><td align="center">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #eae4da;">
+              <!-- Brand header -->
+              <tr>
+                <td style="background:#0f1f2e;padding:28px 36px;text-align:center;">
+                  <div style="font-family:Georgia,'Times New Roman',serif;color:#ffffff;font-size:20px;letter-spacing:6px;">VILLA&nbsp;TIMTAVIO</div>
+                  <div style="height:2px;width:40px;background:#c8a96e;margin:12px auto 0;"></div>
+                  <div style="font-family:Helvetica,Arial,sans-serif;color:#c8a96e;font-size:10px;letter-spacing:3px;text-transform:uppercase;margin-top:12px;">Receipt</div>
+                </td>
+              </tr>
+              <!-- Body -->
+              <tr>
+                <td style="padding:36px 36px 8px;">
+                  <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-weight:500;font-size:26px;color:#1a1614;">Thank you, ${guestName}</h1>
+                  <p style="margin:10px 0 0;font-family:Helvetica,Arial,sans-serif;color:#8a8178;font-size:14px;line-height:1.6;">Your stay has been settled — here is your receipt.</p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:20px 36px 8px;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                    ${row('Subtotal', money(summary.subtotal))}
+                    ${row('Tax', money(summary.taxAmount))}
+                    ${row('Service', money(summary.serviceAmount))}
+                    <tr><td colspan="2" style="border-top:1px solid #eae4da;font-size:0;line-height:0;">&nbsp;</td></tr>
+                    <tr>
+                      <td style="padding:14px 0 0;font-family:Georgia,'Times New Roman',serif;color:#1a1614;font-size:17px;">Total charged</td>
+                      <td align="right" style="padding:14px 0 0;font-family:Georgia,'Times New Roman',serif;color:#0f1f2e;font-size:18px;font-weight:600;">${money(summary.grandTotal)}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <!-- Footer -->
+              <tr>
+                <td style="padding:32px 36px 34px;">
+                  <div style="border-top:1px solid #eae4da;padding-top:20px;font-family:Helvetica,Arial,sans-serif;color:#b3aaa0;font-size:12px;line-height:1.6;text-align:center;">
+                    Villa TimTavio &nbsp;·&nbsp; We hope to welcome you again.
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td></tr>
+        </table>
+      </div>
       `,
     });
   }

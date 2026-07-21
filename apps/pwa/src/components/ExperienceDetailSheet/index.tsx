@@ -7,13 +7,17 @@ import { useCatalog } from '@/hooks/useCatalog';
 import { mapCatalogItemToDetail } from '@/lib/mappers/experience';
 import { cn } from '@repo/ui/lib/utils';
 import { AnimatePresence, motion } from 'motion/react';
-import { Info, Lock } from 'lucide-react';
+import { ArrowLeft, Info, Lock } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
-import { ExperienceBadge } from '@/components/featured-experiences/ExperienceBadge';
 import { RequestExperienceSheet } from '@/components/RequestExperienceSheet';
 import { Button } from '@repo/ui/components/button';
-import { Drawer, DrawerContent, DrawerTitle } from '@repo/ui/components/drawer';
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerTitle,
+} from '@repo/ui/components/drawer';
 
 interface Props {
   open: boolean;
@@ -110,6 +114,17 @@ export function ExperienceDetailSheet({ open, experience, onClose }: Props) {
             <>
               <DrawerTitle className="sr-only">{exp.title}</DrawerTitle>
 
+              {/* Floating back / close control over the hero */}
+              <DrawerClose asChild>
+                <button
+                  type="button"
+                  aria-label="Go back"
+                  className="absolute left-4 top-4 z-10 flex size-9 items-center justify-center rounded-full bg-white/92 text-[#2B2824] shadow-[0_2px_10px_rgba(0,0,0,0.18)]"
+                >
+                  <ArrowLeft className="size-5" strokeWidth={2} />
+                </button>
+              </DrawerClose>
+
               {/* Scrollable body */}
               <div className="flex-1 overflow-y-auto overscroll-contain">
                 {/* Image carousel */}
@@ -176,9 +191,11 @@ export function ExperienceDetailSheet({ open, experience, onClose }: Props) {
                 {/* ── Content ── */}
                 <div className="px-5 pt-5">
                   <div className="flex items-start justify-between gap-4">
-                    <ExperienceBadge
-                      experienceName={exp.category.toUpperCase()}
-                    />
+                    {/* Light, elegant category tag for the cream content area
+                        (the dark ExperienceBadge is for over-image contexts). */}
+                    <span className="inline-flex items-center rounded-full border border-[#E3E0DA] bg-white px-3 py-1 text-[9px] font-semibold uppercase tracking-[2.4px] text-[#8A8178]">
+                      {exp.category}
+                    </span>
                   </div>
 
                   <h1 className="font-cormorant mt-3 text-[32px] font-medium leading-[1.05] text-[#2B2824]">
