@@ -66,10 +66,14 @@ export const GuestsPage = () => {
     () => [...apiCurrent, ...apiPast],
     [apiCurrent, apiPast],
   );
+  // Fall through to past guests too — otherwise a stay that has checked out
+  // (only past guests remain) wrongly renders the "No guests yet" empty state.
   const selectedItem =
     allItems.find((g) => g.id === selectedId) ??
     current[0] ??
+    past[0] ??
     apiCurrent[0] ??
+    apiPast[0] ??
     null;
 
   const profileQuery = useGuestProfile(selectedItem?.id ?? null);
