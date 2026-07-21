@@ -37,11 +37,11 @@ const ORDER_CATEGORIES: { value: MenuCategory; label: string }[] = [
 ];
 
 const DIET_BADGES: { key: keyof MenuItem; label: string; tone: string }[] = [
-  { key: 'isVegetarian', label: 'Veg', tone: 'bg-[#EAF3E0] text-[#3A5E1E]' },
+  { key: 'isVegetarian', label: 'Vegetarian', tone: 'bg-[#EAF3E0] text-[#3A5E1E]' },
   { key: 'isVegan', label: 'Vegan', tone: 'bg-[#EAF3E0] text-[#3A5E1E]' },
-  { key: 'isGlutenFree', label: 'GF', tone: 'bg-[#E8ECF5] text-[#2E3F66]' },
-  { key: 'containsNuts', label: 'Nuts', tone: 'bg-[#FBEEEA] text-[#9A3A30]' },
-  { key: 'containsShellfish', label: 'Shellfish', tone: 'bg-[#FBEEEA] text-[#9A3A30]' },
+  { key: 'isGlutenFree', label: 'Gluten free', tone: 'bg-[#E8ECF5] text-[#2E3F66]' },
+  { key: 'containsNuts', label: 'Contains nuts', tone: 'bg-[#FBEEEA] text-[#9A3A30]' },
+  { key: 'containsShellfish', label: 'Contains shellfish', tone: 'bg-[#FBEEEA] text-[#9A3A30]' },
 ];
 
 function DietBadges({ item }: { item: MenuItem }) {
