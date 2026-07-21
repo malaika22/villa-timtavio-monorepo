@@ -1,11 +1,10 @@
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -135,45 +134,45 @@ enum GuestArrivalStatus {
 }
 
 model Booking {
-  id                      String         @id @default(cuid())
-  lodgifyId               String         @unique
-  lodgifyRawData          Json?
-  checkIn                 DateTime
-  checkOut                DateTime
-  nights                  Int
-  totalGuests             Int            @default(1)
+  id                    String             @id @default(cuid())
+  lodgifyId             String             @unique
+  lodgifyRawData        Json?
+  checkIn               DateTime
+  checkOut              DateTime
+  nights                Int
+  totalGuests           Int                @default(1)
   // Primary member's own per-stay manifest details. The primary is NOT a
   // ManifestGuest row — manifestGuests stays secondary-only so magic-link/
   // approval flows are unchanged. Room + presence are per-stay and live here;
   // dietary/allergies/beverage stay on the primary's Guest record (shared with
   // chef's brief, guest DNA and CRM).
-  primaryRoomNumber          Int?
-  primaryArrivalStatus       GuestArrivalStatus @default(EXPECTED)
-  status                  BookingStatus  @default(CONFIRMED)
-  manifestStatus          ManifestStatus @default(INCOMPLETE)
-  baseRate                Decimal        @db.Decimal(10, 2)
-  taxRate                 Decimal        @db.Decimal(5, 4) @default(0.08)
-  serviceChargeRate       Decimal        @db.Decimal(5, 4) @default(0.15)
-  stripeCustomerId        String?
-  stripePaymentIntentId   String?
-  stripeDepositAmount     Decimal?       @db.Decimal(10, 2)
-  stripeDepositCaptured   Boolean        @default(false)
-  stripeCheckoutAmount    Decimal?       @db.Decimal(10, 2)
-  stripeCapturedAt        DateTime?
-  internalNotes           String?
-  createdAt               DateTime       @default(now())
-  updatedAt               DateTime       @updatedAt
+  primaryRoomNumber     Int?
+  primaryArrivalStatus  GuestArrivalStatus @default(EXPECTED)
+  status                BookingStatus      @default(CONFIRMED)
+  manifestStatus        ManifestStatus     @default(INCOMPLETE)
+  baseRate              Decimal            @db.Decimal(10, 2)
+  taxRate               Decimal            @default(0.08) @db.Decimal(5, 4)
+  serviceChargeRate     Decimal            @default(0.15) @db.Decimal(5, 4)
+  stripeCustomerId      String?
+  stripePaymentIntentId String?
+  stripeDepositAmount   Decimal?           @db.Decimal(10, 2)
+  stripeDepositCaptured Boolean            @default(false)
+  stripeCheckoutAmount  Decimal?           @db.Decimal(10, 2)
+  stripeCapturedAt      DateTime?
+  internalNotes         String?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
 
- // Relations — explicit names to avoid Prisma ambiguity
-  primaryGuestId          String
-  primaryGuest            Guest              @relation("BookingPrimaryGuest", fields: [primaryGuestId], references: [id])
-  manifestGuests          ManifestGuest[]
-  manifestDraft           ManifestDraft?
-  folioItems              FolioItem[]
-  experienceRequests      ExperienceRequest[]
-  diningRequests          DiningRequest[]
-  notifications           Notification[]
-  auditLogs               AuditLog[]
+  // Relations — explicit names to avoid Prisma ambiguity
+  primaryGuestId     String
+  primaryGuest       Guest               @relation("BookingPrimaryGuest", fields: [primaryGuestId], references: [id])
+  manifestGuests     ManifestGuest[]
+  manifestDraft      ManifestDraft?
+  folioItems         FolioItem[]
+  experienceRequests ExperienceRequest[]
+  diningRequests     DiningRequest[]
+  notifications      Notification[]
+  auditLogs          AuditLog[]
 
   @@index([status])
   @@index([checkIn])
@@ -186,33 +185,33 @@ model Booking {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Guest {
-  id                    String     @id @default(cuid())
-  email                 String     @unique
-  firstName             String
-  lastName              String
-  phone                 String?
-  auth0Id               String?    @unique
-  role                  GuestRole  @default(SECONDARY)
-  beveragePreferences   String?
-  winePreferences       String?
-  dietaryRestrictions   String[]   @default([])
-  allergies             String?
-  favouriteExperiences  String[]   @default([])
-  preferredTimes        String?
-  dateOfBirth           DateTime?
-  specialOccasions      String?
-  preferredRoomType     RoomType?
-  pillarPreferences     String?
-  totalVisits           Int        @default(0)
-  totalSpend            Decimal    @db.Decimal(12, 2) @default(0)
-  firstStayDate         DateTime?
-  lastStayDate          DateTime?
-  createdAt             DateTime   @default(now())
-  updatedAt             DateTime   @updatedAt
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  firstName            String
+  lastName             String
+  phone                String?
+  auth0Id              String?   @unique
+  role                 GuestRole @default(SECONDARY)
+  beveragePreferences  String?
+  winePreferences      String?
+  dietaryRestrictions  String[]  @default([])
+  allergies            String?
+  favouriteExperiences String[]  @default([])
+  preferredTimes       String?
+  dateOfBirth          DateTime?
+  specialOccasions     String?
+  preferredRoomType    RoomType?
+  pillarPreferences    String?
+  totalVisits          Int       @default(0)
+  totalSpend           Decimal   @default(0) @db.Decimal(12, 2)
+  firstStayDate        DateTime?
+  lastStayDate         DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   // Use the same explicit relation name here
-  primaryBookings       Booking[]  @relation("BookingPrimaryGuest")
-  crmNotes              CrmNote[]
+  primaryBookings Booking[] @relation("BookingPrimaryGuest")
+  crmNotes        CrmNote[]
 
   @@index([email])
   @@index([auth0Id])
@@ -223,13 +222,13 @@ model Guest {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model CrmNote {
-  id          String   @id @default(cuid())
-  guestId     String
-  guest       Guest    @relation(fields: [guestId], references: [id])
-  note        String
-  addedBy     String
-  isStale     Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  guestId   String
+  guest     Guest    @relation(fields: [guestId], references: [id])
+  note      String
+  addedBy   String
+  isStale   Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   @@index([guestId])
 }
@@ -239,36 +238,36 @@ model CrmNote {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model ManifestGuest {
-  id                    String    @id @default(cuid())
-  bookingId             String
-  booking               Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  firstName             String
-  lastName              String
-  email                 String
-  phone                 String?
-  dateOfBirth           DateTime?
-  relationship          String?
-  roomNumber            Int?
-  room                  Room?     @relation(fields: [roomNumber], references: [number])
+  id                  String             @id @default(cuid())
+  bookingId           String
+  booking             Booking            @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  firstName           String
+  lastName            String
+  email               String
+  phone               String?
+  dateOfBirth         DateTime?
+  relationship        String?
+  roomNumber          Int?
+  room                Room?              @relation(fields: [roomNumber], references: [number])
   // Per-guest presence (REQ-5) — tracked independently so a late arrival isn't
   // shown as present just because the primary checked the booking in.
-  arrivalStatus         GuestArrivalStatus @default(EXPECTED)
-  dietaryRestrictions   String[]  @default([])
-  dietaryOtherDetails   String?
-  allergies             String?
-  beveragePreferences   String?
-  specialNotes          String?
-  auth0UserId           String?
-  pwaLinkSent           Boolean   @default(false)
-  pwaLinkSentAt         DateTime?
-  pwaLinkOpened         Boolean   @default(false)
-  pwaLinkOpenedAt       DateTime?
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  arrivalStatus       GuestArrivalStatus @default(EXPECTED)
+  dietaryRestrictions String[]           @default([])
+  dietaryOtherDetails String?
+  allergies           String?
+  beveragePreferences String?
+  specialNotes        String?
+  auth0UserId         String?
+  pwaLinkSent         Boolean            @default(false)
+  pwaLinkSentAt       DateTime?
+  pwaLinkOpened       Boolean            @default(false)
+  pwaLinkOpenedAt     DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
 
+  @@unique([bookingId, email])
   @@index([bookingId])
   @@index([email])
-  @@unique([bookingId, email])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -276,21 +275,21 @@ model ManifestGuest {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Room {
-  number          Int      @id
-  name            String
-  type            RoomType
-  capacity        Int
-  bedConfig       String
-  beds            Json     @default("[]") // [{ type: 'king'|'queen'|'double'|'twin'|'single'|'bunk'|'sofa', count: number }]
-  bathrooms       Int      @default(1)
-  ensuite         Boolean  @default(false)
-  amenities       String[] @default([])  // 'balcony'|'ac'|'pool_view'|'ocean_view'|'walk_in_closet'|'workspace'|'smart_tv'|'minibar'
-  description     String?
-  imageUrl        String?
-  floorLevel      Int?
-  isActive        Boolean  @default(true)
+  number      Int      @id
+  name        String
+  type        RoomType
+  capacity    Int
+  bedConfig   String
+  beds        Json     @default("[]") // [{ type: 'king'|'queen'|'double'|'twin'|'single'|'bunk'|'sofa', count: number }]
+  bathrooms   Int      @default(1)
+  ensuite     Boolean  @default(false)
+  amenities   String[] @default([]) // 'balcony'|'ac'|'pool_view'|'ocean_view'|'walk_in_closet'|'workspace'|'smart_tv'|'minibar'
+  description String?
+  imageUrl    String?
+  floorLevel  Int?
+  isActive    Boolean  @default(true)
 
-  manifestGuests  ManifestGuest[]
+  manifestGuests ManifestGuest[]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -318,46 +317,46 @@ model ExperienceCategory {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model CatalogItem {
-  id                      String          @id @default(cuid())
-  name                    String
-  category                CatalogCategory
-  experienceCategoryId    String?
-  experienceCategory      ExperienceCategory? @relation(fields: [experienceCategoryId], references: [id])
-  description             String          @db.Text
-  shortDescription        String?
-  isIncluded              Boolean         @default(false)
-  isActive                Boolean         @default(true)
-  durationMinutes         Int?
-  durationLabel           String?
-  photoUrls               String[]        @default([])
-  primaryPhotoUrl         String?
-  basePrice               Decimal?        @db.Decimal(10, 2)
-  isMultiDay              Boolean         @default(false)
-  multiDayDuration        Int?
-  availableTimeSlots      String[]        @default([])
-  maxGuestCount           Int?
+  id                   String              @id @default(cuid())
+  name                 String
+  category             CatalogCategory
+  experienceCategoryId String?
+  experienceCategory   ExperienceCategory? @relation(fields: [experienceCategoryId], references: [id])
+  description          String              @db.Text
+  shortDescription     String?
+  isIncluded           Boolean             @default(false)
+  isActive             Boolean             @default(true)
+  durationMinutes      Int?
+  durationLabel        String?
+  photoUrls            String[]            @default([])
+  primaryPhotoUrl      String?
+  basePrice            Decimal?            @db.Decimal(10, 2)
+  isMultiDay           Boolean             @default(false)
+  multiDayDuration     Int?
+  availableTimeSlots   String[]            @default([])
+  maxGuestCount        Int?
   // What's-included bullet list shown on the guest experience detail
-  included                String[]        @default([])
+  included             String[]            @default([])
   // Host shown on the guest experience detail
-  hostName                String?
-  hostTitle               String?
-  hostAvatarUrl           String?
-  hostReviewNote          String?
-  setupLeadTimeMinutes    Int?
-  vendorId                String?
-  vendor                  Vendor?         @relation(fields: [vendorId], references: [id])
-  breezeWayTeamId         String?
-  breezeWayTemplateId     String?
-  sortOrder               Int             @default(0)
-  createdAt               DateTime        @default(now())
-  updatedAt               DateTime        @updatedAt
-  createdBy               String?
+  hostName             String?
+  hostTitle            String?
+  hostAvatarUrl        String?
+  hostReviewNote       String?
+  setupLeadTimeMinutes Int?
+  vendorId             String?
+  vendor               Vendor?             @relation(fields: [vendorId], references: [id])
+  breezeWayTeamId      String?
+  breezeWayTemplateId  String?
+  sortOrder            Int                 @default(0)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  createdBy            String?
   // Soft-delete marker. Distinct from isActive (which is the guest-visibility
   // toggle): a deleted item is excluded from every catalog list, while an
   // inactive one still shows in the EM catalog but is hidden from guests.
-  deletedAt               DateTime?
+  deletedAt            DateTime?
 
-  experienceRequests      ExperienceRequest[]
+  experienceRequests ExperienceRequest[]
 
   @@index([category])
   @@index([experienceCategoryId])
@@ -371,23 +370,23 @@ model CatalogItem {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model MenuItem {
-  id                  String       @id @default(cuid())
-  name                String
-  category            MenuCategory
-  description         String?      @db.Text
-  photoUrl            String?
-  isActive            Boolean      @default(true)
-  isVegetarian        Boolean      @default(false)
-  isVegan             Boolean      @default(false)
-  isGlutenFree        Boolean      @default(false)
-  containsNuts        Boolean      @default(false)
-  containsDairy       Boolean      @default(false)
-  containsShellfish   Boolean      @default(false)
-  otherDietaryNotes   String?
-  sortOrder           Int          @default(0)
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-  createdBy           String?
+  id                String       @id @default(cuid())
+  name              String
+  category          MenuCategory
+  description       String?      @db.Text
+  photoUrl          String?
+  isActive          Boolean      @default(true)
+  isVegetarian      Boolean      @default(false)
+  isVegan           Boolean      @default(false)
+  isGlutenFree      Boolean      @default(false)
+  containsNuts      Boolean      @default(false)
+  containsDairy     Boolean      @default(false)
+  containsShellfish Boolean      @default(false)
+  otherDietaryNotes String?
+  sortOrder         Int          @default(0)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  createdBy         String?
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -408,29 +407,33 @@ enum DiningRequestStatus {
 }
 
 model DiningRequest {
-  id                String              @id @default(cuid())
-  bookingId         String
-  booking           Booking             @relation(fields: [bookingId], references: [id])
-  requestedByEmail  String
-  requestedByName   String
-  kind              DiningRequestKind
-  status            DiningRequestStatus @default(REQUESTED)
+  id               String              @id @default(cuid())
+  bookingId        String
+  booking          Booking             @relation(fields: [bookingId], references: [id])
+  requestedByEmail String
+  requestedByName  String
+  kind             DiningRequestKind
+  status           DiningRequestStatus @default(REQUESTED)
 
   // SITTING (BREAKFAST / LUNCH / DINNER)
-  mealType          MenuCategory?
-  date              DateTime?
-  time              String?
-  partySize         Int?
-  allergies         String?
-  specialRequests   String?
+  mealType        MenuCategory?
+  date            DateTime?
+  time            String?
+  partySize       Int?
+  allergies       String?
+  specialRequests String?
 
   // ORDER (SNACKS / BEVERAGES) — items: [{ menuItemId, name, quantity }]
-  items             Json?
-  requestedFor      String?
-  notes             String?
+  items        Json?
+  requestedFor String?
+  notes        String?
 
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
+  // SITTING late-comers — secondary guests flag a late arrival to the primary's
+  // sitting: [{ email, name, note?, allergies?, at }]
+  lateArrivals Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([bookingId])
   @@index([status])
@@ -441,19 +444,19 @@ model DiningRequest {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Recommendation {
-  id            String   @id @default(cuid())
-  name          String
-  category      String
-  location      String?
-  description   String?  @db.Text
-  photoUrl      String?
-  externalUrl   String?
-  isActive      Boolean  @default(true)
-  isFeatured    Boolean  @default(false)
-  sortOrder     Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  createdBy     String?
+  id          String   @id @default(cuid())
+  name        String
+  category    String
+  location    String?
+  description String?  @db.Text
+  photoUrl    String?
+  externalUrl String?
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -461,23 +464,23 @@ model Recommendation {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Vendor {
-  id              String          @id @default(cuid())
-  name            String
-  category        CatalogCategory
-  role            String
-  bio             String?         @db.Text
-  photoUrl        String?
-  email           String?
-  phone           String?
-  status          VendorStatus    @default(ACTIVE)
-  notes           String?
-  totalBookings   Int             @default(0)
-  averageRating   Decimal?        @db.Decimal(3, 2)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id            String          @id @default(cuid())
+  name          String
+  category      CatalogCategory
+  role          String
+  bio           String?         @db.Text
+  photoUrl      String?
+  email         String?
+  phone         String?
+  status        VendorStatus    @default(ACTIVE)
+  notes         String?
+  totalBookings Int             @default(0)
+  averageRating Decimal?        @db.Decimal(3, 2)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
-  catalogItems    CatalogItem[]
-  vendorRatings   VendorRating[]
+  catalogItems  CatalogItem[]
+  vendorRatings VendorRating[]
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -485,14 +488,14 @@ model Vendor {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model VendorRating {
-  id                    String            @id @default(cuid())
-  vendorId              String
-  vendor                Vendor            @relation(fields: [vendorId], references: [id])
-  experienceRequestId   String            @unique
-  experienceRequest     ExperienceRequest @relation(fields: [experienceRequestId], references: [id])
-  rating                Int
-  notes                 String?
-  createdAt             DateTime          @default(now())
+  id                  String            @id @default(cuid())
+  vendorId            String
+  vendor              Vendor            @relation(fields: [vendorId], references: [id])
+  experienceRequestId String            @unique
+  experienceRequest   ExperienceRequest @relation(fields: [experienceRequestId], references: [id])
+  rating              Int
+  notes               String?
+  createdAt           DateTime          @default(now())
 
   @@index([vendorId])
 }
@@ -502,43 +505,43 @@ model VendorRating {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model ExperienceRequest {
-  id                    String        @id @default(cuid())
-  bookingId             String
-  booking               Booking       @relation(fields: [bookingId], references: [id])
-  catalogItemId         String
-  catalogItem           CatalogItem   @relation(fields: [catalogItemId], references: [id])
-  requestedByEmail      String
-  requestedByName       String
-  guestTier             GuestRole
-  preferredDate         DateTime
-  preferredTime         String
-  guestCount            Int
-  specialRequests       String?       @db.Text
-  returnDate            DateTime?
-  transportPreference   String?
-  status                RequestStatus @default(PENDING)
-  statusUpdatedAt       DateTime      @default(now())
-  confirmedDate         DateTime?
-  confirmedTime         String?
-  confirmedCost         Decimal?      @db.Decimal(10, 2)
-  emNotes               String?
-  declineReason         String?
-  conflictReason        String?
-  breezeWayTaskId       String?       @unique
+  id                     String        @id @default(cuid())
+  bookingId              String
+  booking                Booking       @relation(fields: [bookingId], references: [id])
+  catalogItemId          String
+  catalogItem            CatalogItem   @relation(fields: [catalogItemId], references: [id])
+  requestedByEmail       String
+  requestedByName        String
+  guestTier              GuestRole
+  preferredDate          DateTime
+  preferredTime          String
+  guestCount             Int
+  specialRequests        String?       @db.Text
+  returnDate             DateTime?
+  transportPreference    String?
+  status                 RequestStatus @default(PENDING)
+  statusUpdatedAt        DateTime      @default(now())
+  confirmedDate          DateTime?
+  confirmedTime          String?
+  confirmedCost          Decimal?      @db.Decimal(10, 2)
+  emNotes                String?
+  declineReason          String?
+  conflictReason         String?
+  breezeWayTaskId        String?       @unique
   breezeWayTaskCreatedAt DateTime?
-  setupPhotoUrl         String?
-  setupCompletedAt      DateTime?
-  staffMemberName       String?
-  folioItemId           String?       @unique
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  setupPhotoUrl          String?
+  setupCompletedAt       DateTime?
+  staffMemberName        String?
+  folioItemId            String?       @unique
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
 
-  folioItem             FolioItem?    @relation("RequestFolioItem", fields: [folioItemId], references: [id])
-  vendorRating          VendorRating?
-primaryApproved       Boolean   @default(false)
-primaryApprovedAt     DateTime?
-primaryApprovedBy     String?   // email of primary member who approved
-requiresPrimaryApproval Boolean @default(false)
+  folioItem               FolioItem?    @relation("RequestFolioItem", fields: [folioItemId], references: [id])
+  vendorRating            VendorRating?
+  primaryApproved         Boolean       @default(false)
+  primaryApprovedAt       DateTime?
+  primaryApprovedBy       String? // email of primary member who approved
+  requiresPrimaryApproval Boolean       @default(false)
 
   @@index([bookingId])
   @@index([status])
@@ -551,23 +554,23 @@ requiresPrimaryApproval Boolean @default(false)
 // ─────────────────────────────────────────────────────────────────────────────
 
 model FolioItem {
-  id                    String        @id @default(cuid())
-  bookingId             String
-  booking               Booking       @relation(fields: [bookingId], references: [id])
-  type                  FolioItemType
-  description           String
-  amount                Decimal       @db.Decimal(10, 2)
-  quantity              Int           @default(1)
-  attributedToEmail     String?
-  attributedToName      String?
-  staffNote             String?
-  loggedBy              String
-  loggedAt              DateTime      @default(now())
-  editableUntil         DateTime
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  id                String        @id @default(cuid())
+  bookingId         String
+  booking           Booking       @relation(fields: [bookingId], references: [id])
+  type              FolioItemType
+  description       String
+  amount            Decimal       @db.Decimal(10, 2)
+  quantity          Int           @default(1)
+  attributedToEmail String?
+  attributedToName  String?
+  staffNote         String?
+  loggedBy          String
+  loggedAt          DateTime      @default(now())
+  editableUntil     DateTime
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
-  experienceRequest     ExperienceRequest? @relation("RequestFolioItem")
+  experienceRequest ExperienceRequest? @relation("RequestFolioItem")
 
   @@index([bookingId])
   @@index([type])
@@ -579,20 +582,20 @@ model FolioItem {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Notification {
-  id              String             @id @default(cuid())
-  bookingId       String
-  booking         Booking            @relation(fields: [bookingId], references: [id])
-  recipientEmail  String
-  type            NotificationType
-  title           String
-  body            String
-  deepLink        String?
-  status          NotificationStatus @default(UNREAD)
-  readAt          DateTime?
-  pushSent        Boolean            @default(false)
-  pushSentAt      DateTime?
-  pushEndpoint    String?
-  createdAt       DateTime           @default(now())
+  id             String             @id @default(cuid())
+  bookingId      String
+  booking        Booking            @relation(fields: [bookingId], references: [id])
+  recipientEmail String
+  type           NotificationType
+  title          String
+  body           String
+  deepLink       String?
+  status         NotificationStatus @default(UNREAD)
+  readAt         DateTime?
+  pushSent       Boolean            @default(false)
+  pushSentAt     DateTime?
+  pushEndpoint   String?
+  createdAt      DateTime           @default(now())
 
   @@index([bookingId])
   @@index([recipientEmail])
@@ -604,15 +607,15 @@ model Notification {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model PushSubscription {
-  id          String   @id @default(cuid())
-  guestEmail  String
-  bookingId   String
-  endpoint    String   @unique
-  p256dhKey   String
-  authKey     String
-  userAgent   String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  guestEmail String
+  bookingId  String
+  endpoint   String   @unique
+  p256dhKey  String
+  authKey    String
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@index([guestEmail])
   @@index([bookingId])
@@ -623,20 +626,20 @@ model PushSubscription {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model InventoryItem {
-  id                String          @id @default(cuid())
-  name              String
-  category          String
-  unit              String
-  currentStock      Int             @default(0)
-  reorderThreshold  Int
-  maxStock          Int?
-  isOnOrder         Boolean         @default(false)
-  onOrderSince      DateTime?
-  notes             String?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  id               String    @id @default(cuid())
+  name             String
+  category         String
+  unit             String
+  currentStock     Int       @default(0)
+  reorderThreshold Int
+  maxStock         Int?
+  isOnOrder        Boolean   @default(false)
+  onOrderSince     DateTime?
+  notes            String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
-  stockMovements    StockMovement[]
+  stockMovements StockMovement[]
 
   @@index([category])
 }
@@ -683,22 +686,22 @@ model ServiceEvent {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Equipment {
-  id                              String   @id @default(cuid())
-  name                            String
-  category                        String
-  description                     String?
-  rentalCostPerUse                Decimal? @db.Decimal(10, 2)
-  rentalCostPerMonth              Decimal? @db.Decimal(10, 2)
-  totalRentalCost                 Decimal  @db.Decimal(10, 2) @default(0)
-  totalUses                       Int      @default(0)
-  purchasePrice                   Decimal? @db.Decimal(10, 2)
-  estimatedAnnualMaintenanceCost  Decimal? @db.Decimal(10, 2)
-  breakEvenMonths                 Int?
-  recommendation                  String?
-  lastCalculatedAt                DateTime?
-  seasonalNotes                   String?
-  createdAt                       DateTime @default(now())
-  updatedAt                       DateTime @updatedAt
+  id                             String    @id @default(cuid())
+  name                           String
+  category                       String
+  description                    String?
+  rentalCostPerUse               Decimal?  @db.Decimal(10, 2)
+  rentalCostPerMonth             Decimal?  @db.Decimal(10, 2)
+  totalRentalCost                Decimal   @default(0) @db.Decimal(10, 2)
+  totalUses                      Int       @default(0)
+  purchasePrice                  Decimal?  @db.Decimal(10, 2)
+  estimatedAnnualMaintenanceCost Decimal?  @db.Decimal(10, 2)
+  breakEvenMonths                Int?
+  recommendation                 String?
+  lastCalculatedAt               DateTime?
+  seasonalNotes                  String?
+  createdAt                      DateTime  @default(now())
+  updatedAt                      DateTime  @updatedAt
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -731,17 +734,17 @@ model AuditLog {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model SystemAlert {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   severity    String
   title       String
   message     String
   category    String
-  isDismissed Boolean  @default(false)
+  isDismissed Boolean   @default(false)
   dismissedBy String?
   dismissedAt DateTime?
   entityType  String?
   entityId    String?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   @@index([severity])
   @@index([isDismissed])
@@ -765,57 +768,57 @@ enum PurposeOfStay {
 }
 
 model Inquiry {
-  id                    String         @id @default(cuid())
-  firstName             String
-  lastName              String
-  email                 String
-  phone                 String?
-  preferredFrom         DateTime?
-  preferredTo           DateTime?
-  guestCount            Int?
-  purposeOfStay         PurposeOfStay?
-  socialHandle          String?
-  source                String?
-  message               String?        @db.Text
-  status                InquiryStatus  @default(NEW)
-  notes                 String?        // Rodrigo's internal notes on approval
+  id            String         @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String
+  phone         String?
+  preferredFrom DateTime?
+  preferredTo   DateTime?
+  guestCount    Int?
+  purposeOfStay PurposeOfStay?
+  socialHandle  String?
+  source        String?
+  message       String?        @db.Text
+  status        InquiryStatus  @default(NEW)
+  notes         String? // Rodrigo's internal notes on approval
 
   // Vetting tracking
-  reviewedBy            String?        // Auth0 ID of EM who reviewed
-  reviewedAt            DateTime?
+  reviewedBy String? // Auth0 ID of EM who reviewed
+  reviewedAt DateTime?
 
   // Decline
-  declineReason         String?        // Internal only — never shown to visitor
+  declineReason String? // Internal only — never shown to visitor
 
   // Post-approval tracking
-  lookbookSentAt        DateTime?      // When Rodrigo manually sent the Lookbook
-  lookbookSentBy        String?
-  paymentLinkSentAt     DateTime?      // When Rodrigo sent the Stripe link
-  paymentLinkSentBy     String?
-  stripePaymentLink     String?        // The actual Stripe payment link URL (logged for reference)
+  lookbookSentAt    DateTime? // When Rodrigo manually sent the Lookbook
+  lookbookSentBy    String?
+  paymentLinkSentAt DateTime? // When Rodrigo sent the Stripe link
+  paymentLinkSentBy String?
+  stripePaymentLink String? // The actual Stripe payment link URL (logged for reference)
 
   // Conversion
-  convertedToBookingId  String?        // Set when Lodgify webhook fires
+  convertedToBookingId String? // Set when Lodgify webhook fires
 
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status])
   @@index([email])
 }
 
 model ScheduleItem {
-  id          String    @id @default(cuid())
-  title       String
-  time        DateTime
-  location    String?
-  guestName   String?
-  bookingId   String?
-  type        ScheduleItemType @default(OTHER)
-  notes       String?
-  createdBy   String
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        String           @id @default(cuid())
+  title     String
+  time      DateTime
+  location  String?
+  guestName String?
+  bookingId String?
+  type      ScheduleItemType @default(OTHER)
+  notes     String?
+  createdBy String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
   @@index([time])
 }
@@ -834,12 +837,12 @@ enum ScheduleItemType {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model ManifestDraft {
-  id          String   @id @default(cuid())
-  bookingId   String   @unique
-  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  data        Json     @default("{}")
-  guestId     String?
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  bookingId String   @unique
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  data      Json     @default("{}")
+  guestId   String?
+  updatedAt DateTime @updatedAt
 
   @@index([bookingId])
 }
@@ -888,7 +891,10 @@ model EstateSettings {
   notifyInventoryLow Boolean  @default(true)
   notifyLodgifyError Boolean  @default(true)
   notifyStripeError  Boolean  @default(true)
-  updatedAt          DateTime @updatedAt @default(now())
+  // Recommended dining sitting times per meal, surfaced to guests as chips:
+  // { "BREAKFAST": ["08:00","09:00"], "LUNCH": [...], "DINNER": [...] }
+  sittingTimes       Json?
+  updatedAt          DateTime @default(now()) @updatedAt
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

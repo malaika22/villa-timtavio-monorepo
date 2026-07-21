@@ -5,6 +5,7 @@ import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
 import { useMenu, useDeleteMenuItem } from '@/hooks/useMenu';
 import { MenuFormDialog } from '@/components/manager/pages/menu/MenuFormDialog';
+import { SittingTimesCard } from '@/components/manager/pages/menu/SittingTimesCard';
 import type { MenuCategory, MenuItem } from '@repo/api-types';
 
 const TABS: { value: MenuCategory; label: string }[] = [
@@ -16,14 +17,14 @@ const TABS: { value: MenuCategory; label: string }[] = [
 ];
 
 const DIET_BADGES: { key: keyof MenuItem; label: string; tone: string }[] = [
-  { key: 'isVegetarian', label: 'Veg', tone: 'bg-[#e8f1e9] text-[#3a6448]' },
+  { key: 'isVegetarian', label: 'Vegetarian', tone: 'bg-[#e8f1e9] text-[#3a6448]' },
   { key: 'isVegan', label: 'Vegan', tone: 'bg-[#e8f1e9] text-[#3a6448]' },
-  { key: 'isGlutenFree', label: 'GF', tone: 'bg-[#eef0f5] text-[#3a4a6b]' },
-  { key: 'containsNuts', label: 'Nuts', tone: 'bg-[#fef6f4] text-[#9a3a30]' },
-  { key: 'containsDairy', label: 'Dairy', tone: 'bg-[#fef6f4] text-[#9a3a30]' },
+  { key: 'isGlutenFree', label: 'Gluten free', tone: 'bg-[#eef0f5] text-[#3a4a6b]' },
+  { key: 'containsNuts', label: 'Contains nuts', tone: 'bg-[#fef6f4] text-[#9a3a30]' },
+  { key: 'containsDairy', label: 'Contains dairy', tone: 'bg-[#fef6f4] text-[#9a3a30]' },
   {
     key: 'containsShellfish',
-    label: 'Shellfish',
+    label: 'Contains shellfish',
     tone: 'bg-[#fef6f4] text-[#9a3a30]',
   },
 ];
@@ -52,6 +53,8 @@ export const MenuPage = () => {
 
   return (
     <div className="font-inter space-y-5">
+      <SittingTimesCard />
+
       {/* Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">

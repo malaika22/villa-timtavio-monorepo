@@ -3,7 +3,10 @@ import { diningApi } from '@/lib/api/dining';
 import { catalogApi } from '@/lib/api/catalog';
 import { useBookingStore } from '@/store/useBookingStore';
 import { useAuth } from './useAuth';
-import type { CreateDiningRequestDto } from '@repo/api-types';
+import type {
+  CreateDiningRequestDto,
+  AddLateArrivalDto,
+} from '@repo/api-types';
 
 function useBookingId(): string | null {
   const storeBookingId = useBookingStore((s) => s.bookingId);
@@ -38,6 +41,28 @@ export function useCreateDiningRequest() {
       }
       return diningApi.create(bookingId, dto);
     },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['dining', bookingId] });
+    },
+  });
+}
+
+/** Estate-configured recommended sitting times per meal. */
+export function useSittingTimes() {
+  return useQuery({
+    queryKey: ['sitting-times'],
+    queryFn: diningApi.sittingTimes,
+    staleTime: 60_000,
+  });
+}
+
+/** Secondary guests flag a late arrival to the primary's sitting. */
+export function useAddLateArrival() {
+  const bookingId = useBookingId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: AddLateArrivalDto }) =>
+      diningApi.addLateArrival(id, dto),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['dining', bookingId] });
     },

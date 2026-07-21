@@ -124,6 +124,33 @@ function DiningRow({
                 “{r.notes}”
               </p>
             )}
+
+            {/* Late arrivals flagged by secondary guests against this sitting */}
+            {isSitting && (r.lateArrivals ?? []).length > 0 && (
+              <div className="mt-2 rounded-lg border border-[#f0e4d6] bg-[#fdf8f1] px-2.5 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[#9a6a23]">
+                  Arriving late · {r.lateArrivals!.length}
+                </p>
+                <ul className="mt-1 space-y-1">
+                  {r.lateArrivals!.map((l, i) => (
+                    <li key={i} className="text-xs text-manager-text">
+                      <span className="font-medium">{l.name}</span>
+                      {l.note ? (
+                        <span className="text-manager-text-muted">
+                          {' '}
+                          — {l.note}
+                        </span>
+                      ) : null}
+                      {l.allergies && (
+                        <span className="ml-1 inline-flex items-center gap-1 font-medium text-[#9a3a30]">
+                          <AlertTriangle className="size-3" /> {l.allergies}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
 

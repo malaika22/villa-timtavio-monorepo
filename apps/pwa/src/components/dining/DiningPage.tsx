@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import {
@@ -21,10 +21,24 @@ import type {
   MenuItem,
   DiningRequest,
   DiningOrderItem,
+  SittingTimes,
 } from '@repo/api-types';
-import { useMenu, useDiningRequests, useCreateDiningRequest } from '@/hooks/useDining';
+import {
+  useMenu,
+  useDiningRequests,
+  useCreateDiningRequest,
+  useSittingTimes,
+  useAddLateArrival,
+} from '@/hooks/useDining';
+import { useAuth } from '@/hooks/useAuth';
 import { CalenderPicker } from '../CalenderPicker';
 import { GuestStepper } from '../RequestExperienceSheet/GuestStepper';
+import {
+  TimePicker,
+  buildGroups,
+  firstRecommended,
+  formatTimeLabel,
+} from '../TimePicker';
 
 const MEAL_CATEGORIES: { value: MealType; label: string }[] = [
   { value: 'BREAKFAST', label: 'Breakfast' },
@@ -37,11 +51,11 @@ const ORDER_CATEGORIES: { value: MenuCategory; label: string }[] = [
 ];
 
 const DIET_BADGES: { key: keyof MenuItem; label: string; tone: string }[] = [
-  { key: 'isVegetarian', label: 'Veg', tone: 'bg-[#EAF3E0] text-[#3A5E1E]' },
+  { key: 'isVegetarian', label: 'Vegetarian', tone: 'bg-[#EAF3E0] text-[#3A5E1E]' },
   { key: 'isVegan', label: 'Vegan', tone: 'bg-[#EAF3E0] text-[#3A5E1E]' },
-  { key: 'isGlutenFree', label: 'GF', tone: 'bg-[#E8ECF5] text-[#2E3F66]' },
-  { key: 'containsNuts', label: 'Nuts', tone: 'bg-[#FBEEEA] text-[#9A3A30]' },
-  { key: 'containsShellfish', label: 'Shellfish', tone: 'bg-[#FBEEEA] text-[#9A3A30]' },
+  { key: 'isGlutenFree', label: 'Gluten free', tone: 'bg-[#E8ECF5] text-[#2E3F66]' },
+  { key: 'containsNuts', label: 'Contains nuts', tone: 'bg-[#FBEEEA] text-[#9A3A30]' },
+  { key: 'containsShellfish', label: 'Contains shellfish', tone: 'bg-[#FBEEEA] text-[#9A3A30]' },
 ];
 
 function DietBadges({ item }: { item: MenuItem }) {
@@ -65,8 +79,13 @@ export const DiningPage = () => {
   const router = useRouter();
   const { data: menu, isLoading } = useMenu();
   const { data: requests } = useDiningRequests();
+  const { data: sittingTimes } = useSittingTimes();
+  // Only the primary member sets the main sitting times; secondaries view them
+  // read-only and can flag a late arrival instead.
+  const { isPrimary, email } = useAuth();
 
   const [sittingOpen, setSittingOpen] = useState(false);
+  const [lateFor, setLateFor] = useState<DiningRequest | null>(null);
   const [cart, setCart] = useState<Record<string, { item: MenuItem; qty: number }>>({});
   const [orderOpen, setOrderOpen] = useState(false);
 
@@ -95,6 +114,12 @@ export const DiningPage = () => {
       return next;
     });
 
+  const allRequests = requests ?? [];
+  const sittings = allRequests.filter((r) => r.kind === 'SITTING');
+  const orders = allRequests.filter((r) => r.kind === 'ORDER');
+  const flaggedLate = (r: DiningRequest) =>
+    !!email && (r.lateArrivals ?? []).some((l) => l.email === email);
+
   return (
     <div className="flex flex-col pb-28">
       {/* Header */}
@@ -111,25 +136,58 @@ export const DiningPage = () => {
       </div>
 
       <p className="mb-5 text-[11px] leading-relaxed text-[#797168]">
-        All-inclusive food &amp; drink. Reserve a table for a meal, or order
-        snacks &amp; beverages to the villa.
+        All-inclusive food &amp; drink.{' '}
+        {isPrimary
+          ? 'Reserve a sitting for a meal, or order snacks & beverages to the villa.'
+          : 'Sitting times are set by the primary member — order snacks & beverages any time.'}
       </p>
 
-      {/* Your requests */}
-      {requests && requests.length > 0 && (
+      {/* Secondary: the primary's meal sittings, shown prominently */}
+      {!isPrimary && (
         <section className="mb-6">
           <p className="mb-2 text-[8px] uppercase tracking-[2.5px] text-[#9A9288]">
-            Your dining
+            Meal sittings
+          </p>
+          {sittings.length === 0 ? (
+            <div className="rounded-[12px] border border-[#E3E0DA] bg-[#F7F5F2] px-4 py-4 text-[11px] leading-relaxed text-[#797168]">
+              The primary member hasn’t arranged meal times yet — you’ll see them
+              here once they do.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {sittings.map((r) => (
+                <SecondarySittingCard
+                  key={r.id}
+                  request={r}
+                  flaggedByMe={flaggedLate(r)}
+                  onLate={() => setLateFor(r)}
+                />
+              ))}
+              <p className="px-1 pt-0.5 text-[10px] leading-relaxed text-[#9A9288]">
+                Set by the primary member. Running late? Tap “I’ll be late” —
+                we’ll always accommodate you.
+              </p>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Your dining — primary: sittings + orders; secondary: orders only */}
+      {(isPrimary ? allRequests : orders).length > 0 && (
+        <section className="mb-6">
+          <p className="mb-2 text-[8px] uppercase tracking-[2.5px] text-[#9A9288]">
+            {isPrimary ? 'Your dining' : 'Your orders'}
           </p>
           <div className="flex flex-col gap-2">
-            {requests.map((r) => (
-              <RequestRow key={r.id} request={r} />
+            {(isPrimary ? allRequests : orders).map((r) => (
+              <RequestRow key={r.id} request={r} lateByMe={flaggedLate(r)} />
             ))}
           </div>
         </section>
       )}
 
-      {/* Reserve a sitting */}
+      {/* Reserve a sitting — primary member only */}
+      {isPrimary && (
       <button
         onClick={() => setSittingOpen(true)}
         className="mb-6 flex items-center justify-between rounded-[12px] border border-[#0F1F2E] bg-[#0F1F2E] px-4 py-3.5 text-left text-white"
@@ -142,6 +200,7 @@ export const DiningPage = () => {
           Breakfast · Lunch · Dinner
         </span>
       </button>
+      )}
 
       {/* Menu */}
       {isLoading ? (
@@ -238,7 +297,15 @@ export const DiningPage = () => {
         </div>
       )}
 
-      <SittingSheet open={sittingOpen} onClose={() => setSittingOpen(false)} />
+      <SittingSheet
+        open={sittingOpen}
+        onClose={() => setSittingOpen(false)}
+        sittingTimes={sittingTimes}
+      />
+      <LateArrivalSheet
+        sitting={lateFor}
+        onClose={() => setLateFor(null)}
+      />
       <OrderSheet
         open={orderOpen}
         onClose={() => setOrderOpen(false)}
@@ -259,47 +326,140 @@ const STATUS_TONE: Record<string, string> = {
   CANCELLED: 'bg-[#EEE] text-[#9A9288]',
 };
 
-function RequestRow({ request: r }: { request: DiningRequest }) {
+function RequestRow({
+  request: r,
+  onLate,
+  lateByMe,
+}: {
+  request: DiningRequest;
+  onLate?: () => void;
+  lateByMe?: boolean;
+}) {
   const isSitting = r.kind === 'SITTING';
   const items = (r.items ?? []) as DiningOrderItem[];
+  const lateCount = (r.lateArrivals ?? []).length;
   return (
-    <div className="flex items-center justify-between gap-3 rounded-[12px] border border-[#E3E0DA] bg-white px-3.5 py-3">
-      <div className="flex items-start gap-2.5">
-        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#F0EDE8]">
-          {isSitting ? (
-            <UtensilsCrossed className="size-3.5 text-[#5C534A]" />
-          ) : (
-            <Coffee className="size-3.5 text-[#5C534A]" />
+    <div className="rounded-[12px] border border-[#E3E0DA] bg-white px-3.5 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-start gap-2.5">
+          <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-[#F0EDE8]">
+            {isSitting ? (
+              <UtensilsCrossed className="size-3.5 text-[#5C534A]" />
+            ) : (
+              <Coffee className="size-3.5 text-[#5C534A]" />
+            )}
+          </span>
+          <div className="min-w-0">
+            <p className="text-[12px] font-medium text-[#2B2824]">
+              {isSitting
+                ? `${r.mealType ? r.mealType[0] + r.mealType.slice(1).toLowerCase() : 'Sitting'}${r.partySize ? ` · ${r.partySize}` : ''}`
+                : `Order · ${items.length} item${items.length === 1 ? '' : 's'}`}
+            </p>
+            <p className="text-[10px] text-[#797168]">
+              {isSitting
+                ? `${r.date ? format(new Date(r.date), 'MMM d') : ''}${r.time ? ` · ${formatTimeLabel(r.time)}` : ''}`
+                : items.map((i) => `${i.quantity}× ${i.name}`).join(', ')}
+            </p>
+          </div>
+        </div>
+        <span
+          className={cn(
+            'shrink-0 rounded-full px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[1px]',
+            STATUS_TONE[r.status] ?? STATUS_TONE.REQUESTED,
           )}
+        >
+          {r.status}
         </span>
+      </div>
+
+      {/* Late-arrival affordance (secondary guests) */}
+      {isSitting && (onLate || lateCount > 0) && (
+        <div className="mt-2.5 flex items-center justify-between gap-3 border-t border-[#F0EDE8] pt-2.5">
+          <span className="text-[10px] text-[#9A9288]">
+            {lateCount > 0
+              ? `${lateCount} guest${lateCount === 1 ? '' : 's'} arriving late`
+              : 'Arriving late?'}
+          </span>
+          {onLate &&
+            (lateByMe ? (
+              <span className="flex items-center gap-1 text-[10px] font-medium text-[#3A5E48]">
+                <Check className="size-3" /> You’ll be late
+              </span>
+            ) : (
+              <button
+                onClick={onLate}
+                className="flex items-center gap-1 rounded-full border border-[#0F1F2E] px-2.5 py-1 text-[10px] font-medium text-[#0F1F2E]"
+              >
+                <Clock className="size-3" /> I’ll be late
+              </button>
+            ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Secondary guest's prominent view of a primary-set sitting ─────────────
+
+function SecondarySittingCard({
+  request: r,
+  flaggedByMe,
+  onLate,
+}: {
+  request: DiningRequest;
+  flaggedByMe: boolean;
+  onLate: () => void;
+}) {
+  const mealLabel = r.mealType
+    ? `${r.mealType[0]}${r.mealType.slice(1).toLowerCase()}`
+    : 'Sitting';
+  const lateCount = (r.lateArrivals ?? []).length;
+  return (
+    <div className="rounded-[14px] border border-[#0F1F2E]/15 bg-white px-4 py-3.5">
+      <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-[12px] font-medium text-[#2B2824]">
-            {isSitting
-              ? `${r.mealType ? r.mealType[0] + r.mealType.slice(1).toLowerCase() : 'Sitting'}${r.partySize ? ` · ${r.partySize}` : ''}`
-              : `Order · ${items.length} item${items.length === 1 ? '' : 's'}`}
+          <p className="flex items-center gap-1.5 text-[9px] font-medium uppercase tracking-[2px] text-[#9A9288]">
+            <UtensilsCrossed className="size-3 text-[#5C534A]" />
+            {mealLabel}
+            {r.date ? ` · ${format(new Date(r.date), 'EEE, MMM d')}` : ''}
           </p>
-          <p className="text-[10px] text-[#797168]">
-            {isSitting
-              ? `${r.date ? format(new Date(r.date), 'MMM d') : ''}${r.time ? ` · ${r.time}` : ''}`
-              : items.map((i) => `${i.quantity}× ${i.name}`).join(', ')}
+          <p className="mt-1 font-cormorant text-[24px] leading-none text-[#2B2824]">
+            {r.time ? formatTimeLabel(r.time) : 'Time to be confirmed'}
           </p>
         </div>
-      </div>
-      <span
-        className={cn(
-          'shrink-0 rounded-full px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[1px]',
-          STATUS_TONE[r.status] ?? STATUS_TONE.REQUESTED,
+        {flaggedByMe ? (
+          <span className="flex shrink-0 items-center gap-1 text-[10px] font-medium text-[#3A5E48]">
+            <Check className="size-3.5" /> You’ll be late
+          </span>
+        ) : (
+          <button
+            onClick={onLate}
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-[#0F1F2E] px-3 py-1.5 text-[10px] font-medium text-[#0F1F2E]"
+          >
+            <Clock className="size-3.5" /> I’ll be late
+          </button>
         )}
-      >
-        {r.status}
-      </span>
+      </div>
+      {lateCount > 0 && (
+        <p className="mt-2 border-t border-[#F0EDE8] pt-2 text-[10px] text-[#9A9288]">
+          {lateCount} guest{lateCount === 1 ? '' : 's'} arriving late
+        </p>
+      )}
     </div>
   );
 }
 
 // ─── Sitting reservation sheet ─────────────────────────────────────────────
 
-function SittingSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
+function SittingSheet({
+  open,
+  onClose,
+  sittingTimes,
+}: {
+  open: boolean;
+  onClose: () => void;
+  sittingTimes?: SittingTimes;
+}) {
   const create = useCreateDiningRequest();
   const [meal, setMeal] = useState<MealType>('DINNER');
   const [date, setDate] = useState<Date | null>(null);
@@ -308,6 +468,18 @@ function SittingSheet({ open, onClose }: { open: boolean; onClose: () => void })
   const [allergies, setAllergies] = useState('');
   const [special, setSpecial] = useState('');
   const [done, setDone] = useState(false);
+
+  // Recommended sitting times for the chosen meal, grouped by time-of-day.
+  const groups = useMemo(
+    () =>
+      buildGroups((sittingTimes?.[meal] ?? []).map((t) => ({ id: t, time: t }))),
+    [sittingTimes, meal],
+  );
+  // Default to the meal's first recommendation whenever the meal (or config)
+  // changes — the guest can still pick another slot or a custom time.
+  useEffect(() => {
+    setTime((prev) => firstRecommended(groups) ?? prev);
+  }, [groups]);
 
   const submit = async () => {
     await create.mutateAsync({
@@ -382,13 +554,8 @@ function SittingSheet({ open, onClose }: { open: boolean; onClose: () => void })
                 <CalenderPicker selectedDate={date} onSelect={setDate} />
               </Field>
 
-              <Field label="Time">
-                <input
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  className="rounded-xl border border-[#E3E0DA] bg-white px-4 py-3 text-[13px] text-[#2B2824] outline-none"
-                />
+              <Field label="Preferred time">
+                <TimePicker value={time} groups={groups} onChange={setTime} />
               </Field>
 
               <Field label="Party size">
@@ -423,6 +590,124 @@ function SittingSheet({ open, onClose }: { open: boolean; onClose: () => void })
               >
                 {create.isPending && <Loader2 className="size-4 animate-spin" />}
                 {create.isPending ? 'Requesting…' : 'Request sitting'}
+              </button>
+            </div>
+          </>
+        )}
+      </DrawerContent>
+    </Drawer>
+  );
+}
+
+// ─── Late-arrival sheet (secondary guests) ─────────────────────────────────
+
+function LateArrivalSheet({
+  sitting,
+  onClose,
+}: {
+  sitting: DiningRequest | null;
+  onClose: () => void;
+}) {
+  const addLate = useAddLateArrival();
+  const [note, setNote] = useState('');
+  const [allergies, setAllergies] = useState('');
+  const [done, setDone] = useState(false);
+
+  const mealLabel = sitting?.mealType
+    ? `${sitting.mealType[0]}${sitting.mealType.slice(1).toLowerCase()}`
+    : 'sitting';
+
+  const submit = async () => {
+    if (!sitting) return;
+    await addLate.mutateAsync({
+      id: sitting.id,
+      dto: {
+        note: note || undefined,
+        allergies: allergies || undefined,
+      },
+    });
+    setDone(true);
+  };
+
+  const close = () => {
+    onClose();
+    setTimeout(() => {
+      setDone(false);
+      setNote('');
+      setAllergies('');
+    }, 200);
+  };
+
+  return (
+    <Drawer open={!!sitting} onOpenChange={(v) => !v && close()} direction="right">
+      <DrawerContent className="flex h-full w-full flex-col border-0 bg-[#FAF8F4] p-0 data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:rounded-none">
+        <DrawerTitle className="sr-only">Flag a late arrival</DrawerTitle>
+        <div className="flex shrink-0 items-center gap-3 border-b border-[#E3E0DA] px-5 pb-4 pt-5">
+          <button onClick={close} className="text-[#2B2824]" aria-label="Close">
+            <ArrowLeft className="size-5" />
+          </button>
+          <p className="text-[10px] font-medium uppercase tracking-[2.8px] text-[#2B2824]">
+            I’ll be late
+          </p>
+        </div>
+
+        {done ? (
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 px-8 text-center">
+            <div className="flex size-14 items-center justify-center rounded-full bg-[#EAF3E8]">
+              <Check className="size-6 text-[#3A5E48]" strokeWidth={2.5} />
+            </div>
+            <h2 className="font-cormorant text-[26px] italic text-[#2B2824]">
+              We’ll hold your place
+            </h2>
+            <p className="text-[12px] text-[#797168]">
+              The estate has been notified you’ll join the{' '}
+              {mealLabel.toLowerCase()} sitting late.
+            </p>
+            <button
+              onClick={close}
+              className="mt-2 rounded-[10px] bg-[#0F1F2E] px-6 py-3 text-[10px] font-semibold uppercase tracking-[2px] text-white"
+            >
+              Done
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+              <p className="text-[12px] leading-relaxed text-[#797168]">
+                Let the estate know you’ll join the {mealLabel.toLowerCase()}{' '}
+                sitting late — we’ll always accommodate you.
+              </p>
+              <Field label="When to expect you (optional)">
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={2}
+                  placeholder="e.g. About 20 minutes late"
+                  className="w-full resize-none rounded-xl border border-[#E3E0DA] bg-white px-4 py-3 text-[13px] outline-none placeholder:text-[#B0AAA0]"
+                />
+              </Field>
+              <Field label="Your allergies (optional)">
+                <textarea
+                  value={allergies}
+                  onChange={(e) => setAllergies(e.target.value)}
+                  rows={2}
+                  placeholder="e.g. Severe nut allergy"
+                  className="w-full resize-none rounded-xl border border-[#E3E0DA] bg-white px-4 py-3 text-[13px] outline-none placeholder:text-[#B0AAA0]"
+                />
+              </Field>
+            </div>
+            <div className="shrink-0 border-t border-[#E3E0DA] bg-[#FAF8F4] px-5 py-4">
+              <button
+                onClick={submit}
+                disabled={addLate.isPending}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0F1F2E] py-4 text-[11px] font-semibold uppercase tracking-[2px] text-white disabled:opacity-60"
+              >
+                {addLate.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Clock className="size-4" />
+                )}
+                {addLate.isPending ? 'Sending…' : 'Notify the estate'}
               </button>
             </div>
           </>

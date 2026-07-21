@@ -95,12 +95,19 @@ export const MenuFormDialog = ({
   const [form, setForm] = useState<MenuItemDto>(() =>
     formFromItem(item, defaultCategory),
   );
+  const [sortText, setSortText] = useState(() =>
+    String(formFromItem(item, defaultCategory).sortOrder ?? 0),
+  );
   const formSessionKey = `${open}:${item?.id ?? 'new'}:${defaultCategory}`;
   const [activeSessionKey, setActiveSessionKey] = useState(formSessionKey);
 
-  if (open && formSessionKey !== activeSessionKey) {
+  if (formSessionKey !== activeSessionKey) {
     setActiveSessionKey(formSessionKey);
-    setForm(formFromItem(item, defaultCategory));
+    if (open) {
+      const next = formFromItem(item, defaultCategory);
+      setForm(next);
+      setSortText(String(next.sortOrder ?? 0));
+    }
   }
 
   const set = <K extends keyof MenuItemDto>(key: K, value: MenuItemDto[K]) =>
@@ -239,8 +246,12 @@ export const MenuFormDialog = ({
               </label>
               <Input
                 type="number"
-                value={form.sortOrder ?? 0}
-                onChange={(e) => set('sortOrder', Number(e.target.value))}
+                value={sortText}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setSortText(v);
+                  set('sortOrder', v === '' ? 0 : Number(v));
+                }}
                 className="mt-1"
               />
             </div>
