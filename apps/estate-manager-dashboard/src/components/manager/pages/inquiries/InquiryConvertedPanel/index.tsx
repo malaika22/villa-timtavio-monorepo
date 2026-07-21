@@ -42,15 +42,25 @@ export function InquiryConvertedPanel({ inquiry }: Props) {
     );
   }
 
+  // Once the stay is over (or the booking was cancelled) there's nothing more to
+  // action on the guest — hide the magic-link send so a departed guest can't be
+  // re-linked. The stay lifecycle lives on the booking, so we gate on its status
+  // rather than inventing a new inquiry status (the inquiry stays CONVERTED).
+  const stayEnded =
+    booking.status === 'CHECKED_OUT' || booking.status === 'CANCELLED';
+
   return (
     <div className="space-y-4 rounded-xl border border-purple-200 bg-purple-50/60 p-6">
       <div>
         <h2 className="text-sm font-semibold text-purple-900">
-          Converted to booking
+          {stayEnded ? 'Stay complete' : 'Converted to booking'}
         </h2>
         <p className="mt-1 text-sm text-purple-800/80">
-          Lodgify reservation synced. Send the guest magic link manually if
-          needed before the 24-hour auto-send window.
+          {stayEnded
+            ? booking.status === 'CANCELLED'
+              ? 'This booking was cancelled — no further guest actions are needed.'
+              : 'This guest has checked out — no further guest actions are needed.'
+            : 'Lodgify reservation synced. Send the guest magic link manually if needed before the 24-hour auto-send window.'}
         </p>
       </div>
 
@@ -67,15 +77,17 @@ export function InquiryConvertedPanel({ inquiry }: Props) {
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button
-          type="button"
-          onClick={() => sendMagicLink.mutate(booking.id)}
-          disabled={sendMagicLink.isPending}
-          className="flex-1 bg-manager-accent text-white hover:opacity-90"
-        >
-          <Send className="mr-2 size-4" />
-          {sendMagicLink.isPending ? 'Sending…' : 'Send magic link to guest'}
-        </Button>
+        {!stayEnded && (
+          <Button
+            type="button"
+            onClick={() => sendMagicLink.mutate(booking.id)}
+            disabled={sendMagicLink.isPending}
+            className="flex-1 bg-manager-accent text-white hover:opacity-90"
+          >
+            <Send className="mr-2 size-4" />
+            {sendMagicLink.isPending ? 'Sending…' : 'Send magic link to guest'}
+          </Button>
+        )}
         <Button
           asChild
           variant="outline"

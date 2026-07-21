@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, ChevronDown } from 'lucide-react';
+import { cn } from '@repo/ui/lib/utils';
 import { useSittingTimes, useUpdateSittingTimes } from '@/hooks/useSittingTimes';
 import type { SittingTimes } from '@repo/api-types';
 
@@ -12,6 +13,113 @@ const MEALS: { key: keyof SittingTimes; label: string }[] = [
 ];
 
 const EMPTY: SittingTimes = { BREAKFAST: [], LUNCH: [], DINNER: [] };
+
+// Sensible starting position for each meal's time picker.
+const DEFAULT_DRAFT: Record<keyof SittingTimes, string> = {
+  BREAKFAST: '08:00',
+  LUNCH: '13:00',
+  DINNER: '19:00',
+};
+
+const MINUTES = [
+  '00',
+  '05',
+  '10',
+  '15',
+  '20',
+  '25',
+  '30',
+  '35',
+  '40',
+  '45',
+  '50',
+  '55',
+];
+
+function parseHM(t: string): { h: number; m: number } | null {
+  const match = t.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  const h = parseInt(match[1]!, 10);
+  const m = parseInt(match[2]!, 10);
+  return h >= 0 && h <= 23 && m >= 0 && m <= 59 ? { h, m } : null;
+}
+
+// A compact, themed hour : minute + AM/PM picker replacing the native
+// <input type="time">. Emits a 24h "HH:MM" string.
+function TimePickerField({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (t: string) => void;
+}) {
+  const base = parseHM(value) ?? { h: 12, m: 0 };
+  const h12 = ((base.h + 11) % 12) + 1;
+  const ap: 'AM' | 'PM' = base.h >= 12 ? 'PM' : 'AM';
+  const mm = String((Math.round(base.m / 5) * 5) % 60).padStart(2, '0');
+
+  const emit = (nh12: number, nmm: string, nap: 'AM' | 'PM') => {
+    let h = nh12 % 12;
+    if (nap === 'PM') h += 12;
+    onChange(`${String(h).padStart(2, '0')}:${nmm}`);
+  };
+
+  const selCls =
+    'appearance-none rounded-lg border border-manager-border bg-white py-1.5 pl-2.5 pr-6 text-xs font-medium text-manager-text outline-none focus:border-manager-accent';
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="relative">
+        <select
+          aria-label="Hour"
+          value={h12}
+          onChange={(e) => emit(Number(e.target.value), mm, ap)}
+          className={selCls}
+        >
+          {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
+            <option key={h} value={h}>
+              {h}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-manager-text-muted" />
+      </div>
+      <span className="text-sm font-semibold text-manager-text-muted">:</span>
+      <div className="relative">
+        <select
+          aria-label="Minute"
+          value={mm}
+          onChange={(e) => emit(h12, e.target.value, ap)}
+          className={selCls}
+        >
+          {MINUTES.map((m) => (
+            <option key={m} value={m}>
+              {m}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-manager-text-muted" />
+      </div>
+      <div className="inline-flex rounded-lg border border-manager-border bg-white p-0.5">
+        {(['AM', 'PM'] as const).map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => emit(h12, mm, p)}
+            className={cn(
+              'rounded-md px-2 py-1 text-[11px] font-semibold transition-colors',
+              ap === p
+                ? 'bg-manager-accent text-white'
+                : 'text-manager-text-muted hover:text-manager-text',
+            )}
+          >
+            {p}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /** Format a 24h "HH:MM" string into a 12h label like "8:00 AM". */
 function formatTime(hhmm: string): string {
@@ -43,9 +151,7 @@ export const SittingTimesCard = () => {
   const [baseline, setBaseline] = useState<SittingTimes>(EMPTY);
   const [state, setState] = useState<SittingTimes>(EMPTY);
   const [drafts, setDrafts] = useState<Record<keyof SittingTimes, string>>({
-    BREAKFAST: '',
-    LUNCH: '',
-    DINNER: '',
+    ...DEFAULT_DRAFT,
   });
 
   // Seed local state from the server whenever it changes and there are no
@@ -68,7 +174,7 @@ export const SittingTimesCard = () => {
     const time = drafts[key];
     if (!time) return;
     setState((prev) => ({ ...prev, [key]: addTime(prev[key], time) }));
-    setDrafts((prev) => ({ ...prev, [key]: '' }));
+    setDrafts((prev) => ({ ...prev, [key]: DEFAULT_DRAFT[key] }));
   };
 
   const handleRemove = (key: keyof SittingTimes, time: string) => {
@@ -144,14 +250,12 @@ export const SittingTimesCard = () => {
                 </span>
               ))}
             </div>
-            <div className="flex shrink-0 items-center gap-1.5">
-              <input
-                type="time"
+            <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+              <TimePickerField
                 value={drafts[key]}
-                onChange={(e) =>
-                  setDrafts((prev) => ({ ...prev, [key]: e.target.value }))
+                onChange={(t) =>
+                  setDrafts((prev) => ({ ...prev, [key]: t }))
                 }
-                className="rounded-lg border border-manager-border bg-white px-2.5 py-1.5 text-xs text-manager-text focus:border-manager-accent focus:outline-none"
               />
               <button
                 onClick={() => handleAdd(key)}

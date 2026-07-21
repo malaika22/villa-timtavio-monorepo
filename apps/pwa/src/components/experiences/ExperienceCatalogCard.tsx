@@ -81,14 +81,8 @@ export const ExperienceCatalogCard = ({
           </div>
         )}
 
-        {/* Legibility gradient for the overlaid category label */}
-        <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-[#0F1F2E]/80 via-[#0F1F2E]/25 to-transparent"
-          aria-hidden
-        />
-
-        {/* Category — small, uppercase, tracked, over the gradient */}
-        <span className="absolute bottom-2.5 left-3 right-3 z-[2] truncate text-[9px] font-semibold uppercase tracking-[2.4px] text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]">
+        {/* Category — always-legible pill badge, top-left over the image */}
+        <span className="absolute left-3 top-3 z-[2] max-w-[calc(100%-1.5rem)] truncate rounded-full bg-[#0F1F2E]/85 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[2px] text-white shadow-[0_1px_3px_rgba(15,31,46,0.25)] backdrop-blur-[2px]">
           {category}
         </span>
 

@@ -22,7 +22,6 @@ import {
   useApproveRequest,
   useDeclineRequest,
   useConfirmCost,
-  useMarkReadyTest,
 } from '@/hooks/useApprovals';
 import { toast } from 'sonner';
 import type { ApprovalQueueItem, ApprovalQueueStatus } from '@/types';
@@ -43,7 +42,6 @@ export const ApprovalsQueueTable = ({
   const approve = useApproveRequest();
   const decline = useDeclineRequest();
   const confirmCost = useConfirmCost();
-  const markReadyTest = useMarkReadyTest();
 
   const [decliningId, setDecliningId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
@@ -109,39 +107,6 @@ export const ApprovalsQueueTable = ({
     );
   };
 
-  // ─── Batch selection ──────────────────────────────────────────────────────
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const actionableIds = rows
-    .filter((r) => isActionable(r.status))
-    .map((r) => r.id);
-  const toggleSelected = (id: string) =>
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  const allSelected =
-    actionableIds.length > 0 && actionableIds.every((id) => selected.has(id));
-  const toggleAll = () =>
-    setSelected(allSelected ? new Set() : new Set(actionableIds));
-
-  const bulkApprove = () => {
-    const ids = [...selected].filter((id) => actionableIds.includes(id));
-    ids.forEach((id) => approve.mutate({ id, dto: {} }));
-    toast.success(`Approving ${ids.length} request(s)`);
-    setSelected(new Set());
-  };
-  const bulkDecline = () => {
-    const ids = [...selected].filter((id) => actionableIds.includes(id));
-    if (!confirm(`Decline ${ids.length} selected request(s)?`)) return;
-    ids.forEach((id) =>
-      decline.mutate({ id, dto: { declineReason: 'Declined in bulk' } }),
-    );
-    toast.success(`Declining ${ids.length} request(s)`);
-    setSelected(new Set());
-  };
-
   const submitDecline = () => {
     if (!decliningId) return;
     decline.mutate(
@@ -158,28 +123,6 @@ export const ApprovalsQueueTable = ({
   };
 
   const columns: DataTableColumn<ApprovalQueueItem>[] = [
-    {
-      key: 'select',
-      header: (
-        <input
-          type="checkbox"
-          aria-label="Select all"
-          checked={allSelected}
-          onChange={toggleAll}
-          className="size-4 accent-manager-accent"
-        />
-      ) as unknown as string,
-      cell: (row) =>
-        isActionable(row.status) ? (
-          <input
-            type="checkbox"
-            aria-label={`Select ${row.guestName}`}
-            checked={selected.has(row.id)}
-            onChange={() => toggleSelected(row.id)}
-            className="size-4 accent-manager-accent"
-          />
-        ) : null,
-    },
     {
       key: 'guest',
       header: 'Guest',
@@ -273,40 +216,19 @@ export const ApprovalsQueueTable = ({
           // confirmed/in-progress experiences.
           if (row.status === 'Confirmed' || row.status === 'In Progress') {
             return (
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className={outlineBtn}
-                  onClick={() => {
-                    setCostAmount('');
-                    setCostNotes('');
-                    setCostId(row.id);
-                  }}
-                >
-                  Log cost
-                </Button>
-                {/* QA test affordance — simulate Breezeway completion → READY */}
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className={outlineBtn}
-                  disabled={
-                    markReadyTest.isPending &&
-                    markReadyTest.variables === row.id
-                  }
-                  onClick={() =>
-                    markReadyTest.mutate(row.id, {
-                      onSuccess: () => toast.success('Marked ready (test)'),
-                      onError: (e) => toast.error((e as Error).message),
-                    })
-                  }
-                >
-                  Mark ready (test)
-                </Button>
-              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className={outlineBtn}
+                onClick={() => {
+                  setCostAmount('');
+                  setCostNotes('');
+                  setCostId(row.id);
+                }}
+              >
+                Log cost
+              </Button>
             );
           }
           return <span className="text-sm text-manager-text-muted">—</span>;
@@ -361,40 +283,6 @@ export const ApprovalsQueueTable = ({
 
   return (
     <>
-      {selected.size > 0 ? (
-        <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-manager-accent/30 bg-manager-accent/5 px-4 py-2.5">
-          <span className="text-sm font-medium text-manager-text">
-            {selected.size} selected
-          </span>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              className={primaryBtn}
-              disabled={approve.isPending}
-              onClick={bulkApprove}
-            >
-              Approve all
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className={outlineBtn}
-              disabled={decline.isPending}
-              onClick={bulkDecline}
-            >
-              Decline all
-            </Button>
-            <button
-              type="button"
-              onClick={() => setSelected(new Set())}
-              className="text-sm text-manager-text-muted hover:text-manager-text"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      ) : null}
-
       <DataTable
         columns={columns}
         rows={rows}
