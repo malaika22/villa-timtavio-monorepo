@@ -60,6 +60,18 @@ export function useEmPusher() {
     [invalidateDashboard],
   );
 
+  const handleDiningLate = useCallback(
+    (data: { guestName?: string }) => {
+      invalidateDashboard();
+      showDashboardToast(
+        'info',
+        'Late arrival flagged',
+        `${data.guestName ?? 'A guest'} will arrive late to a sitting`,
+      );
+    },
+    [invalidateDashboard],
+  );
+
   const handleNewRequest = useCallback(
     (data: {
       requestId: string;
@@ -159,6 +171,7 @@ export function useEmPusher() {
         channel.bind('request.resolved', handleRequestResolved);
         channel.bind('breezeway.task_overdue', handleBreezeWayOverdue);
         channel.bind('dining.requested', handleDiningRequested);
+        channel.bind('dining.late', handleDiningLate);
       })
       .catch((error: unknown) => {
         console.error('Failed to connect EM Pusher client:', error);
@@ -177,6 +190,7 @@ export function useEmPusher() {
     handleRequestResolved,
     handleBreezeWayOverdue,
     handleDiningRequested,
+    handleDiningLate,
   ]);
 
   useEffect(() => {
