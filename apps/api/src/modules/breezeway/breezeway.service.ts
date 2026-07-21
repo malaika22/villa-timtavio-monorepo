@@ -97,8 +97,18 @@ export class BreezeWayService {
     const template = Number(data.templateId);
     if (Number.isFinite(template)) body.template_id = template;
 
-    const response = await this.client.post('/inventory/v1/task', body);
-    return response.data;
+    try {
+      const response = await this.client.post('/inventory/v1/task', body);
+      return response.data;
+    } catch (error: any) {
+      // Surface Breezeway's actual validation/error body + what we sent, so a
+      // failed create is diagnosable instead of a bare "status code 500".
+      this.logger.error(
+        `Breezeway createTask ${error?.response?.status ?? '?'}: ` +
+          `${JSON.stringify(error?.response?.data ?? error?.message)} — sent ${JSON.stringify(body)}`,
+      );
+      throw error;
+    }
   }
 
   async getTask(taskId: string) {
