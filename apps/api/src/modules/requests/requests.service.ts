@@ -750,10 +750,15 @@ export class RequestsService {
         metadata: { requestId: request.id, bookingId: request.bookingId },
       });
 
+      // Breezeway returns the task id as a NUMBER; breezeWayTaskId is a string
+      // column, so coerce it — otherwise the update throws and the request is
+      // wrongly left at CONFIRMED even though the task was created.
+      const taskId = task?.id ?? task?.data?.id ?? null;
+
       await this.prisma.experienceRequest.update({
         where: { id: request.id },
         data: {
-          breezeWayTaskId: task.id,
+          breezeWayTaskId: taskId != null ? String(taskId) : undefined,
           breezeWayTaskCreatedAt: new Date(),
           status: 'IN_PROGRESS',
         },
