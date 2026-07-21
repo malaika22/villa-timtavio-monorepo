@@ -12,7 +12,6 @@ import {
   CheckCircle2,
   Send,
   AlertTriangle,
-  BedDouble,
   Pencil,
   X,
   Check,
@@ -81,13 +80,47 @@ export function ManifestDetailSheet({
     );
   };
 
-  const hasAllergies = manifest.guests.some((g) => g.allergies);
+  // ── Party roll-ups for the safety rail ──────────────────────────────────
+  const allergyList = [
+    ...(manifest.primaryGuest.allergies
+      ? [
+          {
+            name: manifest.primaryGuest.firstName,
+            allergy: manifest.primaryGuest.allergies,
+          },
+        ]
+      : []),
+    ...manifest.guests
+      .filter((g) => g.allergies)
+      .map((g) => ({ name: g.firstName, allergy: g.allergies as string })),
+  ];
+  const dietaryCounts = (() => {
+    const map = new Map<string, number>();
+    const add = (arr?: string[] | null) =>
+      (arr ?? []).forEach((d) => map.set(d, (map.get(d) ?? 0) + 1));
+    add(manifest.primaryGuest.dietaryRestrictions);
+    manifest.guests.forEach((g) => add(g.dietaryRestrictions));
+    return [...map.entries()];
+  })();
+  const roomsInUse = manifest.roomSummary.filter(
+    (r) => r.assignedGuests > 0,
+  ).length;
+  const roomsAssigned =
+    manifest.primaryGuest.roomNumber != null &&
+    manifest.guests.every((g) => g.roomNumber != null);
+
+  const markAllPresence = (status: GuestArrivalStatus) => {
+    setPrimaryArrival.mutate(status);
+    manifest.guests.forEach((g) =>
+      setGuestArrival.mutate({ guestId: g.id, status }),
+    );
+  };
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-[640px] overflow-y-auto p-0 bg-[#fdfdfb]"
+        className="w-full sm:max-w-[820px] overflow-y-auto p-0 bg-[#fdfdfb]"
       >
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-[#e8e4de]">
           <div className="flex items-start justify-between gap-3">
@@ -96,106 +129,184 @@ export function ManifestDetailSheet({
                 Guest Manifest
               </SheetTitle>
               <p className="text-sm text-[#8a8178] mt-0.5">
-                {manifest.addedGuests} of {manifest.totalGuests} guests added
+                Casa TimTavio · {manifest.addedGuests} of {manifest.totalGuests}{' '}
+                guests
               </p>
             </div>
             <StatusBadge status={manifest.manifestStatus} />
           </div>
         </SheetHeader>
 
-        <div className="px-6 py-6 space-y-8">
-          {/* Allergy alert */}
-          {hasAllergies && (
-            <div className="flex items-start gap-3 rounded-xl border border-[#f0c4bc] bg-[#fef6f4] px-4 py-3">
-              <AlertTriangle className="size-4 text-[#c53030] shrink-0 mt-0.5" />
-              <p className="text-sm text-[#9a3a30]">
-                <span className="font-semibold">Allergy alerts present.</span>{' '}
-                Review each guest&apos;s allergy details carefully before
-                approval.
-              </p>
-            </div>
-          )}
-
-          {/* Primary guest */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8a8178]">
-              Primary guest
+        {/* Two-column body: roster + summary rail */}
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_290px]">
+          {/* ── Left: roster ── */}
+          <div className="px-6 py-6">
+            <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178] mb-3">
+              Party · {manifest.addedGuests} of {manifest.totalGuests}
             </h3>
-            <PrimaryGuestCard
-              primary={manifest.primaryGuest}
-              roomSummary={manifest.roomSummary}
-              showPresence={showPresence}
-              onSetArrival={(status) => setPrimaryArrival.mutate(status)}
-            />
-          </div>
-
-          {/* Guest list */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8a8178]">
-              Guests ({manifest.guests.length})
-            </h3>
-            {manifest.guests.map((guest) => (
-              <GuestCard
-                key={guest.id}
-                guest={guest}
+            <div className="flex flex-col gap-2.5">
+              <PrimaryGuestCard
+                primary={manifest.primaryGuest}
                 roomSummary={manifest.roomSummary}
-                onResend={
-                  manifest.manifestStatus === 'APPROVED'
-                    ? () => handleResend(guest.id, guest.firstName)
-                    : undefined
-                }
-                resendPending={resendLink.isPending}
-                canEdit={canEdit}
-                onSave={async (dto) => {
-                  await updateGuest.mutateAsync({ guestId: guest.id, dto });
-                  toast.success('Guest updated');
-                }}
-                saving={updateGuest.isPending}
                 showPresence={showPresence}
-                onSetArrival={(status) => handleSetArrival(guest.id, status)}
+                onSetArrival={(status) => setPrimaryArrival.mutate(status)}
               />
-            ))}
+              {manifest.guests.map((guest) => (
+                <GuestCard
+                  key={guest.id}
+                  guest={guest}
+                  roomSummary={manifest.roomSummary}
+                  onResend={
+                    manifest.manifestStatus === 'APPROVED'
+                      ? () => handleResend(guest.id, guest.firstName)
+                      : undefined
+                  }
+                  resendPending={resendLink.isPending}
+                  canEdit={canEdit}
+                  onSave={async (dto) => {
+                    await updateGuest.mutateAsync({ guestId: guest.id, dto });
+                    toast.success('Guest updated');
+                  }}
+                  saving={updateGuest.isPending}
+                  showPresence={showPresence}
+                  onSetArrival={(status) => handleSetArrival(guest.id, status)}
+                />
+              ))}
+            </div>
           </div>
 
-          {/* Room summary */}
-          {manifest.roomSummary.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-widest text-[#8a8178]">
-                Room summary
-              </h3>
-              <div className="grid grid-cols-2 gap-2.5">
-                {manifest.roomSummary.map((room) => (
-                  <div
-                    key={room.roomNumber}
-                    className="rounded-xl border border-[#dce5dc] bg-[#f4f7f4] px-3.5 py-3 flex flex-col gap-1"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <BedDouble className="size-3.5 text-[#4a7c59] shrink-0" />
-                      <p className="text-sm font-medium text-[#1a1614] truncate">
-                        {room.roomName}
-                      </p>
-                    </div>
-                    <p className="text-xs text-[#4a7c59] font-medium">
-                      {room.assignedGuests} / {room.capacity} guests
-                    </p>
-                    <div className="h-1 rounded-full bg-[#dce5dc] overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-[#4a7c59] transition-all"
-                        style={{
-                          width: `${Math.round((room.assignedGuests / room.capacity) * 100)}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
+          {/* ── Right: summary rail ── */}
+          <div className="border-t md:border-t-0 md:border-l border-[#e8e4de] bg-[#faf9f7] px-5 py-6 flex flex-col gap-4">
+            {/* Counts */}
+            <div className="rounded-xl border border-[#e8e4de] bg-white p-4 flex gap-8">
+              <div>
+                <div className="font-cormorant text-2xl leading-none text-[#1a1614]">
+                  {manifest.addedGuests}
+                  <span className="text-base text-[#b3aaa0]"> guests</span>
+                </div>
+                <div className="text-[10px] uppercase tracking-wide text-[#8a8178] mt-1.5">
+                  Incl. primary
+                </div>
+              </div>
+              <div>
+                <div className="font-cormorant text-2xl leading-none text-[#1a1614]">
+                  {roomsInUse}
+                  <span className="text-base text-[#b3aaa0]"> rooms</span>
+                </div>
+                <div className="text-[10px] uppercase tracking-wide text-[#8a8178] mt-1.5">
+                  In use
+                </div>
               </div>
             </div>
-          )}
+
+            {/* Allergies & dietary (aggregated) */}
+            {(allergyList.length > 0 || dietaryCounts.length > 0) && (
+              <div className="rounded-xl border border-[#e8e4de] bg-white p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#c53030]">
+                  ⚠ Allergies &amp; dietary
+                </p>
+                {allergyList.length > 0 && (
+                  <div className="mt-2">
+                    {allergyList.map((a, i) => (
+                      <div
+                        key={i}
+                        className="flex items-baseline justify-between gap-3 border-b border-dashed border-[#f0ece6] py-1.5 text-[13px] last:border-0"
+                      >
+                        <span className="font-semibold text-[#1a1614]">
+                          {a.name}
+                        </span>
+                        <span className="text-right text-[#c53030]">
+                          {a.allergy}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {dietaryCounts.length > 0 && (
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    {dietaryCounts.map(([d, n]) => (
+                      <span
+                        key={d}
+                        className="rounded-full bg-[#e8f1e9] px-2.5 py-0.5 text-[11px] capitalize text-[#3a6448]"
+                      >
+                        {d.replace(/_/g, ' ')} ×{n}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Room occupancy */}
+            {roomsInUse > 0 && (
+              <div className="rounded-xl border border-[#e8e4de] bg-white p-4">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178]">
+                  Room occupancy
+                </p>
+                <div className="mt-2.5 flex flex-col gap-2.5">
+                  {manifest.roomSummary
+                    .filter((r) => r.assignedGuests > 0)
+                    .map((room) => {
+                      const full = room.assignedGuests >= room.capacity;
+                      const pct = Math.min(
+                        100,
+                        Math.round(
+                          (room.assignedGuests / Math.max(room.capacity, 1)) *
+                            100,
+                        ),
+                      );
+                      return (
+                        <div key={room.roomNumber}>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="truncate text-[#4a453f]">
+                              {room.roomName}
+                            </span>
+                            <span className="tabular-nums text-[#8a8178]">
+                              {room.assignedGuests} / {room.capacity}
+                            </span>
+                          </div>
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-[#e8e4de]">
+                            <div
+                              className={cn(
+                                'h-full rounded-full',
+                                full ? 'bg-[#c7a046]' : 'bg-[#4a7c59]',
+                              )}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Footer */}
+        {/* Footer — review (approve) vs. ops (bulk presence) */}
         {manifest.manifestStatus === 'SUBMITTED' && (
-          <div className="sticky bottom-0 px-6 py-4 border-t border-[#e8e4de] bg-[#fdfdfb]">
+          <div className="sticky bottom-0 border-t border-[#e8e4de] bg-[#fdfdfb] px-6 py-4">
+            <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+              <span className="inline-flex items-center gap-1.5 text-[#4a453f]">
+                <Check className="size-3.5 text-[#4a7c59]" />
+                {manifest.addedGuests} of {manifest.totalGuests} guests
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-[#4a453f]">
+                {roomsAssigned ? (
+                  <Check className="size-3.5 text-[#4a7c59]" />
+                ) : (
+                  <AlertTriangle className="size-3.5 text-[#b45309]" />
+                )}
+                Rooms assigned
+              </span>
+              {allergyList.length > 0 && (
+                <span className="inline-flex items-center gap-1.5 text-[#4a453f]">
+                  <AlertTriangle className="size-3.5 text-[#b45309]" />
+                  {allergyList.length}{' '}
+                  {allergyList.length === 1 ? 'allergy' : 'allergies'} to review
+                </span>
+              )}
+            </div>
             <Button
               onClick={handleApprove}
               disabled={approveManifest.isPending}
@@ -203,6 +314,23 @@ export function ManifestDetailSheet({
             >
               <CheckCircle2 className="size-4 shrink-0" strokeWidth={2} />
               {approveManifest.isPending ? 'Approving…' : 'Approve Manifest'}
+            </Button>
+          </div>
+        )}
+        {manifest.manifestStatus === 'APPROVED' && (
+          <div className="sticky bottom-0 flex gap-2 border-t border-[#e8e4de] bg-[#fdfdfb] px-6 py-4">
+            <Button
+              variant="outline"
+              onClick={() => markAllPresence('DEPARTED')}
+              className="h-11 flex-1 rounded-xl border-[#e5e0d8] text-sm font-medium text-[#3d3530]"
+            >
+              Mark all departed
+            </Button>
+            <Button
+              onClick={() => markAllPresence('IN_VILLA')}
+              className="h-11 flex-1 rounded-xl bg-[#4a7c59] text-sm font-medium text-white hover:bg-[#3a6448]"
+            >
+              Mark all in villa
             </Button>
           </div>
         )}
@@ -393,6 +521,17 @@ function GuestCard({
                 Edit
               </button>
             )}
+            {/* Resend link — surfaced inline once the manifest is approved. */}
+            {onResend && (
+              <button
+                onClick={onResend}
+                disabled={resendPending}
+                className="flex items-center gap-1 text-[10px] font-medium text-[#4a7c59] underline underline-offset-2 disabled:opacity-50"
+              >
+                <Send className="size-3" />
+                Resend link
+              </button>
+            )}
             {(hasDietary || hasExtra) && (
               <button
                 onClick={() => setExpanded((v) => !v)}
@@ -457,18 +596,6 @@ function GuestCard({
               </p>
               <p className="text-sm text-[#3d3530]">{guest.specialNotes}</p>
             </div>
-          )}
-          {onResend && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onResend}
-              disabled={resendPending}
-              className="mt-1 h-8 gap-1.5 text-xs font-medium border-[#d4d0c8] text-[#3d3530]"
-            >
-              <Send className="size-3.5" />
-              Resend PWA link
-            </Button>
           )}
         </div>
       )}
