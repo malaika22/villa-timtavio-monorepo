@@ -223,12 +223,16 @@ export class MagicLinkService {
     otp: string,
     email: string,
   ): Promise<{ access_token: string; expires_in: number }> {
+    // Valid within its TTL window (not strictly one-time): email link-scanners
+    // and callback re-renders can touch the URL before the guest does, so we
+    // don't reject a token just because it was already exchanged once — the
+    // 30-min expiry bounds the window and the OTP is private to their inbox.
     const record = await this.prisma.magicToken.findFirst({
-      where: { otp, email, used: false, expiresAt: { gt: new Date() } },
+      where: { otp, email, expiresAt: { gt: new Date() } },
     });
 
     if (!record) {
-      // Invalid / expired / already-used link — a client error, not a 500.
+      // Invalid / expired link — a client error, not a 500.
       throw new UnauthorizedException(
         'This access link is invalid or has expired. Please request a new one.',
       );

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth/useAuthStore';
 import { decodeJwt } from '@/helpers/jwt';
@@ -12,6 +12,9 @@ export default function AuthCallback() {
   const { setUser } = useAuthStore();
   const [status, setStatus] = useState<'loading' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
+  // Ensure the one-time exchange runs exactly once (React can re-invoke the
+  // effect on re-render / fast-refresh, which would consume the OTP twice).
+  const exchangedRef = useRef(false);
 
   const handleOtpExchange = async (otp: string, email: string) => {
     try {
@@ -117,6 +120,9 @@ export default function AuthCallback() {
   };
 
   useEffect(() => {
+    if (exchangedRef.current) return;
+    exchangedRef.current = true;
+
     const code = searchParams.get('code');
     const otp = searchParams.get('otp');
     const email = searchParams.get('email');
