@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { BedDouble, ChevronRight, Sparkles } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
@@ -8,6 +9,7 @@ import { cn } from '@repo/ui/lib/utils';
 import { useManifest } from '@/hooks/useManifest';
 import { usePendingApprovalRequests } from '@/hooks/useRequests';
 import { useAuth } from '@/hooks/useAuth';
+import { RequestDetailView } from '@/components/Status/RequestDetailView';
 
 function expStatusMeta(status: string) {
   switch (status) {
@@ -49,6 +51,7 @@ export const PartyPage = () => {
   const { data: manifest } = useManifest();
   const { data: pending = [] } = usePendingApprovalRequests();
   const { firstName } = useAuth();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const guests = manifest?.guests ?? [];
   const rooms = (manifest?.roomSummary ?? []).filter(
@@ -130,26 +133,35 @@ export const PartyPage = () => {
               return (
                 <li
                   key={exp.id}
-                  className="flex items-center justify-between gap-3 border-b border-[#F0EDE8] px-4 py-3.5 last:border-0"
+                  className="border-b border-[#F0EDE8] last:border-0"
                 >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-[#2B2824]">
-                      {exp.name}
-                    </p>
-                    <p className="mt-0.5 truncate text-[11px] text-[#9A9288]">
-                      {exp.who} · {formatExpWhen(exp)}
-                    </p>
-                  </div>
-                  <span
-                    className={cn(
-                      'shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-medium',
-                      meta.bg,
-                      meta.border,
-                      meta.color,
-                    )}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(exp.id)}
+                    className="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition-colors active:bg-[#FAF8F4]"
                   >
-                    {meta.label}
-                  </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-[#2B2824]">
+                        {exp.name}
+                      </p>
+                      <p className="mt-0.5 truncate text-[11px] text-[#9A9288]">
+                        {exp.who} · {formatExpWhen(exp)}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span
+                        className={cn(
+                          'rounded-full border px-2.5 py-1 text-[10px] font-medium',
+                          meta.bg,
+                          meta.border,
+                          meta.color,
+                        )}
+                      >
+                        {meta.label}
+                      </span>
+                      <ChevronRight className="size-4 text-[#B0AAA0]" />
+                    </div>
+                  </button>
                 </li>
               );
             })}
@@ -219,6 +231,12 @@ export const PartyPage = () => {
           </ul>
         </section>
       )}
+
+      <RequestDetailView
+        open={selectedId !== null}
+        onClose={() => setSelectedId(null)}
+        id={selectedId}
+      />
     </div>
   );
 };

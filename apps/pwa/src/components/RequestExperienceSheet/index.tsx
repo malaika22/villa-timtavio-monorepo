@@ -34,6 +34,9 @@ export function RequestExperienceSheet({
   const [selectedTimeId, setSelectedTimeId] = useState<string | null>(
     preSelectedTimeId,
   );
+  // Free time entry, used when the experience has no preset slots so the guest
+  // can always choose a time (rather than silently defaulting to noon).
+  const [freeTime, setFreeTime] = useState('');
   const [guestCount, setGuestCount] = useState(1);
   const [specialRequests, setSpecialRequests] = useState('');
   const [queuedOffline, setQueuedOffline] = useState(false);
@@ -49,7 +52,7 @@ export function RequestExperienceSheet({
     const timeSlot = detail.availableTimes?.find(
       (t) => t.id === selectedTimeId,
     );
-    const preferredTime = timeSlot?.time ?? '12:00';
+    const preferredTime = timeSlot?.time || freeTime || '12:00';
     const preferredDate = selectedDate
       ? format(selectedDate, 'yyyy-MM-dd')
       : format(new Date(), 'yyyy-MM-dd');
@@ -161,6 +164,21 @@ export function RequestExperienceSheet({
                     </button>
                   ))}
                 </div>
+              </section>
+            )}
+
+            {/* No preset slots — let the guest pick any time */}
+            {(!detail.availableTimes || detail.availableTimes.length === 0) && (
+              <section>
+                <p className="mb-3 text-[9px] font-medium uppercase tracking-[2.8px] text-[#B0AAA0]">
+                  Preferred Time
+                </p>
+                <input
+                  type="time"
+                  value={freeTime}
+                  onChange={(e) => setFreeTime(e.target.value)}
+                  className="h-11 w-full rounded-[12px] border border-[#E3E0DA] bg-white px-4 text-[13px] text-[#2B2824] outline-none focus:border-[#0F1F2E]"
+                />
               </section>
             )}
 
