@@ -250,6 +250,16 @@ export class BookingsService {
       }
     }
 
+    // Snapshot the estate's configured tax/service rates onto the booking at
+    // creation. The folio reads the booking's own rates, so this makes the
+    // Settings → Pricing values actually apply to new stays, while past/settled
+    // bookings keep whatever they were quoted. Falls back to the EstateSettings
+    // defaults (0.16) when the singleton row hasn't been created yet.
+    const pricing = await this.prisma.estateSettings.findUnique({
+      where: { id: 'singleton' },
+      select: { taxRate: true, serviceChargeRate: true },
+    });
+
     const booking = await this.prisma.booking.create({
       data: {
         lodgifyId: String(lodgifyData.id),
@@ -259,6 +269,8 @@ export class BookingsService {
         nights: lodgifyData.nights || 1,
         totalGuests: lodgifyData.people_count || 1,
         baseRate: lodgifyData.total_price || 0,
+        taxRate: pricing?.taxRate ?? 0.16,
+        serviceChargeRate: pricing?.serviceChargeRate ?? 0.16,
         status: 'CONFIRMED',
         manifestStatus: 'INCOMPLETE',
         primaryGuestId: guest.id,
