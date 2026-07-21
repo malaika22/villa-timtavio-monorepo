@@ -90,12 +90,14 @@ export class BreezeWayService {
       scheduled_time: scheduledTime,
     };
 
-    // Breezeway assigns tasks via an array of person ids.
+    // Only send real (positive) ids — Number(null)/Number('') === 0, which is
+    // finite, so a missing template/assignee would otherwise send id 0 and
+    // Breezeway 500s trying to resolve it.
     const assignee = Number(data.assigneeId);
-    if (Number.isFinite(assignee)) body.assignments = [assignee];
+    if (Number.isFinite(assignee) && assignee > 0) body.assignments = [assignee];
 
     const template = Number(data.templateId);
-    if (Number.isFinite(template)) body.template_id = template;
+    if (Number.isFinite(template) && template > 0) body.template_id = template;
 
     try {
       const response = await this.client.post('/inventory/v1/task', body);
