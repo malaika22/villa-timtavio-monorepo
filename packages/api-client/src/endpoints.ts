@@ -159,6 +159,8 @@ export const API = {
     create: (bookingId: string) => `/api/v1/dining/bookings/${bookingId}`,
     confirm: (id: string) => `/api/v1/dining/${id}/confirm`,
     cancel: (id: string) => `/api/v1/dining/${id}/cancel`,
+    sittingTimes: '/api/v1/dining/sitting-times',
+    lateArrival: (id: string) => `/api/v1/dining/${id}/late-arrival`,
   },
   notifications: {
     list: (bookingId: string) => `/api/v1/notifications/bookings/${bookingId}`,

@@ -12,6 +12,34 @@ export interface DiningOrderItem {
   quantity: number;
 }
 
+/** A secondary guest's late-arrival flag against the primary's sitting. */
+export interface DiningLateArrival {
+  email: string;
+  name: string;
+  note?: string | null;
+  allergies?: string | null;
+  /** ISO timestamp the flag was raised. */
+  at: string;
+}
+
+/**
+ * Estate-configured recommended sitting times per meal (24h "HH:MM"), shown to
+ * the primary guest as selectable chips. Empty arrays are allowed.
+ */
+export interface SittingTimes {
+  BREAKFAST: string[];
+  LUNCH: string[];
+  DINNER: string[];
+}
+
+export type UpdateSittingTimesDto = SittingTimes;
+
+/** Payload a secondary guest sends to flag a late arrival to a sitting. */
+export interface AddLateArrivalDto {
+  note?: string;
+  allergies?: string;
+}
+
 export interface DiningRequest {
   id: string;
   bookingId: string;
@@ -32,6 +60,9 @@ export interface DiningRequest {
   items?: DiningOrderItem[] | null;
   requestedFor?: string | null;
   notes?: string | null;
+
+  // SITTING — late arrivals flagged by secondary guests
+  lateArrivals?: DiningLateArrival[] | null;
 
   createdAt: string;
   updatedAt: string;
