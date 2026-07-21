@@ -62,3 +62,15 @@ export function useConfirmCost() {
     },
   });
 }
+
+// QA test affordance — simulate Breezeway completion so the guest READY flow
+// (status + setup photo + notification) can be verified without a field worker.
+export function useMarkReadyTest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => emRequestsApi.markReadyTest(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['requests'] });
+    },
+  });
+}

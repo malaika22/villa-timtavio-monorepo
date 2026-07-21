@@ -22,6 +22,7 @@ import {
   useApproveRequest,
   useDeclineRequest,
   useConfirmCost,
+  useMarkReadyTest,
 } from '@/hooks/useApprovals';
 import { toast } from 'sonner';
 import type { ApprovalQueueItem, ApprovalQueueStatus } from '@/types';
@@ -42,6 +43,7 @@ export const ApprovalsQueueTable = ({
   const approve = useApproveRequest();
   const decline = useDeclineRequest();
   const confirmCost = useConfirmCost();
+  const markReadyTest = useMarkReadyTest();
 
   const [decliningId, setDecliningId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
@@ -271,19 +273,40 @@ export const ApprovalsQueueTable = ({
           // confirmed/in-progress experiences.
           if (row.status === 'Confirmed' || row.status === 'In Progress') {
             return (
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                className={outlineBtn}
-                onClick={() => {
-                  setCostAmount('');
-                  setCostNotes('');
-                  setCostId(row.id);
-                }}
-              >
-                Log cost
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className={outlineBtn}
+                  onClick={() => {
+                    setCostAmount('');
+                    setCostNotes('');
+                    setCostId(row.id);
+                  }}
+                >
+                  Log cost
+                </Button>
+                {/* QA test affordance — simulate Breezeway completion → READY */}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className={outlineBtn}
+                  disabled={
+                    markReadyTest.isPending &&
+                    markReadyTest.variables === row.id
+                  }
+                  onClick={() =>
+                    markReadyTest.mutate(row.id, {
+                      onSuccess: () => toast.success('Marked ready (test)'),
+                      onError: (e) => toast.error((e as Error).message),
+                    })
+                  }
+                >
+                  Mark ready (test)
+                </Button>
+              </div>
             );
           }
           return <span className="text-sm text-manager-text-muted">—</span>;

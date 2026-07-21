@@ -167,4 +167,19 @@ export class RequestsController {
   ) {
     return this.requestsService.confirmCost(id, data, user.auth0Id);
   }
+
+  // ─── QA TEST AFFORDANCE ──────────────────────────────────────────────────
+  // Simulates the Breezeway "task completed" callback so the guest READY flow
+  // (status + setup photo + notification) can be exercised without a field
+  // worker finishing the task in Breezeway. Safe to remove once webhook-tested.
+  @Patch(':id/mark-ready-test')
+  @Roles('estate_manager')
+  markReadyTest(@Param('id') id: string, @Body() body: { photoUrl?: string }) {
+    return this.requestsService.markReady(
+      id,
+      body?.photoUrl ||
+        'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+      'Estate staff (test)',
+    );
+  }
 }
