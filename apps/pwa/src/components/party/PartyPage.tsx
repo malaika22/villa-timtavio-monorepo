@@ -98,9 +98,18 @@ export const PartyPage = () => {
       )}
 
       <section className="space-y-2">
-        <h2 className="text-[10px] font-semibold tracking-[2px] text-[#797168] uppercase">
-          Experiences
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-[10px] font-semibold tracking-[2px] text-[#797168] uppercase">
+            Experiences
+          </h2>
+          <Link
+            href="/status"
+            className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[1.5px] text-[#0F1F2E]"
+          >
+            Live status
+            <ChevronRight className="size-3.5" aria-hidden />
+          </Link>
+        </div>
         {partyExperiences.length === 0 ? (
           <Link
             href="/experiences"

@@ -67,11 +67,14 @@ export class RequestsController {
     @CurrentUser() user: any,
     @Query('filter') filter?: 'active' | 'all' | 'today',
   ) {
-    // Each guest only ever sees their own requests here.
+    // Secondaries see only their own requests; the primary (host) sees the
+    // whole party's, so their Live Status / Party hub is a full overview.
+    const scopeEmail =
+      user?.guestTier === 'secondary' ? user?.email : undefined;
     const requests = await this.requestsService.findByBooking(
       bookingId,
       filter,
-      user?.email,
+      scopeEmail,
     );
     return requests.map((r) => redactForGuest(r, user?.guestTier));
   }
