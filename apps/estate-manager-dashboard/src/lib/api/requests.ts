@@ -19,4 +19,7 @@ export const emRequestsApi = {
     api.patch<ExperienceRequest>(API.requests.decline(id), dto),
   confirmCost: (id: string, dto: ConfirmCostDto) =>
     api.patch<ExperienceRequest>(API.requests.confirmCost(id), dto),
+  // QA test affordance — simulate Breezeway completion → guest READY.
+  markReadyTest: (id: string) =>
+    api.patch<ExperienceRequest>(API.requests.markReadyTest(id), {}),
 };

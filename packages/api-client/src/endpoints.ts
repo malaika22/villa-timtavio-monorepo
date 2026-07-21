@@ -46,6 +46,7 @@ export const API = {
     approve: (id: string) => `/api/v1/requests/${id}/approve`,
     decline: (id: string) => `/api/v1/requests/${id}/decline`,
     confirmCost: (id: string) => `/api/v1/requests/${id}/confirm-cost`,
+    markReadyTest: (id: string) => `/api/v1/requests/${id}/mark-ready-test`,
   },
   folio: {
     dailyRevenue: '/api/v1/folio/daily-revenue',
