@@ -111,6 +111,11 @@ export class ManifestService {
         // come straight from the primary's Guest record.
         roomNumber: booking.primaryRoomNumber,
         arrivalStatus: booking.primaryArrivalStatus,
+        // The primary's own experience requests, so the Party hub can show the
+        // whole party's experiences (primary + secondaries) in one place.
+        experiences: (
+          byEmail.get(booking.primaryGuest.email.toLowerCase()) ?? []
+        ).map(toSummary),
       },
       guests,
       roomSummary,

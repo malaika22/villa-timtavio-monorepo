@@ -1,11 +1,49 @@
 'use client';
 
 import Link from 'next/link';
-import { BedDouble, ChevronRight } from 'lucide-react';
+import { BedDouble, ChevronRight, Sparkles } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { cn } from '@repo/ui/lib/utils';
 
 import { useManifest } from '@/hooks/useManifest';
 import { usePendingApprovalRequests } from '@/hooks/useRequests';
 import { useAuth } from '@/hooks/useAuth';
+
+function expStatusMeta(status: string) {
+  switch (status) {
+    case 'READY':
+      return { label: 'Ready', color: 'text-[#3A5E48]', bg: 'bg-[#EEF5F0]', border: 'border-[#3A5E48]/25' };
+    case 'CONFIRMED':
+    case 'IN_PROGRESS':
+      return {
+        label: status === 'IN_PROGRESS' ? 'In progress' : 'Confirmed',
+        color: 'text-[#3A5E48]',
+        bg: 'bg-[#EEF5F0]',
+        border: 'border-[#3A5E48]/25',
+      };
+    case 'COMPLETED':
+      return { label: 'Completed', color: 'text-[#797168]', bg: 'bg-[#F0EDE6]', border: 'border-[#E3E0DA]' };
+    case 'CANCELLED':
+      return { label: 'Declined', color: 'text-[#B42318]', bg: 'bg-[#FEF6F4]', border: 'border-[#B42318]/25' };
+    default:
+      return { label: 'Pending', color: 'text-[#854F0B]', bg: 'bg-[#FAEEDA]', border: 'border-[#854F0B]/25' };
+  }
+}
+
+function formatExpWhen(exp: {
+  preferredDate: string;
+  preferredTime: string;
+  confirmedDate?: string | null;
+  confirmedTime?: string | null;
+}) {
+  const date = exp.confirmedDate ?? exp.preferredDate;
+  const time = exp.confirmedTime ?? exp.preferredTime;
+  try {
+    return `${format(parseISO(date), 'MMM d')}${time ? ` · ${time}` : ''}`;
+  } catch {
+    return time ?? '';
+  }
+}
 
 export const PartyPage = () => {
   const { data: manifest } = useManifest();
@@ -17,6 +55,18 @@ export const PartyPage = () => {
     (r) => r.assignedGuests > 0,
   );
   const primaryName = manifest?.primaryGuest?.firstName ?? firstName ?? 'You';
+
+  // The whole party's experiences (primary + each secondary), so the host can
+  // track everyone's requests and their live status in one place.
+  const partyExperiences = [
+    ...(manifest?.primaryGuest?.experiences ?? []).map((e) => ({
+      ...e,
+      who: primaryName,
+    })),
+    ...guests.flatMap((g) =>
+      (g.experiences ?? []).map((e) => ({ ...e, who: g.firstName })),
+    ),
+  ];
 
   return (
     <div className="mx-auto max-w-md space-y-6 px-4 pt-6 pb-28">
@@ -46,6 +96,57 @@ export const PartyPage = () => {
           <ChevronRight className="size-5 shrink-0 text-white/70" />
         </Link>
       )}
+
+      <section className="space-y-2">
+        <h2 className="text-[10px] font-semibold tracking-[2px] text-[#797168] uppercase">
+          Experiences
+        </h2>
+        {partyExperiences.length === 0 ? (
+          <Link
+            href="/experiences"
+            className="flex items-center justify-between rounded-2xl border border-dashed border-[#E3D9CD] bg-[#FAF8F4] px-4 py-4"
+          >
+            <div className="flex items-center gap-2.5">
+              <Sparkles className="size-4 text-[#8C7261]" aria-hidden />
+              <p className="text-[12px] text-[#797168]">
+                No experiences requested yet — browse and request.
+              </p>
+            </div>
+            <ChevronRight className="size-4 shrink-0 text-[#B0AAA0]" />
+          </Link>
+        ) : (
+          <ul className="overflow-hidden rounded-2xl border border-[#E3E0DA] bg-white">
+            {partyExperiences.map((exp) => {
+              const meta = expStatusMeta(exp.status);
+              return (
+                <li
+                  key={exp.id}
+                  className="flex items-center justify-between gap-3 border-b border-[#F0EDE8] px-4 py-3.5 last:border-0"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-[#2B2824]">
+                      {exp.name}
+                    </p>
+                    <p className="mt-0.5 truncate text-[11px] text-[#9A9288]">
+                      {exp.who} · {formatExpWhen(exp)}
+                    </p>
+                  </div>
+                  <span
+                    className={cn(
+                      'shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-medium',
+                      meta.bg,
+                      meta.border,
+                      meta.color,
+                    )}
+                  >
+                    {meta.label}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       <section className="space-y-2">
         <h2 className="text-[10px] font-semibold tracking-[2px] text-[#797168] uppercase">
