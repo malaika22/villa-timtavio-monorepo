@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, useWatch } from 'react-hook-form';
-import { ImagePlus, Plus } from 'lucide-react';
+import { ImagePlus, Plus, Star, X } from 'lucide-react';
+import { cn } from '@repo/ui/lib/utils';
 import {
   Button,
   Dialog,
@@ -62,7 +63,6 @@ export const ExperienceFormDialog = ({
   const createItem = useCreateCatalogItem();
   const updateItem = useUpdateCatalogItem();
   const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
   const defaultCategoryId = categories[0]?.id ?? '';
@@ -80,6 +80,7 @@ export const ExperienceFormDialog = ({
       vendorId: '',
       breezeWayTeamId: '',
       primaryPhotoUrl: '',
+      photoUrls: [],
       maxGuestCount: undefined,
       included: '',
       hostName: '',
@@ -117,6 +118,12 @@ export const ExperienceFormDialog = ({
         vendorId: experience.vendorId ?? '',
         breezeWayTeamId: experience.breezeWayTeamId ?? '',
         primaryPhotoUrl: experience.primaryPhotoUrl ?? '',
+        photoUrls:
+          experience.photoUrls && experience.photoUrls.length > 0
+            ? experience.photoUrls
+            : experience.primaryPhotoUrl
+              ? [experience.primaryPhotoUrl]
+              : [],
         maxGuestCount: experience.maxGuestCount ?? undefined,
         included: (experience.included ?? []).join('\n'),
         hostName: experience.hostName ?? '',
@@ -124,7 +131,6 @@ export const ExperienceFormDialog = ({
         hostAvatarUrl: experience.hostAvatarUrl ?? '',
         hostReviewNote: experience.hostReviewNote ?? '',
       });
-      setImagePreview(experience.primaryPhotoUrl ?? null);
     } else {
       form.reset({
         name: '',
@@ -143,8 +149,8 @@ export const ExperienceFormDialog = ({
         hostTitle: '',
         hostAvatarUrl: '',
         hostReviewNote: '',
+        photoUrls: [],
       });
-      setImagePreview(null);
     }
   }
 
@@ -168,7 +174,10 @@ export const ExperienceFormDialog = ({
       isIncluded: values.isIncluded,
       vendorId: values.vendorId || undefined,
       breezeWayTeamId: values.breezeWayTeamId || undefined,
-      primaryPhotoUrl: values.primaryPhotoUrl || undefined,
+      photoUrls: values.photoUrls ?? [],
+      // The primary is always one of the gallery images; fall back to the first.
+      primaryPhotoUrl:
+        values.primaryPhotoUrl || values.photoUrls?.[0] || undefined,
       maxGuestCount: values.maxGuestCount,
       included: (values.included ?? '')
         .split('\n')
@@ -190,17 +199,29 @@ export const ExperienceFormDialog = ({
     onOpenChange(false);
   });
 
-  const handleImageChange = async (
+  const photoUrls = useWatch({ control: form.control, name: 'photoUrls' }) ?? [];
+  const primaryPhotoUrl =
+    useWatch({ control: form.control, name: 'primaryPhotoUrl' }) ?? '';
+
+  const handleImagesChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(event.target.files ?? []);
+    if (files.length === 0) return;
     setUploadingImage(true);
     try {
-      const url = await uploadImage(file, 'experiences');
-      form.setValue('primaryPhotoUrl', url, { shouldValidate: true });
-      setImagePreview(url);
-      toast.success('Image uploaded');
+      const urls = await Promise.all(
+        files.map((file) => uploadImage(file, 'experiences')),
+      );
+      const next = [...photoUrls, ...urls];
+      form.setValue('photoUrls', next, { shouldValidate: true });
+      // First image uploaded becomes the primary/cover by default.
+      if (!primaryPhotoUrl && next.length > 0) {
+        form.setValue('primaryPhotoUrl', next[0], { shouldValidate: true });
+      }
+      toast.success(
+        `${urls.length} image${urls.length === 1 ? '' : 's'} uploaded`,
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Upload failed');
     } finally {
@@ -208,6 +229,17 @@ export const ExperienceFormDialog = ({
       event.target.value = '';
     }
   };
+
+  const removeImage = (url: string) => {
+    const next = photoUrls.filter((u) => u !== url);
+    form.setValue('photoUrls', next, { shouldValidate: true });
+    if (primaryPhotoUrl === url) {
+      form.setValue('primaryPhotoUrl', next[0] ?? '', { shouldValidate: true });
+    }
+  };
+
+  const setPrimary = (url: string) =>
+    form.setValue('primaryPhotoUrl', url, { shouldValidate: true });
 
   const isPending = createItem.isPending || updateItem.isPending;
 
@@ -266,34 +298,77 @@ export const ExperienceFormDialog = ({
               />
 
               <FormItem>
-                <FormLabel>Experience image</FormLabel>
-                <div className="flex items-start gap-4">
-                  <div className="flex size-24 items-center justify-center overflow-hidden rounded-lg border border-dashed border-manager-border bg-[#faf8f5]">
-                    {imagePreview ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={imagePreview}
-                        alt="Experience preview"
-                        className="size-full object-cover"
-                      />
-                    ) : (
-                      <ImagePlus className="size-6 text-manager-text-muted" />
+                <FormLabel>Experience images</FormLabel>
+                <div className="flex flex-wrap gap-3">
+                  {photoUrls.map((url) => {
+                    const isPrimary = url === primaryPhotoUrl;
+                    return (
+                      <div
+                        key={url}
+                        className={cn(
+                          'group relative size-24 overflow-hidden rounded-lg border bg-[#faf8f5]',
+                          isPrimary
+                            ? 'border-manager-accent ring-2 ring-manager-accent/40'
+                            : 'border-manager-border',
+                        )}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={url}
+                          alt="Experience"
+                          className="size-full object-cover"
+                        />
+                        {isPrimary ? (
+                          <span className="absolute inset-x-0 bottom-0 bg-manager-accent/90 py-0.5 text-center text-[9px] font-semibold uppercase tracking-wide text-white">
+                            Primary
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setPrimary(url)}
+                            title="Set as primary"
+                            className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-black/55 py-0.5 text-[9px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100"
+                          >
+                            <Star className="size-3" /> Set primary
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(url)}
+                          title="Remove image"
+                          className="absolute right-1 top-1 flex size-5 items-center justify-center rounded-full bg-black/55 text-white opacity-0 transition-opacity hover:bg-black/75 group-hover:opacity-100"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+
+                  <label
+                    className={cn(
+                      'flex size-24 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-manager-border bg-[#faf8f5] text-manager-text-muted transition-colors hover:border-manager-accent/50',
+                      uploadingImage && 'cursor-not-allowed opacity-60',
                     )}
-                  </div>
-                  <div className="space-y-2">
-                    <Input
+                  >
+                    <input
                       type="file"
                       accept="image/*"
-                      onChange={handleImageChange}
+                      multiple
+                      onChange={handleImagesChange}
                       disabled={uploadingImage}
+                      className="hidden"
                     />
-                    <FormDescription>
-                      {uploadingImage
-                        ? 'Uploading…'
-                        : 'Upload a cover image for this experience card.'}
-                    </FormDescription>
-                  </div>
+                    <ImagePlus className="size-6" />
+                    <span className="text-[10px]">
+                      {uploadingImage ? 'Uploading…' : 'Add images'}
+                    </span>
+                  </label>
                 </div>
+                <FormDescription>
+                  Upload one or more photos. The image marked{' '}
+                  <span className="font-medium">Primary</span> is the card cover;
+                  the rest form the guest gallery.
+                </FormDescription>
               </FormItem>
 
               <FormField
