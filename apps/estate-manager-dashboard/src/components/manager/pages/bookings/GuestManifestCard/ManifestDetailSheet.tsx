@@ -120,7 +120,12 @@ export function ManifestDetailSheet({
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-[820px] overflow-y-auto p-0 bg-[#fdfdfb]"
+        // NB: the base SheetContent applies `data-[side=right]:w-3/4` and
+        // `data-[side=right]:sm:max-w-sm` — attribute-selector rules that
+        // out-specify plain width utilities. Use `!` so our width actually
+        // wins (otherwise the sheet renders at 384px and the right rail
+        // overflows off-screen). overflow-x-hidden is a belt-and-braces clip.
+        className="w-full! sm:max-w-[820px]! overflow-y-auto overflow-x-hidden p-0 bg-[#fdfdfb]"
       >
         <SheetHeader className="px-6 pt-6 pb-4 border-b border-[#e8e4de]">
           <div className="flex items-start justify-between gap-3">
@@ -137,10 +142,12 @@ export function ManifestDetailSheet({
           </div>
         </SheetHeader>
 
-        {/* Two-column body: roster + summary rail */}
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_290px]">
+        {/* Two-column body: roster + summary rail.
+            minmax(0,1fr) (not 1fr) lets the left track shrink below its
+            content's min-width so the fixed 290px rail never forces overflow. */}
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_290px]">
           {/* ── Left: roster ── */}
-          <div className="px-6 py-6">
+          <div className="min-w-0 px-6 py-6">
             <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178] mb-3">
               Party · {manifest.addedGuests} of {manifest.totalGuests}
             </h3>
