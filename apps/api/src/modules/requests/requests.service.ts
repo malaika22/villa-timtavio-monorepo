@@ -293,7 +293,11 @@ export class RequestsService {
 
   // ─── All other methods remain the same as before ──────────────────────────
 
-  async findByBooking(bookingId: string, filter?: 'active' | 'all' | 'today') {
+  async findByBooking(
+    bookingId: string,
+    filter?: 'active' | 'all' | 'today',
+    requestedByEmail?: string,
+  ) {
     const now = new Date();
     const todayStart = new Date(
       now.getFullYear(),
@@ -303,6 +307,15 @@ export class RequestsService {
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
 
     const where: any = { bookingId };
+
+    // Scope to the requesting guest's OWN experiences — each guest's Status /
+    // Orders shows only what they requested, never the rest of the party's.
+    if (requestedByEmail) {
+      where.requestedByEmail = {
+        equals: requestedByEmail,
+        mode: 'insensitive',
+      };
+    }
 
     if (filter === 'active') {
       where.status = { in: ['PENDING', 'CONFIRMED', 'IN_PROGRESS', 'READY'] };

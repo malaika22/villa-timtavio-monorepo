@@ -67,7 +67,12 @@ export class RequestsController {
     @CurrentUser() user: any,
     @Query('filter') filter?: 'active' | 'all' | 'today',
   ) {
-    const requests = await this.requestsService.findByBooking(bookingId, filter);
+    // Each guest only ever sees their own requests here.
+    const requests = await this.requestsService.findByBooking(
+      bookingId,
+      filter,
+      user?.email,
+    );
     return requests.map((r) => redactForGuest(r, user?.guestTier));
   }
 
