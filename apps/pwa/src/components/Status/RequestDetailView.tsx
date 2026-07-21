@@ -34,7 +34,13 @@ export const RequestDetailView = ({
   onClose,
   id,
 }: RequestDetailViewProps) => {
-  const { data: apiRequest } = useRequestById(id);
+  const { data: apiRequest, isLoading } = useRequestById(id);
+  // While the request is still loading we must not fall through to the
+  // "not found" branch (which flashed on reload).
+  const loading = !!id && isLoading && !apiRequest;
+  // The setup photo captured on completion (Breezeway task photo, or the QA
+  // sample). Rendered in the Setup Preview when present.
+  const setupPhotoUrl = apiRequest?.setupPhotoUrl ?? null;
 
   const mockRequest =
     id != null ? STATUS_MOCK_DATA.find((r) => r.id === id) : null;
@@ -91,7 +97,14 @@ export const RequestDetailView = ({
 
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto px-4 py-5 flex flex-col gap-5">
-          {!request || !detail ? (
+          {loading ? (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 py-20">
+              <div className="size-6 animate-spin rounded-full border-2 border-[#D9D5CE] border-t-[#2B2824]" />
+              <p className="text-[11px] uppercase tracking-[2px] text-[#9A9288]">
+                Loading…
+              </p>
+            </div>
+          ) : !request || !detail ? (
             <div className="flex flex-col items-center justify-center flex-1 gap-3 py-20">
               <p className="text-[13px] text-[#9A9288]">Request not found.</p>
               <DrawerClose asChild>
@@ -153,11 +166,23 @@ export const RequestDetailView = ({
                 <p className="mb-3 text-[8px] font-semibold uppercase tracking-[2px] text-[#9A9288]">
                   Setup Preview
                 </p>
-                <div className="rounded-[10px] overflow-hidden bg-[#141410] h-[160px] flex items-center justify-center">
-                  <p className="text-[9px] font-medium uppercase tracking-[2px] text-[#4A4840]">
-                    {detail.setupPreviewPlaceholder ??
-                      'Photo will appear when ready'}
-                  </p>
+                <div className="relative rounded-[10px] overflow-hidden bg-[#141410] h-[160px] flex items-center justify-center">
+                  {setupPhotoUrl ? (
+                    // Plain img — the photo can be hosted on any external CDN
+                    // (Breezeway / Cloudinary), so we skip next/image's domain
+                    // allow-list.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={setupPhotoUrl}
+                      alt="Setup preview"
+                      className="absolute inset-0 size-full object-cover"
+                    />
+                  ) : (
+                    <p className="text-[9px] font-medium uppercase tracking-[2px] text-[#4A4840]">
+                      {detail.setupPreviewPlaceholder ??
+                        'Photo will appear when ready'}
+                    </p>
+                  )}
                 </div>
                 {detail.setupBy && (
                   <p className="mt-2 text-[8px] uppercase tracking-[1.4px] text-[#9A9288]">

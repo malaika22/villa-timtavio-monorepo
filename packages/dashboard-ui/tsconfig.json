@@ -3,6 +3,10 @@
   "compilerOptions": {
     "outDir": "dist",
     "baseUrl": ".",
+    // Only auto-include the type packages we use, so a stray/deprecated
+    // @types/* stub in node_modules (e.g. @types/minimatch, which has no
+    // .d.ts) can't break `tsc`/`turbo check-types`.
+    "types": ["react", "react-dom"],
     "paths": {
       "@repo/ui": ["../ui/src/index.ts"],
       "@repo/ui/*": ["../ui/src/*"]

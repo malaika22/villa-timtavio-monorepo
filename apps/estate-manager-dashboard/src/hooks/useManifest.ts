@@ -3,6 +3,7 @@ import { emManifestApi } from '@/lib/api/manifest';
 import type {
   UpdateManifestGuestDto,
   GuestArrivalStatus,
+  ManifestResponse,
 } from '@repo/api-types';
 
 export function useManifest(bookingId: string | null) {
@@ -32,6 +33,7 @@ export function useUpdateManifestGuest(bookingId: string) {
 
 export function useSetGuestArrivalStatus(bookingId: string) {
   const queryClient = useQueryClient();
+  const key = ['manifest', bookingId];
   return useMutation({
     mutationFn: ({
       guestId,
@@ -40,19 +42,52 @@ export function useSetGuestArrivalStatus(bookingId: string) {
       guestId: string;
       status: GuestArrivalStatus;
     }) => emManifestApi.setGuestArrivalStatus(bookingId, guestId, status),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['manifest', bookingId] });
+    // Reflect the change instantly, then reconcile — so the pill responds on tap.
+    onMutate: async ({ guestId, status }) => {
+      await queryClient.cancelQueries({ queryKey: key });
+      const prev = queryClient.getQueryData<ManifestResponse>(key);
+      queryClient.setQueryData<ManifestResponse>(key, (old) =>
+        old
+          ? {
+              ...old,
+              guests: old.guests.map((g) =>
+                g.id === guestId ? { ...g, arrivalStatus: status } : g,
+              ),
+            }
+          : old,
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(key, ctx.prev);
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: key });
     },
   });
 }
 
 export function useSetPrimaryArrivalStatus(bookingId: string) {
   const queryClient = useQueryClient();
+  const key = ['manifest', bookingId];
   return useMutation({
     mutationFn: (status: GuestArrivalStatus) =>
       emManifestApi.setPrimaryArrivalStatus(bookingId, status),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['manifest', bookingId] });
+    onMutate: async (status) => {
+      await queryClient.cancelQueries({ queryKey: key });
+      const prev = queryClient.getQueryData<ManifestResponse>(key);
+      queryClient.setQueryData<ManifestResponse>(key, (old) =>
+        old
+          ? { ...old, primaryGuest: { ...old.primaryGuest, arrivalStatus: status } }
+          : old,
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(key, ctx.prev);
+    },
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: key });
     },
   });
 }
