@@ -29,7 +29,7 @@ export const FolioLineItems = ({ data }: FolioLineItemsProps) => {
   const grandTotal = totals.grandTotal ?? totals.subtotal + tax + service;
 
   return (
-    <div className="flex flex-col bg-[#F5F0E8]">
+    <div className="flex flex-1 flex-col bg-[#F5F0E8]">
       {/* Tab bar */}
       <div className="bg-white border-b border-[#E3E0DA] flex">
         {FOLIO_TABS.map((tab) => (
