@@ -18,6 +18,19 @@ export function toLinkedInUrl(handle?: string | null): string | null {
   return `https://www.linkedin.com/in/${slug}`;
 }
 
+/** "View <platform>" label derived from the social URL, so an Instagram link
+ *  isn't labelled "View LinkedIn". Falls back to a generic label. */
+export function socialLinkLabel(url?: string | null): string {
+  if (!url) return 'View profile';
+  const u = url.toLowerCase();
+  if (u.includes('instagram.com')) return 'View Instagram';
+  if (u.includes('linkedin.com')) return 'View LinkedIn';
+  if (u.includes('twitter.com') || u.includes('x.com')) return 'View X';
+  if (u.includes('facebook.com') || u.includes('fb.com')) return 'View Facebook';
+  if (u.includes('tiktok.com')) return 'View TikTok';
+  return 'View profile';
+}
+
 export function formatInquiryDateRange(inquiry: Inquiry): string {
   if (!inquiry.preferredFrom) return 'Dates flexible';
   try {

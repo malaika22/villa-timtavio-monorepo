@@ -10,7 +10,7 @@ import { InquiryDeleteButton } from '@/components/manager/pages/inquiries/Inquir
 import { InquiryPostApprovalPanel } from '@/components/manager/pages/inquiries/InquiryPostApprovalPanel';
 import { InquiryVettingPanel } from '@/components/manager/pages/inquiries/InquiryVettingPanel';
 import { useInquiry } from '@/hooks/useInquiries';
-import { toLinkedInUrl } from '@/lib/inquiry-utils';
+import { toLinkedInUrl, socialLinkLabel } from '@/lib/inquiry-utils';
 import { PURPOSE_LABEL, STATUS_PILL } from '../InquiriesPage/constants';
 
 function formatDate(iso?: string | null) {
@@ -53,10 +53,12 @@ function DetailRow({
   label,
   value,
   href,
+  linkLabel = 'View',
 }: {
   label: string;
   value?: string | null;
   href?: string | null;
+  linkLabel?: string;
 }) {
   return (
     <div className="flex items-start justify-between gap-4 py-3">
@@ -68,7 +70,7 @@ function DetailRow({
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1 text-right text-sm font-medium text-manager-accent hover:underline"
         >
-          View LinkedIn →
+          {linkLabel} →
           <ExternalLink className="size-3.5" />
         </a>
       ) : (
@@ -176,6 +178,7 @@ export function InquiryDetailPage({ id }: { id: string }) {
             label="Social profile"
             value={inquiry.socialHandle}
             href={linkedInUrl}
+            linkLabel={socialLinkLabel(linkedInUrl)}
           />
           <DetailRow label="Received" value={formatDate(inquiry.createdAt)} />
         </div>
