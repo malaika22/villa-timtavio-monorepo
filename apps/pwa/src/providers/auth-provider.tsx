@@ -13,6 +13,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // The /auth/callback route owns the sign-in flow (OTP exchange → fresh
+    // session). Don't bootstrap from a possibly-stale localStorage token here,
+    // or we race the callback and flash "/link-expired" (from an old, expired
+    // token) before the new session lands. Let the callback finish.
+    if (window.location.pathname.startsWith('/auth/callback')) {
+      setLoading(false);
+      return;
+    }
+
     const token = localStorage.getItem('access_token');
 
     if (!token) {
