@@ -126,6 +126,7 @@ export const ManifestPage = () => {
   const removeGuest = useRemoveManifestGuest();
   const submitManifest = useSubmitManifest();
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingGuest, setEditingGuest] = useState<ManifestGuest | null>(null);
@@ -183,10 +184,15 @@ export const ManifestPage = () => {
 
   const handleSubmit = async () => {
     if (!canSubmit || isSubmitting) return;
+    setSubmitError(null);
     setIsSubmitting(true);
     try {
       await submitManifest.mutateAsync();
       router.push('/guest-submitted');
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error ? err.message : 'Could not submit the guest list.',
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -431,6 +437,11 @@ export const ManifestPage = () => {
       {/* ─── Sticky action bar (only when there's an action) ────── */}
       {!isLocked && (
         <div className="fixed bottom-[72px] left-0 right-0 z-20 px-4 pb-3 pt-4 bg-gradient-to-t from-[#F0EDE6] via-[#F0EDE6]/95 to-transparent">
+          {submitError && (
+            <p className="mb-2 rounded-[10px] border border-[#E4B7B2] bg-[#FBEEEA] px-3 py-2 text-center text-[11px] font-medium text-[#9A3A30]">
+              {submitError}
+            </p>
+          )}
           <AnimatePresence>
             {canSubmit && (
               <motion.div
