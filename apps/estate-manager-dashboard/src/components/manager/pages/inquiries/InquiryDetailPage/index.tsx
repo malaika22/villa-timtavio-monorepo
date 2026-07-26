@@ -10,7 +10,7 @@ import { InquiryDeleteButton } from '@/components/manager/pages/inquiries/Inquir
 import { InquiryPostApprovalPanel } from '@/components/manager/pages/inquiries/InquiryPostApprovalPanel';
 import { InquiryVettingPanel } from '@/components/manager/pages/inquiries/InquiryVettingPanel';
 import { useInquiry } from '@/hooks/useInquiries';
-import { toLinkedInUrl, socialLinkLabel } from '@/lib/inquiry-utils';
+import { toSocialUrl, socialLinkLabel } from '@/lib/inquiry-utils';
 import { PURPOSE_LABEL, STATUS_PILL } from '../InquiriesPage/constants';
 
 function formatDate(iso?: string | null) {
@@ -109,7 +109,7 @@ export function InquiryDetailPage({ id }: { id: string }) {
   }
 
   const pill = STATUS_PILL[inquiry.status];
-  const linkedInUrl = toLinkedInUrl(inquiry.socialHandle);
+  const socialUrl = toSocialUrl(inquiry.socialHandle);
   const messageFields = inquiry.message
     ? parseStructuredMessage(inquiry.message)
     : null;
@@ -177,8 +177,8 @@ export function InquiryDetailPage({ id }: { id: string }) {
           <DetailRow
             label="Social profile"
             value={inquiry.socialHandle}
-            href={linkedInUrl}
-            linkLabel={socialLinkLabel(linkedInUrl)}
+            href={socialUrl}
+            linkLabel={socialLinkLabel(socialUrl)}
           />
           <DetailRow label="Received" value={formatDate(inquiry.createdAt)} />
         </div>
