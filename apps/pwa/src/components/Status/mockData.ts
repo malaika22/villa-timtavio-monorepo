@@ -22,6 +22,10 @@ export interface StatusRequest {
   progressLabel?: string;
   /** Which tabs this request should appear in */
   tabs: StatusTabId[];
+  /** Requester's display name (first name), used for party attribution */
+  requestedByName?: string;
+  /** Requester's email — compared to the viewer's to render "You" */
+  requestedByEmail?: string;
 }
 
 export type RequestTimelineStepState = 'completed' | 'active' | 'pending';

@@ -169,7 +169,9 @@ export function mapToCurrentBooking(
     guestCount: manifestGuests.filter((g) => g.roomNumber === n).length,
   }));
 
-  const added = manifestGuests.length;
+  // Count the primary too (they're always part of the party but aren't a
+  // ManifestGuest), so this matches the manifest drawer's "N of N guests".
+  const added = manifestGuests.length + 1;
   const total = detail.totalGuests;
   const roomsUsed = roomNumbers.length;
 
