@@ -33,11 +33,12 @@ const PARTY: FooterLink = { label: 'Party', href: '/party', Icon: Users };
 
 export function getFooterLinks(isSecondary: boolean): FooterLink[] {
   // Secondary: Home · Explore · Orders · Status.
-  // Primary: Home · Explore · Folio · Party (Party replaces the standalone
-  // Status tab — it houses approvals + the party overview).
+  // Primary: Home · Explore · Status · Party. Both tiers get a Status tab (the
+  // entry point for tracking requests); the primary's priced Folio moves to a
+  // card on Home. Party keeps approvals + the party overview.
   return isSecondary
     ? [HOME, EXPLORE, MY_ORDERS, STATUS]
-    : [HOME, EXPLORE, FOLIO, PARTY];
+    : [HOME, EXPLORE, STATUS, PARTY];
 }
 
 export const FOOTER_LINKS = getFooterLinks(false);

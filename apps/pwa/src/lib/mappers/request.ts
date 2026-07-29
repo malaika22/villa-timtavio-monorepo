@@ -85,6 +85,8 @@ export function mapRequestToStatusRequest(
       'READY',
       'COMPLETED',
     ].includes(req.status),
+    requestedByName: req.requestedByName,
+    requestedByEmail: req.requestedByEmail,
   };
 }
 
