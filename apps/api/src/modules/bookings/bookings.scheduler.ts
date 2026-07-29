@@ -20,25 +20,44 @@ export class BookingsScheduler implements OnModuleInit {
     );
   }
 
-  // ─── Send magic links 24 hours before check-in (runs hourly) ─────────────
+  // ─── Send pre-arrival magic links (catch-up window, runs every 30 min) ────
+  // Any active booking checking in within the next 24h — INCLUDING same-day /
+  // last-minute bookings — that hasn't had a primary link sent yet. Previously
+  // this was a narrow 24–25h band, so a booking made <24h before check-in was
+  // never picked up. A primary MagicToken existing for the booking is the
+  // "already sent" marker, so nothing re-sends.
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_30_MINUTES)
   async sendPreArrivalLinks() {
     const now = new Date();
     const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const in25h = new Date(now.getTime() + 25 * 60 * 60 * 1000);
 
-    const bookings = await this.prisma.booking.findMany({
+    const candidates = await this.prisma.booking.findMany({
       where: {
         status: 'CONFIRMED',
-        checkIn: { gte: in24h, lt: in25h },
+        checkIn: { lte: in24h },
+        checkOut: { gt: now },
       },
       include: { primaryGuest: true },
     });
+    if (candidates.length === 0) return;
 
-    this.logger.log(`Pre-arrival scheduler: found ${bookings.length} bookings`);
+    // "Already sent" = a primary MagicToken exists for the booking.
+    const sent = await this.prisma.magicToken.findMany({
+      where: {
+        bookingId: { in: candidates.map((b) => b.id) },
+        guestTier: 'primary',
+      },
+      select: { bookingId: true },
+    });
+    const alreadySent = new Set(sent.map((t) => t.bookingId));
+    const pending = candidates.filter((b) => !alreadySent.has(b.id));
 
-    for (const booking of bookings) {
+    this.logger.log(
+      `Pre-arrival scheduler: ${candidates.length} within 24h, ${pending.length} need a link`,
+    );
+
+    for (const booking of pending) {
       await this.magicLinkService.sendMagicLink({
         email: booking.primaryGuest.email,
         firstName: booking.primaryGuest.firstName,
