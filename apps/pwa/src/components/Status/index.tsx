@@ -12,9 +12,9 @@ import { mapRequestToStatusRequest } from '@/lib/mappers/request';
 import type { StatusRequest } from './mockData';
 
 export const Status = () => {
-  // Status is the live tracker for the whole stay — it opens on what's in
-  // progress right now (My Orders is the personal, full-history view instead).
-  const [activeTab, setActiveTab] = useState<StatusTabId>('active');
+  // Status is the live tracker for the whole stay — open on ALL by default so
+  // the guest sees everything (active + upcoming), not just what's in progress.
+  const [activeTab, setActiveTab] = useState<StatusTabId>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { data: apiRequests, isLoading } = useBookingRequests();
