@@ -25,28 +25,43 @@ export class RoomsService {
   }
 
   async findWithAvailability(bookingId: string) {
-    const rooms = await this.prisma.room.findMany({
-      orderBy: { number: 'asc' },
-      include: {
-        manifestGuests: {
-          where: { bookingId },
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
+    const [booking, rooms] = await Promise.all([
+      this.prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { primaryRoomNumber: true },
+      }),
+      this.prisma.room.findMany({
+        orderBy: { number: 'asc' },
+        include: {
+          manifestGuests: {
+            where: { bookingId },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
           },
         },
-      },
-    });
+      }),
+    ]);
 
-    return rooms.map(({ manifestGuests, ...room }) => ({
-      ...room,
-      assignedGuests: manifestGuests,
-      assignedCount: manifestGuests.length,
-      availableCapacity: room.capacity - manifestGuests.length,
-      isFull: manifestGuests.length >= room.capacity,
-    }));
+    // The primary isn't a ManifestGuest — their room lives on the booking — so
+    // count it toward occupancy, otherwise the primary's own suite still shows
+    // its full capacity as available.
+    const primaryRoom = booking?.primaryRoomNumber ?? null;
+
+    return rooms.map(({ manifestGuests, ...room }) => {
+      const assigned =
+        manifestGuests.length + (primaryRoom === room.number ? 1 : 0);
+      return {
+        ...room,
+        assignedGuests: manifestGuests,
+        assignedCount: assigned,
+        availableCapacity: room.capacity - assigned,
+        isFull: assigned >= room.capacity,
+      };
+    });
   }
 
   async create(dto: CreateRoomDto) {

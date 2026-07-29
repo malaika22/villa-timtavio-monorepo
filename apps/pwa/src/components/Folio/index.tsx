@@ -48,7 +48,7 @@ export const Folio = () => {
   }
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-1 flex-col">
       <FolioHeader data={folioMeta} />
       <FolioLineItems data={folioMeta} />
     </div>
