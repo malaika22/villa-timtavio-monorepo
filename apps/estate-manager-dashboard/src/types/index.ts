@@ -1,4 +1,4 @@
-import { BookingStatus } from '@repo/api-types';
+import { BookingStatus, PriceUnit } from '@repo/api-types';
 
 export type GuestStayStatus =
   | 'Settled'
@@ -91,6 +91,14 @@ export type ApprovalQueueItem = {
   status: ApprovalQueueStatus;
   declineReason?: string | null;
   conflictReason?: string | null;
+  /**
+   * Estimate the guest was shown and the primary approved. The quote dialog
+   * measures the entered figure against this, since landing materially above it
+   * sends the quote back to the primary instead of straight to the folio.
+   */
+  estimatedMin?: number | null;
+  estimatedMax?: number | null;
+  priceUnitCode?: string | null;
 };
 
 export type CurrentGuest = {
@@ -251,7 +259,12 @@ export type ContentExperience = {
   capacity: string;
   duration: string;
   durationMinutes?: number | null;
+  /** Estimated rate — single estimate, or the low end when priceMax is set. */
   basePrice?: number | null;
+  /** High end of a published estimate range. */
+  priceMax?: number | null;
+  priceUnitId?: string | null;
+  priceUnit?: PriceUnit | null;
   vendorId?: string | null;
   breezeWayTeamId?: string | null;
   primaryPhotoUrl?: string | null;

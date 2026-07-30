@@ -4,11 +4,13 @@ import type {
   CreateCatalogItemDto,
   UpdateCatalogItemDto,
   Recommendation,
+  PriceUnit,
 } from '@repo/api-types';
 
 export const emCatalogApi = {
   adminAll: () => api.get<CatalogItem[]>(API.catalog.adminAll),
   recommendations: () => api.get<Recommendation[]>(API.catalog.recommendations),
+  priceUnits: () => api.get<PriceUnit[]>(API.catalog.priceUnits),
   createRecommendation: (data: Partial<Recommendation>) =>
     api.post<Recommendation>(API.catalog.recommendations, data),
   updateRecommendation: (id: string, data: Partial<Recommendation>) =>

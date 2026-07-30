@@ -113,7 +113,12 @@ function useInvalidateApprovals() {
     void queryClient.invalidateQueries({
       queryKey: ['requests', bookingId, 'pending-approval'],
     });
+    void queryClient.invalidateQueries({
+      queryKey: ['requests', bookingId, 'pending-quote-approval'],
+    });
     void queryClient.invalidateQueries({ queryKey: ['requests', bookingId] });
+    // Approving a quote posts the charge, so the folio total moves too.
+    void queryClient.invalidateQueries({ queryKey: ['folio', bookingId] });
   };
 }
 
@@ -121,6 +126,37 @@ export function usePrimaryApprove() {
   const invalidate = useInvalidateApprovals();
   return useMutation({
     mutationFn: (id: string) => requestsApi.primaryApprove(id),
+    onSuccess: invalidate,
+  });
+}
+
+/**
+ * Revised quotes awaiting a second primary approval — the concierge's final
+ * figure landed materially above the estimate the primary originally approved.
+ */
+export function usePendingQuoteApprovals() {
+  const bookingId = useBookingId();
+  const { isPrimary } = useAuth();
+  return useQuery({
+    queryKey: ['requests', bookingId, 'pending-quote-approval'],
+    queryFn: () => requestsApi.pendingQuoteApproval(bookingId!),
+    enabled: !!bookingId && isPrimary,
+  });
+}
+
+export function useApproveQuote() {
+  const invalidate = useInvalidateApprovals();
+  return useMutation({
+    mutationFn: (id: string) => requestsApi.approveQuote(id),
+    onSuccess: invalidate,
+  });
+}
+
+export function useDeclineQuote() {
+  const invalidate = useInvalidateApprovals();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      requestsApi.declineQuote(id, reason),
     onSuccess: invalidate,
   });
 }

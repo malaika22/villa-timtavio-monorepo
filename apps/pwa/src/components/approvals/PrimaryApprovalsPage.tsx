@@ -14,11 +14,15 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@repo/ui/components/sheet';
+import { formatRateRange } from '@repo/api-types';
 import type { ExperienceRequest } from '@repo/api-types';
 
 import { useAuth } from '@/hooks/useAuth';
 import {
+  useApproveQuote,
+  useDeclineQuote,
   usePendingApprovalRequests,
+  usePendingQuoteApprovals,
   usePrimaryApprove,
   usePrimaryDecline,
 } from '@/hooks/useRequests';
@@ -33,9 +37,16 @@ function formatWhen(req: ExperienceRequest) {
   }
 }
 
-function formatPrice(value?: number | null) {
-  if (value == null) return null;
-  return `$${Number(value).toLocaleString()}`;
+/**
+ * The estimate snapshotted when the guest submitted, so it already reflects
+ * their party size (and any published range). Falls back to the catalog rate for
+ * requests made before estimates were recorded.
+ */
+function formatEstimate(req: ExperienceRequest) {
+  if (req.estimatedMin != null) {
+    return formatRateRange(req.estimatedMin, req.estimatedMax);
+  }
+  return formatRateRange(req.catalogItem?.basePrice, req.catalogItem?.priceMax);
 }
 
 export const PrimaryApprovalsPage = () => {
@@ -45,6 +56,10 @@ export const PrimaryApprovalsPage = () => {
 
   const approve = usePrimaryApprove();
   const decline = usePrimaryDecline();
+
+  const { data: quoteApprovals = [] } = usePendingQuoteApprovals();
+  const approveQuote = useApproveQuote();
+  const declineQuote = useDeclineQuote();
 
   const [decliningId, setDecliningId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
@@ -83,8 +98,90 @@ export const PrimaryApprovalsPage = () => {
 
       <p className="mb-4 text-[11px] leading-[1.5] text-[#797168]">
         Paid experiences requested by your party need your approval before the
-        estate confirms them.
+        estate confirms them. Prices shown are estimates — the estate confirms
+        the final quote before booking.
       </p>
+
+      {/* Revised quotes: the estate's final figure came in above the estimate
+          approved earlier, so it needs a second confirmation before it's
+          charged. Sits above the queue because money is already committed. */}
+      {isPrimary && quoteApprovals.length > 0 && (
+        <section className="mb-5 flex flex-col gap-3">
+          <p className="text-[9px] font-semibold uppercase tracking-[1.5px] text-[#8A6D3B]">
+            Revised quotes · needs your confirmation
+          </p>
+          {quoteApprovals.map((req) => {
+            const busy =
+              (approveQuote.isPending && approveQuote.variables === req.id) ||
+              (declineQuote.isPending &&
+                declineQuote.variables?.id === req.id);
+            return (
+              <article
+                key={req.id}
+                className="overflow-hidden rounded-[14px] border border-[#B08D57]/45 bg-[#FBF3DF] p-4"
+              >
+                <h2 className="font-cormorant text-[18px] font-semibold leading-tight text-[#2B2824]">
+                  {req.catalogItem?.name ?? 'Experience'}
+                </h2>
+                <p className="mt-0.5 text-[10px] uppercase tracking-[1.5px] text-[#9A9288]">
+                  Requested by {req.requestedByName}
+                </p>
+
+                <div className="mt-3 flex items-end justify-between gap-3 border-t border-[#B08D57]/30 pt-3">
+                  <span className="flex flex-col gap-0.5">
+                    <span className="text-[9px] font-semibold uppercase tracking-[1.3px] text-[#8A6D3B]">
+                      You approved
+                    </span>
+                    <span className="text-[13px] tabular-nums text-[#797168] line-through">
+                      ≈ {formatEstimate(req)}
+                    </span>
+                  </span>
+                  <span className="flex flex-col items-end gap-0.5">
+                    <span className="text-[9px] font-semibold uppercase tracking-[1.3px] text-[#8A6D3B]">
+                      Final quote
+                    </span>
+                    <span className="font-cormorant text-[22px] leading-none tabular-nums text-[#2B2824]">
+                      {formatRateRange(req.quotedCost)}
+                    </span>
+                  </span>
+                </div>
+
+                <p className="mt-2.5 text-[10.5px] leading-snug text-[#797168]">
+                  Nothing is charged until you confirm. Declining cancels the
+                  experience.
+                </p>
+
+                <div className="mt-3.5 flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => approveQuote.mutate(req.id)}
+                    disabled={busy}
+                    className="h-10 flex-1 rounded-[10px] bg-[#1A1A18] text-[10px] font-semibold uppercase tracking-[1.5px] text-white hover:bg-[#2B2824]"
+                  >
+                    {approveQuote.isPending &&
+                    approveQuote.variables === req.id ? (
+                      <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                    ) : (
+                      <Check className="mr-1.5 size-3.5" />
+                    )}
+                    Approve quote
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => declineQuote.mutate({ id: req.id })}
+                    disabled={busy}
+                    className="h-10 flex-1 rounded-[10px] border-[#D8D3C9] bg-white text-[10px] font-semibold uppercase tracking-[1.5px] text-[#2B2824]"
+                  >
+                    <X className="mr-1.5 size-3.5" />
+                    Decline
+                  </Button>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      )}
 
       {!isPrimary ? (
         <EmptyState
@@ -115,7 +212,7 @@ export const PrimaryApprovalsPage = () => {
           }}
         >
           {requests.map((req) => {
-            const price = formatPrice(req.catalogItem?.basePrice);
+            const estimate = formatEstimate(req);
             const busy =
               (approve.isPending && approve.variables === req.id) ||
               (decline.isPending && decliningId === req.id);
@@ -137,9 +234,14 @@ export const PrimaryApprovalsPage = () => {
                       Requested by {req.requestedByName}
                     </p>
                   </div>
-                  {price ? (
-                    <span className="shrink-0 rounded-full bg-[#0F1F2E] px-2.5 py-1 text-[11px] font-semibold text-white">
-                      {price}
+                  {estimate ? (
+                    <span className="flex shrink-0 flex-col items-end gap-0.5">
+                      <span className="rounded-full bg-[#0F1F2E] px-2.5 py-1 text-[11px] font-semibold tabular-nums text-white">
+                        ≈ {estimate}
+                      </span>
+                      <span className="text-[8px] font-bold uppercase tracking-[1.2px] text-[#8A6D3B]">
+                        Estimate
+                      </span>
                     </span>
                   ) : null}
                 </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { formatRateRange } from '@repo/api-types';
 import type { Experience } from '@/types/experience';
 import { ExperienceStatus } from '@/types/experienceStatus';
 import { ExperienceStatusChip } from '@/components/ExperienceStatusChip';
@@ -29,6 +30,10 @@ export const ExperienceCatalogCard = ({
   onClick?: () => void;
 }) => {
   const { category, title, image, status } = experience;
+  const rateLabel = formatRateRange(
+    experience.rate?.basePrice,
+    experience.rate?.priceMax,
+  );
   const isLocked = status === ExperienceStatus.LOCKED_PRE_ARRIVAL;
   const isAvailable = status === ExperienceStatus.AVAILABLE;
   const isCompleted = status === ExperienceStatus.COMPLETED;
@@ -119,6 +124,28 @@ export const ExperienceCatalogCard = ({
             {durationLabel(experience)}
           </span>
         </div>
+
+        {/* Rate carries its unit and is tagged as an estimate — the concierge
+            confirms the hard quote before anything is booked. */}
+        {experience.isIncluded ? (
+          <span className="mt-2 w-fit rounded-[3px] bg-[#3F8F4A]/[0.14] px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-[1.3px] text-[#2E6B39]">
+            Included
+          </span>
+        ) : rateLabel ? (
+          <div className="mt-2 flex flex-wrap items-baseline gap-1.5">
+            <span className="text-[13px] font-semibold tabular-nums text-[#8A6D3B]">
+              {rateLabel}
+            </span>
+            {experience.rate?.priceUnit?.shortLabel ? (
+              <span className="text-[9px] font-semibold uppercase tracking-[0.6px] text-[#8A6D3B]/80">
+                {experience.rate.priceUnit.shortLabel}
+              </span>
+            ) : null}
+            <span className="rounded-[3px] bg-[#B08D57]/[0.16] px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-[1.3px] text-[#8A6D3B]">
+              Estimate
+            </span>
+          </div>
+        ) : null}
 
         {/* Footer / CTA — understated, theme-consistent */}
         <div className="mt-3 border-t border-[#EAE6DF] pt-2.5">

@@ -70,5 +70,8 @@ export function mapRequestToApprovalItem(
     status: STATUS_MAP[req.status] ?? 'Pending',
     declineReason: req.declineReason ?? null,
     conflictReason: req.conflictReason ?? null,
+    estimatedMin: req.estimatedMin ?? null,
+    estimatedMax: req.estimatedMax ?? null,
+    priceUnitCode: req.priceUnitCode ?? null,
   };
 }

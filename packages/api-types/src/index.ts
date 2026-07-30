@@ -18,3 +18,4 @@ export type * from './settings';
 export * from './analytics';
 export * from './notifications';
 export * from './dining';
+export * from './pricing';

@@ -35,10 +35,11 @@ function redactForGuest(req: any, tier?: string) {
   void _bwId;
   void _bwAt;
   void _staff;
-  // Secondary guests never see pricing.
-  if (tier === 'secondary' || tier === 'SECONDARY') {
-    delete rest.confirmedCost;
-  }
+  void tier;
+  // Secondary guests DO see pricing on their own requests — they're asking the
+  // primary to spend money and are settled with afterwards, so the estimate and
+  // final cost have to be visible to them. findByBooking already scopes a
+  // secondary to their own requests, so this never exposes the party's spend.
   return rest;
 }
 
@@ -102,6 +103,37 @@ export class RequestsController {
     @CurrentUser() user: any,
   ) {
     return this.requestsService.primaryDecline(
+      id,
+      user.email,
+      user.bookingId,
+      reason,
+    );
+  }
+
+  // Primary member — revised quotes awaiting a second approval because they
+  // came in materially above the estimate the primary originally approved.
+  @Get('bookings/:bookingId/pending-quote-approval')
+  @Roles('primary_member')
+  getPendingQuoteApproval(@Param('bookingId') bookingId: string) {
+    return this.requestsService.getPendingQuoteApproval(bookingId);
+  }
+
+  // Primary member — approve a revised quote (this is what creates the charge)
+  @Post(':id/approve-quote')
+  @Roles('primary_member')
+  approveQuote(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.requestsService.approveQuote(id, user.email, user.bookingId);
+  }
+
+  // Primary member — decline a revised quote; nothing reaches the folio
+  @Post(':id/decline-quote')
+  @Roles('primary_member')
+  declineQuote(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.requestsService.declineQuote(
       id,
       user.email,
       user.bookingId,

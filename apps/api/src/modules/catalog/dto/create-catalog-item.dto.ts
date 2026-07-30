@@ -75,9 +75,19 @@ export class CreateCatalogItemDto {
   @IsString()
   experienceCategoryId?: string;
 
+  /** Estimated rate — the single estimate, or the low end when priceMax is set. */
   @IsOptional()
   @IsNumber()
   basePrice?: number;
+
+  /** High end of an estimate range. Omit for a single estimate. */
+  @IsOptional()
+  @IsNumber()
+  priceMax?: number;
+
+  @IsOptional()
+  @IsString()
+  priceUnitId?: string;
 
   @IsOptional()
   @IsString()

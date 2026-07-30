@@ -21,6 +21,12 @@ import {
 import { derivePrimaryRoomNumber } from '../../common/booking-room.util';
 import { getErrorMessage } from '../../commons/utils/error.util';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  computeEstimate,
+  formatPrice,
+  quoteNeedsReapproval,
+  toNumber,
+} from '../../common/pricing.util';
 
 @Injectable()
 export class RequestsService {
@@ -49,10 +55,25 @@ export class RequestsService {
 
     const catalogItem = await this.prisma.catalogItem.findUnique({
       where: { id: dto.catalogItemId },
+      include: { priceUnit: true },
     });
     if (!catalogItem) throw new NotFoundException('Experience not found');
     if (!catalogItem.isActive) {
       throw new BadRequestException('Experience is not available');
+    }
+
+    // guestCount multiplies a per-person rate, so it's a money input — bound it
+    // server-side rather than trusting the client's stepper.
+    if (dto.guestCount < 1) {
+      throw new BadRequestException('At least one guest must be attending');
+    }
+    if (
+      catalogItem.maxGuestCount != null &&
+      dto.guestCount > catalogItem.maxGuestCount
+    ) {
+      throw new BadRequestException(
+        `${catalogItem.name} takes up to ${catalogItem.maxGuestCount} guests`,
+      );
     }
 
     // Check for duplicate active request
@@ -75,6 +96,18 @@ export class RequestsService {
     const isSecondary = requestedBy.tier === 'secondary';
     const requiresPrimaryApproval = isSecondary && !catalogItem.isIncluded;
 
+    // Snapshot the estimate the guest was shown, so later catalog edits can't
+    // rewrite the figure the primary approved — and so the hard quote has a
+    // fixed number to be measured against.
+    const estimate = computeEstimate(
+      {
+        basePrice: toNumber(catalogItem.basePrice),
+        priceMax: toNumber(catalogItem.priceMax),
+        priceUnit: catalogItem.priceUnit,
+      },
+      { guestCount: dto.guestCount, nights: booking.nights },
+    );
+
     const request = await this.prisma.experienceRequest.create({
       data: {
         bookingId,
@@ -91,8 +124,11 @@ export class RequestsService {
         status: 'PENDING',
         requiresPrimaryApproval,
         primaryApproved: !requiresPrimaryApproval, // auto-approved if primary member
+        estimatedMin: estimate?.min ?? null,
+        estimatedMax: estimate?.max ?? null,
+        priceUnitCode: estimate?.unitCode ?? null,
       },
-      include: { catalogItem: true },
+      include: { catalogItem: { include: { priceUnit: true } } },
     });
 
     await this.prisma.auditLog.create({
@@ -194,7 +230,7 @@ export class RequestsService {
         primaryApprovedAt: new Date(),
         primaryApprovedBy: approvedBy,
       },
-      include: { catalogItem: true },
+      include: { catalogItem: { include: { priceUnit: true } } },
     });
 
     // Now notify Rodrigo — the request enters his queue
@@ -285,7 +321,7 @@ export class RequestsService {
         status: 'PENDING',
       },
       include: {
-        catalogItem: true,
+        catalogItem: { include: { priceUnit: true } },
       },
       orderBy: { createdAt: 'asc' },
     });
@@ -416,7 +452,7 @@ export class RequestsService {
     return this.prisma.experienceRequest.findMany({
       where: { status: { in: ['CONFIRMED', 'IN_PROGRESS', 'READY'] } },
       include: {
-        catalogItem: true,
+        catalogItem: { include: { priceUnit: true } },
         booking: { include: { primaryGuest: true } },
       },
       orderBy: { preferredDate: 'asc' },
@@ -497,7 +533,7 @@ export class RequestsService {
           conflictReason: conflict.reason,
         },
         include: {
-          catalogItem: true,
+          catalogItem: { include: { priceUnit: true } },
           booking: { include: { primaryGuest: true } },
         },
       });
@@ -530,7 +566,7 @@ export class RequestsService {
         conflictReason: null,
       },
       include: {
-        catalogItem: true,
+        catalogItem: { include: { priceUnit: true } },
         booking: { include: { primaryGuest: true } },
       },
     });
@@ -615,21 +651,238 @@ export class RequestsService {
   ) {
     const request = await this.findOne(id);
 
+    // The guest approved an ESTIMATE. If Rodrigo's hard quote lands materially
+    // above it, park the quote and send it back to the primary rather than
+    // billing a number they never agreed to. Within tolerance it goes straight
+    // through, so ordinary drift doesn't nag anyone.
+    const estimateMax = toNumber(request.estimatedMax);
+    if (quoteNeedsReapproval(data.confirmedCost, estimateMax)) {
+      return this.parkQuoteForReapproval(id, data, confirmedBy, estimateMax!);
+    }
+
     await this.prisma.experienceRequest.update({
       where: { id },
-      data: { confirmedCost: data.confirmedCost, emNotes: data.emNotes },
+      data: {
+        confirmedCost: data.confirmedCost,
+        emNotes: data.emNotes,
+        quotedCost: data.confirmedCost,
+        quoteApprovalRequired: false,
+      },
     });
+
+    return this.postConfirmedCost(id, data.confirmedCost, confirmedBy);
+  }
+
+  /**
+   * Hold a quote that exceeds the approved estimate. No folio item is created —
+   * nothing is charged until the primary confirms the revised figure.
+   */
+  private async parkQuoteForReapproval(
+    id: string,
+    data: { confirmedCost: number; emNotes?: string },
+    quotedBy: string,
+    estimateMax: number,
+  ) {
+    const request = await this.findOne(id);
+
+    await this.prisma.experienceRequest.update({
+      where: { id },
+      data: {
+        quotedCost: data.confirmedCost,
+        quoteApprovalRequired: true,
+        quoteApprovedAt: null,
+        quoteApprovedBy: null,
+        emNotes: data.emNotes,
+      },
+    });
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: request.bookingId },
+      include: { primaryGuest: true },
+    });
+
+    if (booking) {
+      await this.notificationsService.send({
+        bookingId: request.bookingId,
+        recipientEmail: booking.primaryGuest.email,
+        type: 'REQUEST_CONFIRMED',
+        title: 'Revised quote needs your approval',
+        body: `${request.catalogItem.name} is quoted at ${formatPrice(
+          data.confirmedCost,
+        )}, above the ${formatPrice(estimateMax)} estimate — tap to approve.`,
+        deepLink: '/approvals',
+      });
+    }
+
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'EXPERIENCE_CONFIRMED',
+        entityType: 'ExperienceRequest',
+        entityId: id,
+        performedBy: quotedBy,
+        performedByRole: 'estate_manager',
+        bookingId: request.bookingId,
+        metadata: {
+          action: 'quote_awaiting_reapproval',
+          quotedCost: data.confirmedCost,
+          estimateMax,
+        } as any,
+      },
+    });
+
+    this.logger.log(
+      `Quote ${formatPrice(data.confirmedCost)} on request ${id} exceeds the ${formatPrice(estimateMax)} estimate — awaiting primary re-approval`,
+    );
+
+    return {
+      success: true,
+      quoteApprovalRequired: true,
+      quotedCost: data.confirmedCost,
+      estimateMax,
+    };
+  }
+
+  /**
+   * The primary confirms a revised quote that came in above their approved
+   * estimate. Only now does the charge reach the folio.
+   */
+  async approveQuote(requestId: string, approvedBy: string, bookingId: string) {
+    const request = await this.findOne(requestId);
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { primaryGuest: true },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    if (booking.primaryGuest.email !== approvedBy) {
+      throw new ForbiddenException(
+        'Only the primary member can approve a revised quote',
+      );
+    }
+    if (!request.quoteApprovalRequired) {
+      throw new BadRequestException(
+        'This request has no revised quote awaiting approval',
+      );
+    }
+
+    const quoted = toNumber(request.quotedCost);
+    if (quoted == null) {
+      throw new BadRequestException('No quote recorded for this request');
+    }
+
+    await this.prisma.experienceRequest.update({
+      where: { id: requestId },
+      data: {
+        confirmedCost: quoted,
+        quoteApprovalRequired: false,
+        quoteApprovedAt: new Date(),
+        quoteApprovedBy: approvedBy,
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'EXPERIENCE_CONFIRMED',
+        entityType: 'ExperienceRequest',
+        entityId: requestId,
+        performedBy: approvedBy,
+        performedByRole: 'primary_member',
+        bookingId,
+        metadata: { action: 'quote_approved', quotedCost: quoted } as any,
+      },
+    });
+
+    return this.postConfirmedCost(requestId, quoted, approvedBy);
+  }
+
+  /**
+   * The primary rejects the revised quote — the experience is cancelled and
+   * nothing reaches the folio.
+   */
+  async declineQuote(
+    requestId: string,
+    declinedBy: string,
+    bookingId: string,
+    reason?: string,
+  ) {
+    const request = await this.findOne(requestId);
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { primaryGuest: true },
+    });
+    if (booking?.primaryGuest.email !== declinedBy) {
+      throw new ForbiddenException(
+        'Only the primary member can decline a revised quote',
+      );
+    }
+    if (!request.quoteApprovalRequired) {
+      throw new BadRequestException(
+        'This request has no revised quote awaiting approval',
+      );
+    }
+
+    const updated = await this.prisma.experienceRequest.update({
+      where: { id: requestId },
+      data: {
+        status: 'CANCELLED',
+        statusUpdatedAt: new Date(),
+        quoteApprovalRequired: false,
+        declineReason: reason || 'Revised quote declined by primary member',
+      },
+    });
+
+    await this.notificationsService.send({
+      bookingId,
+      recipientEmail: request.requestedByEmail,
+      type: 'REQUEST_CANCELLED',
+      title: 'Request update',
+      body: `${request.catalogItem.name} was not booked — the final quote wasn't approved`,
+      deepLink: `/status/${requestId}`,
+    });
+
+    await this.pusherService.experienceStatusChanged(bookingId, {
+      requestId,
+      status: 'CANCELLED',
+    });
+
+    return updated;
+  }
+
+  /** Requests holding a revised quote the primary still needs to act on. */
+  async getPendingQuoteApproval(bookingId: string) {
+    return this.prisma.experienceRequest.findMany({
+      where: {
+        bookingId,
+        quoteApprovalRequired: true,
+        status: { notIn: ['CANCELLED', 'COMPLETED'] },
+      },
+      include: { catalogItem: { include: { priceUnit: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /** Folio item + realtime + primary notification, once a cost is agreed. */
+  private async postConfirmedCost(
+    id: string,
+    confirmedCost: number,
+    loggedBy: string,
+  ) {
+    const request = await this.findOne(id);
 
     const folio = await this.prisma.folioItem.create({
       data: {
         bookingId: request.bookingId,
         type: 'EXPERIENCE',
         description: request.catalogItem.name,
-        amount: data.confirmedCost,
+        amount: confirmedCost,
         quantity: 1,
+        // The requester carries the charge — this is what lets the primary see
+        // what each of their guests spent and settle up independently.
         attributedToEmail: request.requestedByEmail,
         attributedToName: request.requestedByName,
-        loggedBy: confirmedBy,
+        loggedBy,
         loggedAt: new Date(),
         editableUntil: new Date(Date.now() + 30 * 60 * 1000),
         experienceRequest: {
@@ -647,9 +900,9 @@ export class RequestsService {
       newItem: {
         id: folio.id,
         description: request.catalogItem.name,
-        amount: Number(data.confirmedCost),
+        amount: confirmedCost,
         quantity: 1,
-        total: Number(data.confirmedCost),
+        total: confirmedCost,
         type: 'EXPERIENCE',
       },
     });
@@ -666,7 +919,7 @@ export class RequestsService {
         recipientEmail: booking.primaryGuest.email,
         type: 'CHARGE_ADDED',
         title: 'Charge added to folio',
-        body: `${request.catalogItem.name} — $${data.confirmedCost}`,
+        body: `${request.catalogItem.name} — ${formatPrice(confirmedCost)}`,
         deepLink: '/folio',
       });
     }
@@ -686,7 +939,7 @@ export class RequestsService {
         setupCompletedAt: new Date(),
         staffMemberName: staffName,
       },
-      include: { catalogItem: true },
+      include: { catalogItem: { include: { priceUnit: true } } },
     });
 
     await this.notificationsService.send({
@@ -717,7 +970,7 @@ export class RequestsService {
   async findByBreezeWayTaskId(taskId: string) {
     return this.prisma.experienceRequest.findUnique({
       where: { breezeWayTaskId: taskId },
-      include: { catalogItem: true },
+      include: { catalogItem: { include: { priceUnit: true } } },
     });
   }
 

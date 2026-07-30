@@ -1,6 +1,7 @@
 'use client';
 import { useFolio } from '@/hooks/useFolio';
 import { mapFolioItemToUI, mapFolioResponseToMeta } from '@/lib/mappers/folio';
+import { FolioByGuest } from './FolioByGuest';
 import { FolioHeader } from './FolioHeader';
 import { FolioLineItems } from './FolioLineItems';
 import type { FolioItem, FolioMeta as MockFolioMeta } from './mockData';
@@ -50,6 +51,11 @@ export const Folio = () => {
   return (
     <div className="flex flex-1 flex-col">
       <FolioHeader data={folioMeta} />
+      {folioData?.byGuest ? (
+        <div className="bg-[#F5F0E8] pt-4">
+          <FolioByGuest byGuest={folioData.byGuest} />
+        </div>
+      ) : null}
       <FolioLineItems data={folioMeta} />
     </div>
   );

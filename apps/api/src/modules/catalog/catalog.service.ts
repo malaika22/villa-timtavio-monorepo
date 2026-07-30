@@ -38,7 +38,7 @@ export class CatalogService {
 
   constructor(private prisma: PrismaService) {}
 
-  // ─── Guest PWA: Get active catalog (no prices) ───────────────────────────────
+  // ─── Guest PWA: Get active catalog (prices are ESTIMATES) ────────────────────
 
   async findAllActive(category?: CatalogCategory) {
     return this.prisma.catalogItem.findMany({
@@ -48,6 +48,7 @@ export class CatalogService {
         ...(category && { category }),
       },
       include: {
+        priceUnit: true,
         experienceCategory: { select: { id: true, name: true } },
         vendor: {
           select: {
@@ -63,11 +64,25 @@ export class CatalogService {
     });
   }
 
+  // ─── Price units ──────────────────────────────────────────────────────────────
+
+  /**
+   * Active price units, ordered for display. A lookup rather than an enum so the
+   * estate can add a unit (e.g. "per night") without a deploy.
+   */
+  async findPriceUnits() {
+    return this.prisma.priceUnit.findMany({
+      where: { isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { label: 'asc' }],
+    });
+  }
+
   // ─── Get included services only ───────────────────────────────────────────────
 
   async findIncluded() {
     return this.prisma.catalogItem.findMany({
       where: { isActive: true, isIncluded: true, deletedAt: null },
+      include: { priceUnit: true },
       orderBy: { sortOrder: 'asc' },
     });
   }
@@ -77,7 +92,7 @@ export class CatalogService {
   async findAll(category?: CatalogCategory) {
     return this.prisma.catalogItem.findMany({
       where: { deletedAt: null, ...(category && { category }) },
-      include: { vendor: true, experienceCategory: true },
+      include: { vendor: true, experienceCategory: true, priceUnit: true },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
   }
@@ -88,6 +103,7 @@ export class CatalogService {
       include: {
         vendor: true,
         experienceCategory: true,
+        priceUnit: true,
         experienceRequests: {
           select: {
             id: true,
@@ -134,7 +150,7 @@ export class CatalogService {
   async create(dto: CreateCatalogItemDto, createdBy: string) {
     const item = await this.prisma.catalogItem.create({
       data: { ...dto, createdBy },
-      include: { vendor: true, experienceCategory: true },
+      include: { vendor: true, experienceCategory: true, priceUnit: true },
     });
 
     await this.prisma.auditLog.create({
@@ -157,7 +173,7 @@ export class CatalogService {
     const item = await this.prisma.catalogItem.update({
       where: { id },
       data: dto,
-      include: { vendor: true },
+      include: { vendor: true, priceUnit: true },
     });
 
     await this.prisma.auditLog.create({

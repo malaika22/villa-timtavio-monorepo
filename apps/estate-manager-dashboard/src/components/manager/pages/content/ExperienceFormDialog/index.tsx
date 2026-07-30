@@ -34,6 +34,7 @@ import {
 import { VendorFormDialog } from '@/components/manager/pages/content/VendorFormDialog';
 import {
   useCreateCatalogItem,
+  usePriceUnits,
   useUpdateCatalogItem,
 } from '@/hooks/useCatalogAdmin';
 import { useExperienceCategories } from '@/hooks/useExperienceCategories';
@@ -47,6 +48,7 @@ import {
   experienceFormSchema,
   type ExperienceFormValues,
 } from '@/lib/schemas/experience';
+import { computeEstimate, formatEstimateWorking } from '@repo/api-types';
 import { toast } from 'sonner';
 import { uploadImage } from '@/lib/upload';
 import { ExperienceFormDialogProps } from './types';
@@ -60,6 +62,7 @@ export const ExperienceFormDialog = ({
   const { data: categories = [] } = useExperienceCategories();
   const { data: vendors = [] } = useVendors();
   const { data: staff = [] } = useBreezewayStaff();
+  const { data: priceUnits = [] } = usePriceUnits();
   const createItem = useCreateCatalogItem();
   const updateItem = useUpdateCatalogItem();
   const [vendorDialogOpen, setVendorDialogOpen] = useState(false);
@@ -76,6 +79,8 @@ export const ExperienceFormDialog = ({
       durationMinutes: 60,
       durationLabel: '1 hr',
       basePrice: undefined,
+      priceMax: undefined,
+      priceUnitId: '',
       isIncluded: false,
       vendorId: '',
       breezeWayTeamId: '',
@@ -114,6 +119,8 @@ export const ExperienceFormDialog = ({
         durationMinutes: experience.durationMinutes ?? 60,
         durationLabel: experience.duration,
         basePrice: experience.basePrice ?? undefined,
+        priceMax: experience.priceMax ?? undefined,
+        priceUnitId: experience.priceUnitId ?? '',
         isIncluded: experience.pricing === 'included',
         vendorId: experience.vendorId ?? '',
         breezeWayTeamId: experience.breezeWayTeamId ?? '',
@@ -139,6 +146,8 @@ export const ExperienceFormDialog = ({
         durationMinutes: 60,
         durationLabel: '1 hr',
         basePrice: undefined,
+        priceMax: undefined,
+        priceUnitId: '',
         isIncluded: false,
         vendorId: '',
         breezeWayTeamId: '',
@@ -156,6 +165,27 @@ export const ExperienceFormDialog = ({
 
   const isIncluded = useWatch({ control: form.control, name: 'isIncluded' });
 
+  // Show Rodrigo the rate exactly as a guest will read it while he types.
+  const watchedBasePrice = useWatch({ control: form.control, name: 'basePrice' });
+  const watchedPriceMax = useWatch({ control: form.control, name: 'priceMax' });
+  const watchedPriceUnitId = useWatch({
+    control: form.control,
+    name: 'priceUnitId',
+  });
+  const estimatePreview = useMemo(() => {
+    const unit = priceUnits.find((u) => u.id === watchedPriceUnitId);
+    const estimate = computeEstimate({
+      basePrice: watchedBasePrice,
+      priceMax: watchedPriceMax,
+      priceUnit: unit,
+    });
+    if (!estimate) return '';
+    return formatEstimateWorking(
+      { basePrice: watchedBasePrice, priceMax: watchedPriceMax, priceUnit: unit },
+      estimate,
+    );
+  }, [priceUnits, watchedPriceUnitId, watchedBasePrice, watchedPriceMax]);
+
   const onSubmit = form.handleSubmit(async (values) => {
     const category = categories.find(
       (item) => item.id === values.experienceCategoryId,
@@ -171,6 +201,8 @@ export const ExperienceFormDialog = ({
       durationMinutes: values.durationMinutes,
       durationLabel,
       basePrice: values.isIncluded ? undefined : values.basePrice,
+      priceMax: values.isIncluded ? undefined : values.priceMax,
+      priceUnitId: values.isIncluded ? undefined : values.priceUnitId || undefined,
       isIncluded: values.isIncluded,
       vendorId: values.vendorId || undefined,
       breezeWayTeamId: values.breezeWayTeamId || undefined,
@@ -466,36 +498,104 @@ export const ExperienceFormDialog = ({
               />
 
               {!isIncluded ? (
-                <FormField
-                  control={form.control}
-                  name="basePrice"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Price (USD)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          placeholder="0.00"
+                <>
+                  <FormField
+                    control={form.control}
+                    name="priceUnitId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Priced</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
                           value={field.value ?? ''}
-                          onChange={(event) =>
-                            field.onChange(
-                              event.target.value
-                                ? Number(event.target.value)
-                                : undefined,
-                            )
-                          }
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Reference price for estate managers. Lodgify manages
-                        guest billing.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a unit" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {priceUnits.map((unit) => (
+                              <SelectItem key={unit.id} value={unit.id}>
+                                {unit.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Per person multiplies by the number of guests
+                          attending; group and event are flat.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="basePrice"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Estimate from (USD)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              placeholder="0.00"
+                              value={field.value ?? ''}
+                              onChange={(event) =>
+                                field.onChange(
+                                  event.target.value
+                                    ? Number(event.target.value)
+                                    : undefined,
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="priceMax"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Up to (optional)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              placeholder="Leave empty"
+                              value={field.value ?? ''}
+                              onChange={(event) =>
+                                field.onChange(
+                                  event.target.value
+                                    ? Number(event.target.value)
+                                    : undefined,
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormDescription>
+                    Guests see this as an <strong>estimate</strong> —
+                    {estimatePreview
+                      ? ` “${estimatePreview}”. `
+                      : ' '}
+                    Fill in “Up to” to publish a range when pricing varies with
+                    season or group size. The hard quote is set when you confirm
+                    the request.
+                  </FormDescription>
+                </>
               ) : null}
 
               <FormField

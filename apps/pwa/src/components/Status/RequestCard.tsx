@@ -48,6 +48,17 @@ export function RequestCard({ request, onSelect }: RequestCardProps) {
         {request.date} · {request.time} · {request.meta}
       </p>
 
+      {request.costLabel && (
+        <p className="mt-1.5 flex items-baseline gap-1.5">
+          <span className="text-[13px] font-semibold tabular-nums text-[#8A6D3B]">
+            {request.costIsEstimate ? `≈ ${request.costLabel}` : request.costLabel}
+          </span>
+          <span className="text-[8.5px] font-bold uppercase tracking-[1.3px] text-[#8A6D3B]/85">
+            {request.costIsEstimate ? 'Estimate' : 'Confirmed'}
+          </span>
+        </p>
+      )}
+
       {whoLabel && (
         <div className="mt-1.5 flex items-center gap-1.5">
           <span

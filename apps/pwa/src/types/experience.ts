@@ -1,3 +1,4 @@
+import type { PriceRate } from '@repo/api-types';
 import { ExperienceStatus } from './experienceStatus';
 
 export type ExperienceCatalogFilter =
@@ -27,6 +28,13 @@ export interface Experience {
    * Use LOCKED_PRE_ARRIVAL for pre-check-in locked catalog items.
    */
   status: ExperienceStatus;
+  /**
+   * Published estimate for the card. Always an estimate — pricing varies with
+   * group size and season and the concierge confirms the hard quote.
+   */
+  rate?: PriceRate;
+  /** Complimentary experience — shown as "Included" instead of a rate. */
+  isIncluded?: boolean;
 }
 
 export interface ExperienceHost {
@@ -59,8 +67,15 @@ export interface ExperienceDetailData {
   availableDate?: string;
   availableTimes?: ExperienceTimeSlot[];
   maxGuests?: number;
-  /** Price unit label, e.g. "per villa" */
+  /** Legacy display label, e.g. "per villa". Prefer `rate` for new surfaces. */
   priceUnit?: string;
   /** Base price used in request flow summary */
   basePrice?: number;
+  /**
+   * The published estimate: rate, optional range high-end, and the unit it's
+   * quoted in. Always an estimate — the concierge confirms the hard quote.
+   */
+  rate?: PriceRate;
+  /** True when the experience is complimentary, so no estimate is shown. */
+  isIncluded?: boolean;
 }
