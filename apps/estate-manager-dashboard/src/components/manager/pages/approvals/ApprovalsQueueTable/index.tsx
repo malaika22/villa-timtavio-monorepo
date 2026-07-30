@@ -24,6 +24,12 @@ import {
   useConfirmCost,
 } from '@/hooks/useApprovals';
 import { toast } from 'sonner';
+import {
+  formatPrice,
+  formatRateRange,
+  quoteApprovalCeiling,
+  quoteNeedsReapproval,
+} from '@repo/api-types';
 import type { ApprovalQueueItem, ApprovalQueueStatus } from '@/types';
 
 const primaryBtn =
@@ -48,6 +54,15 @@ export const ApprovalsQueueTable = ({
   const [costId, setCostId] = useState<string | null>(null);
   const [costAmount, setCostAmount] = useState('');
   const [costNotes, setCostNotes] = useState('');
+
+  // The guest approved an estimate; a quote materially above it goes back to the
+  // primary rather than to the folio. Surface that before the EM commits.
+  const costRow = rows.find((r) => r.id === costId);
+  const estimateMax = costRow?.estimatedMax ?? null;
+  const enteredCost = Number(costAmount);
+  const ceiling = estimateMax != null ? quoteApprovalCeiling(estimateMax) : null;
+  const willNeedReapproval =
+    !!enteredCost && quoteNeedsReapproval(enteredCost, estimateMax);
   // Reschedule a conflicted request onto a new (non-overlapping) slot.
   const [rescheduleId, setRescheduleId] = useState<string | null>(null);
   const [rescheduleDate, setRescheduleDate] = useState('');
@@ -87,7 +102,11 @@ export const ApprovalsQueueTable = ({
       },
       {
         onSuccess: () => {
-          toast.success('Cost logged to folio');
+          toast.success(
+            willNeedReapproval
+              ? 'Quote sent to the primary member for approval'
+              : 'Cost logged to folio',
+          );
           setCostId(null);
           setCostAmount('');
           setCostNotes('');
@@ -356,20 +375,46 @@ export const ApprovalsQueueTable = ({
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Log confirmed cost</DialogTitle>
+            <DialogTitle>Log final quote</DialogTitle>
             <DialogDescription>
-              Adds an experience charge to the primary member’s folio.
+              {estimateMax != null
+                ? 'Charges the requesting guest’s line on the folio. Stays within the approved estimate and it posts straight away.'
+                : 'Adds an experience charge to the primary member’s folio.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {estimateMax != null && (
+              <div className="rounded-md border border-manager-border bg-manager-main px-3 py-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-manager-text-muted">
+                    Estimate the guest approved
+                  </span>
+                  <span className="font-medium tabular-nums text-manager-text">
+                    {formatRateRange(costRow?.estimatedMin, costRow?.estimatedMax)}
+                  </span>
+                </div>
+                {ceiling != null && (
+                  <p className="mt-1 text-xs text-manager-text-muted">
+                    Posts without re-approval up to {formatPrice(ceiling)}.
+                  </p>
+                )}
+              </div>
+            )}
             <Input
               type="number"
               min="0"
               step="0.01"
               value={costAmount}
               onChange={(e) => setCostAmount(e.target.value)}
-              placeholder="Amount (USD)"
+              placeholder="Final quote (USD)"
             />
+            {willNeedReapproval && (
+              <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                {formatPrice(enteredCost)} is above the approved estimate. This
+                goes back to the primary member for approval — nothing is charged
+                until they confirm.
+              </p>
+            )}
             <Textarea
               value={costNotes}
               onChange={(e) => setCostNotes(e.target.value)}
@@ -398,7 +443,7 @@ export const ApprovalsQueueTable = ({
               {confirmCost.isPending ? (
                 <Loader2 className="mr-1.5 size-3.5 animate-spin" />
               ) : null}
-              Add to folio
+              {willNeedReapproval ? 'Send for approval' : 'Add to folio'}
             </Button>
           </DialogFooter>
         </DialogContent>

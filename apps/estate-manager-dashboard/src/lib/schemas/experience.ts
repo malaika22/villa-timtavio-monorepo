@@ -6,7 +6,12 @@ export const experienceFormSchema = z.object({
   description: z.string().min(10, 'Description must be at least 10 characters'),
   durationMinutes: z.number().int().positive('Duration is required'),
   durationLabel: z.string().optional(),
+  /** Estimated rate — the single estimate, or the low end of a range. */
   basePrice: z.number().min(0).optional(),
+  /** High end of an estimate range. Leave empty for a single estimate. */
+  priceMax: z.number().min(0).optional(),
+  /** Which PriceUnit the rate is quoted in (per person / group / event). */
+  priceUnitId: z.string().optional(),
   isIncluded: z.boolean(),
   vendorId: z.string().optional(),
   /** Breezeway person id the setup task routes to (empty = category default) */

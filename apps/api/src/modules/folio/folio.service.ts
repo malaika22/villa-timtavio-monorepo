@@ -31,6 +31,7 @@ export class FolioService {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
+        primaryGuest: true,
         folioItems: {
           orderBy: { createdAt: 'desc' },
           include: { experienceRequest: { include: { catalogItem: true } } },
@@ -63,6 +64,11 @@ export class FolioService {
       booking,
       items: booking.folioItems,
       byType,
+      byGuest: this.groupByGuest(
+        booking.folioItems,
+        booking.primaryGuest.email,
+        `${booking.primaryGuest.firstName} ${booking.primaryGuest.lastName}`.trim(),
+      ),
       summary: {
         subtotal,
         taxRate: booking.taxRate,
@@ -72,6 +78,61 @@ export class FolioService {
         grandTotal,
       },
     };
+  }
+
+  /**
+   * Spend per party member, so the primary — who is billed for the whole folio —
+   * can see what each guest ran up and settle with them independently.
+   *
+   * Deliberately financial only: zero-amount lines (included experiences) are
+   * left out. Charges with no attribution (the villa base rate, incidentals the
+   * EM didn't assign) fall to the primary, who is liable for them — that also
+   * keeps the guest totals reconciling exactly to the pre-tax subtotal.
+   */
+  private groupByGuest(
+    items: {
+      amount: unknown;
+      quantity: number;
+      attributedToEmail?: string | null;
+      attributedToName?: string | null;
+    }[],
+    primaryEmail: string,
+    primaryName: string,
+  ) {
+    const buckets = new Map<
+      string,
+      { email: string; name: string; isPrimary: boolean; total: number; itemCount: number }
+    >();
+
+    for (const item of items) {
+      const total = Number(item.amount) * item.quantity;
+      if (!total) continue; // included / free — nothing to charge back
+
+      const email = item.attributedToEmail || primaryEmail;
+      const isPrimary = email === primaryEmail;
+      const name = isPrimary
+        ? primaryName
+        : item.attributedToName || item.attributedToEmail || 'Guest';
+
+      const bucket = buckets.get(email) ?? {
+        email,
+        name,
+        isPrimary,
+        total: 0,
+        itemCount: 0,
+      };
+      bucket.total += total;
+      bucket.itemCount += 1;
+      buckets.set(email, bucket);
+    }
+
+    // Primary first, then the biggest spenders.
+    return Array.from(buckets.values())
+      .map((b) => ({ ...b, total: Math.round(b.total * 100) / 100 }))
+      .sort((a, b) => {
+        if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1;
+        return b.total - a.total;
+      });
   }
 
   // ─── Log a charge ─────────────────────────────────────────────────────────────

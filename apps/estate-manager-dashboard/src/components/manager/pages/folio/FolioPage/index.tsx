@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import type { CreateFolioItemDto, FolioItemType } from '@repo/api-types';
 
 import { useCurrentGuests } from '@/hooks/useGuests';
+import { useManifest } from '@/hooks/useManifest';
 import {
   useFolioEM,
   useAddFolioCharge,
@@ -27,6 +28,9 @@ import {
 
 const money = (n: number) =>
   `$${Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/** A party member a charge can be attributed to. */
+type PartyOption = { email: string; name: string; isPrimary: boolean };
 
 const CHARGE_TYPES: { value: FolioItemType; label: string }[] = [
   { value: 'EXPERIENCE', label: 'Experience' },
@@ -48,6 +52,27 @@ export const FolioPage = () => {
   const selectedGuest = guests.find((g) => g.activeBookingId === bookingId);
 
   const { data: folio, isLoading: folioLoading } = useFolioEM(bookingId);
+  // Charges are attributed to a party member so the primary can see what each
+  // guest ran up and settle with them independently.
+  const { data: manifest } = useManifest(bookingId);
+  const partyOptions = useMemo<PartyOption[]>(() => {
+    if (!manifest) return [];
+    const primary = {
+      email: manifest.primaryGuest.email,
+      name: `${manifest.primaryGuest.firstName} ${manifest.primaryGuest.lastName}`.trim(),
+      isPrimary: true,
+    };
+    return [
+      primary,
+      ...manifest.guests
+        .filter((g) => !!g.email)
+        .map((g) => ({
+          email: g.email,
+          name: `${g.firstName} ${g.lastName}`.trim(),
+          isPrimary: false,
+        })),
+    ];
+  }, [manifest]);
   const addCharge = useAddFolioCharge(bookingId);
   const updateCharge = useUpdateFolioCharge();
   const checkout = useCheckout(bookingId);
@@ -259,6 +284,7 @@ export const FolioPage = () => {
         open={chargeOpen}
         onOpenChange={setChargeOpen}
         pending={addCharge.isPending}
+        partyOptions={partyOptions}
         onSubmit={(dto) =>
           addCharge.mutate(dto, {
             onSuccess: () => {
@@ -382,29 +408,36 @@ function LogChargeDialog({
   onOpenChange,
   pending,
   onSubmit,
+  partyOptions,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   pending: boolean;
   onSubmit: (dto: CreateFolioItemDto) => void;
+  partyOptions: PartyOption[];
 }) {
   const [type, setType] = useState<FolioItemType>('INCIDENTAL');
   const [description, setDescription] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [amount, setAmount] = useState('');
   const [staffNote, setStaffNote] = useState('');
+  // Empty = unattributed, which falls to the primary in the by-guest breakdown.
+  const [attributedTo, setAttributedTo] = useState('');
 
   const valid = description.trim() && Number(amount) > 0;
   const total = (Number(amount) || 0) * quantity;
 
   const submit = () => {
     if (!valid) return;
+    const attributed = partyOptions.find((g) => g.email === attributedTo);
     onSubmit({
       type,
       description: description.trim(),
       amount: Number(amount),
       quantity,
       staffNote: staffNote.trim() || undefined,
+      attributedToEmail: attributed?.email,
+      attributedToName: attributed?.name,
     });
   };
 
@@ -456,6 +489,34 @@ function LogChargeDialog({
               placeholder="Unit price"
             />
           </div>
+          {partyOptions.length > 0 && (
+            <div className="space-y-1.5">
+              <label
+                htmlFor="charge-attribution"
+                className="text-xs font-medium text-manager-text-muted"
+              >
+                Charge to
+              </label>
+              <select
+                id="charge-attribution"
+                value={attributedTo}
+                onChange={(e) => setAttributedTo(e.target.value)}
+                className="h-9 w-full rounded-md border border-manager-border bg-manager-card px-2 text-sm text-manager-text"
+              >
+                <option value="">Unassigned — falls to the primary</option>
+                {partyOptions.map((g) => (
+                  <option key={g.email} value={g.email}>
+                    {g.name}
+                    {g.isPrimary ? ' (primary)' : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-manager-text-muted">
+                Shows in the primary’s spend-by-guest breakdown so they can
+                charge each guest independently.
+              </p>
+            </div>
+          )}
           <Textarea
             placeholder="Audit note (optional)"
             value={staffNote}

@@ -23,6 +23,8 @@ export interface ExperienceRequest {
     | 'primaryPhotoUrl'
     | 'durationLabel'
     | 'basePrice'
+    | 'priceMax'
+    | 'priceUnit'
     | 'isIncluded'
   >;
   requestedByEmail: string;
@@ -48,6 +50,22 @@ export interface ExperienceRequest {
   staffMemberName?: string | null;
   primaryApproved: boolean;
   requiresPrimaryApproval: boolean;
+  /**
+   * Estimate shown at request time and snapshotted, so later catalog edits never
+   * rewrite what the primary approved. `estimatedMax` differs from the min only
+   * when the estate published a range.
+   */
+  estimatedMin?: number | null;
+  estimatedMax?: number | null;
+  priceUnitCode?: string | null;
+  /**
+   * Rodrigo's hard quote when it landed materially above the estimate — parked
+   * awaiting a second primary approval instead of becoming confirmedCost.
+   */
+  quotedCost?: number | null;
+  quoteApprovalRequired: boolean;
+  quoteApprovedAt?: string | null;
+  quoteApprovedBy?: string | null;
   createdAt: string;
   updatedAt: string;
 }

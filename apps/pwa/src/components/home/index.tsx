@@ -20,7 +20,10 @@ import { useBookingStore } from '@/store/useBookingStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentBooking } from '@/hooks/useBooking';
 import { useManifest, useAddManifestGuest } from '@/hooks/useManifest';
-import { usePendingApprovalRequests } from '@/hooks/useRequests';
+import {
+  usePendingApprovalRequests,
+  usePendingQuoteApprovals,
+} from '@/hooks/useRequests';
 import { useRoomAvailability } from '@/hooks/useRoomAvailability';
 import { useQueryClient } from '@tanstack/react-query';
 import type { CreateManifestGuestDto } from '@repo/api-types';
@@ -62,6 +65,8 @@ export const Home = () => {
   const { data: manifest, isError: manifestError } = useManifest();
   const { data: rooms } = useRoomAvailability();
   const { data: pendingApprovals = [] } = usePendingApprovalRequests();
+  // Revised quotes need the primary too, so the nudge counts both kinds.
+  const { data: pendingQuotes = [] } = usePendingQuoteApprovals();
   const addGuest = useAddManifestGuest();
 
   const displayArrivalStatus = arrivalStatus ?? ArrivalStatus.PRE_ARRIVAL;
@@ -127,7 +132,9 @@ export const Home = () => {
           />
         ))}
       {isAuthenticated && isPrimary && (
-        <ApprovalsPromptCard count={pendingApprovals.length} />
+        <ApprovalsPromptCard
+          count={pendingApprovals.length + pendingQuotes.length}
+        />
       )}
       {isAuthenticated && isPrimary && <FolioSummaryCard />}
       <RoomsExploreCard

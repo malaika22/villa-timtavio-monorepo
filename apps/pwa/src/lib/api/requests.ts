@@ -18,4 +18,11 @@ export const requestsApi = {
     api.post<ExperienceRequest>(API.requests.primaryApprove(id)),
   primaryDecline: (id: string, reason: string) =>
     api.post<ExperienceRequest>(API.requests.primaryDecline(id), { reason }),
+  // Revised quotes that came in materially above the approved estimate.
+  pendingQuoteApproval: (bookingId: string) =>
+    api.get<ExperienceRequest[]>(API.requests.pendingQuoteApproval(bookingId)),
+  approveQuote: (id: string) =>
+    api.post<ExperienceRequest>(API.requests.approveQuote(id)),
+  declineQuote: (id: string, reason?: string) =>
+    api.post<ExperienceRequest>(API.requests.declineQuote(id), { reason }),
 };

@@ -1,3 +1,5 @@
+import type { PriceUnit } from './pricing';
+
 export type CatalogCategory =
   | 'INCLUDED'
   | 'ARRIVAL_TRANSIT'
@@ -34,7 +36,12 @@ export interface CatalogItem {
   durationLabel?: string | null;
   photoUrls: string[];
   primaryPhotoUrl?: string | null;
+  /** Estimated rate — the single estimate, or the low end when priceMax is set. */
   basePrice?: number | null;
+  /** High end of a published estimate range. Null for a single estimate. */
+  priceMax?: number | null;
+  priceUnitId?: string | null;
+  priceUnit?: PriceUnit | null;
   isMultiDay: boolean;
   multiDayDuration?: number | null;
   availableTimeSlots: string[];
@@ -107,6 +114,9 @@ export interface CreateCatalogItemDto {
   vendorId?: string;
   experienceCategoryId?: string;
   basePrice?: number;
+  /** High end of an estimate range. Omit for a single estimate. */
+  priceMax?: number;
+  priceUnitId?: string;
   /** Breezeway person id to assign this experience's setup task to. */
   breezeWayTeamId?: string;
   sortOrder?: number;

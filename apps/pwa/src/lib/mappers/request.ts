@@ -1,3 +1,4 @@
+import { formatPrice, formatRateRange } from '@repo/api-types';
 import type { ExperienceRequest, RequestStatus } from '@repo/api-types';
 import type {
   StatusRequest,
@@ -85,6 +86,15 @@ export function mapRequestToStatusRequest(
       'READY',
       'COMPLETED',
     ].includes(req.status),
+    // A confirmed cost is the real charge; until then all the guest has is the
+    // estimate they were shown, which is labelled as such.
+    costLabel:
+      req.confirmedCost != null
+        ? formatPrice(req.confirmedCost)
+        : req.estimatedMin != null
+          ? formatRateRange(req.estimatedMin, req.estimatedMax)
+          : undefined,
+    costIsEstimate: req.confirmedCost == null,
     requestedByName: req.requestedByName,
     requestedByEmail: req.requestedByEmail,
   };

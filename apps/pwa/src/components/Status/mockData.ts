@@ -22,6 +22,12 @@ export interface StatusRequest {
   progressLabel?: string;
   /** Which tabs this request should appear in */
   tabs: StatusTabId[];
+  /**
+   * Formatted cost: the confirmed charge once the estate has quoted it, else the
+   * estimate. `costIsEstimate` says which, so the UI can label it honestly.
+   */
+  costLabel?: string;
+  costIsEstimate?: boolean;
   /** Requester's display name (first name), used for party attribution */
   requestedByName?: string;
   /** Requester's email — compared to the viewer's to render "You" */

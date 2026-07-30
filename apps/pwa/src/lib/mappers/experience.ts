@@ -66,6 +66,12 @@ export function mapCatalogItemToExperience(
     image:
       item.primaryPhotoUrl ?? item.photoUrls[0] ?? '/images/experience.png',
     status,
+    rate: {
+      basePrice: item.basePrice ?? null,
+      priceMax: item.priceMax ?? null,
+      priceUnit: item.priceUnit ?? null,
+    },
+    isIncluded: item.isIncluded,
   };
 }
 
@@ -144,6 +150,13 @@ export function mapCatalogItemToDetail(
     availableTimes: times,
     maxGuests: item.maxGuestCount ?? undefined,
     basePrice: item.basePrice ?? 0,
-    priceUnit: 'per villa',
+    priceUnit: item.priceUnit?.shortLabel ?? undefined,
+    // Guests see this as an estimate; the concierge confirms the hard quote.
+    rate: {
+      basePrice: item.basePrice ?? null,
+      priceMax: item.priceMax ?? null,
+      priceUnit: item.priceUnit ?? null,
+    },
+    isIncluded: item.isIncluded,
   };
 }

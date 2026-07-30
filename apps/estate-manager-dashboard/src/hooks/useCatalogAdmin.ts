@@ -14,6 +14,15 @@ export function useCatalogAdmin() {
   });
 }
 
+/** Price units are a lookup, so the form reads them instead of hard-coding. */
+export function usePriceUnits() {
+  return useQuery({
+    queryKey: ['catalog', 'price-units'],
+    queryFn: emCatalogApi.priceUnits,
+    staleTime: 5 * 60_000,
+  });
+}
+
 export function useRecommendations() {
   return useQuery({
     queryKey: ['catalog', 'recommendations'],

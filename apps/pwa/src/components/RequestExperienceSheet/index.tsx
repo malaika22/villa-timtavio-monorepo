@@ -16,6 +16,12 @@ import { CalenderPicker } from '../CalenderPicker';
 import { SubmitRequestButton } from './SubmitRequestButton';
 import { TimePicker, buildGroups, firstRecommended } from '../TimePicker';
 import { useCreateRequest, isQueuedResult } from '@/hooks/useRequests';
+import { useCurrentBooking } from '@/hooks/useBooking';
+import {
+  computeEstimate,
+  formatEstimateTotal,
+  formatEstimateWorking,
+} from '@repo/api-types';
 import { format } from 'date-fns';
 
 const ONLINE_CONFIRMATION =
@@ -36,6 +42,9 @@ export function RequestExperienceSheet({
   const [guestCount, setGuestCount] = useState(1);
   const [specialRequests, setSpecialRequests] = useState('');
   const [queuedOffline, setQueuedOffline] = useState(false);
+
+  const { data: booking } = useCurrentBooking();
+  const partySize = booking?.totalGuests;
 
   const timeGroups = useMemo(
     () => buildGroups(detail.availableTimes),
@@ -85,7 +94,20 @@ export function RequestExperienceSheet({
   const capacityLabel = detail.maxGuests
     ? `Up to ${detail.maxGuests} guests`
     : null;
-  const maxGuests = detail.maxGuests ?? 8;
+  // Guest count multiplies a per-person rate, so a wrong cap means a wrong
+  // estimate. With no capacity set on the experience, fall back to the party
+  // size rather than an arbitrary number the whole party may not fit under.
+  const maxGuests = detail.maxGuests ?? partySize ?? 16;
+
+  // Live estimate for the current party size. Null for included experiences and
+  // anything the estate hasn't priced — nothing to estimate.
+  const estimate = useMemo(
+    () =>
+      detail.isIncluded || !detail.rate
+        ? null
+        : computeEstimate(detail.rate, { guestCount }),
+    [detail.isIncluded, detail.rate, guestCount],
+  );
 
   return (
     <Drawer open={open} onOpenChange={(v) => !v && onClose()} direction="right">
@@ -287,6 +309,41 @@ export function RequestExperienceSheet({
                 onChange={setGuestCount}
               />
             </section>
+
+            {/* Estimated cost — shows the working, and never reads as final */}
+            {estimate && (
+              <section>
+                <p className="mb-3 text-[9px] font-medium uppercase tracking-[2.8px] text-[#B0AAA0]">
+                  Estimated cost
+                </p>
+                <div className="overflow-hidden rounded-[12px] border border-[#B08D57]/45 bg-white">
+                  <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 text-[12px]">
+                    <span className="text-[#797168]">
+                      {formatEstimateWorking(detail.rate!, estimate)}
+                    </span>
+                    <span className="font-semibold tabular-nums text-[#2B2824]">
+                      {formatEstimateTotal(estimate)}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 border-t border-[#B08D57]/40 bg-[#FBF3DF] px-3.5 py-2.5">
+                    <span className="text-[9px] font-semibold uppercase tracking-[1.4px] text-[#8A6D3B]">
+                      Estimated total
+                    </span>
+                    <span className="font-cormorant text-[21px] leading-none text-[#2B2824]">
+                      <span className="mr-1 font-sans text-[13px] text-[#8A6D3B]">
+                        ≈
+                      </span>
+                      {formatEstimateTotal(estimate)}
+                    </span>
+                  </div>
+                </div>
+                <p className="mt-2 text-[10.5px] leading-snug text-[#797168]">
+                  An estimate only. Pricing shifts with group size and season —
+                  your concierge confirms the final quote before anything is
+                  booked or charged.
+                </p>
+              </section>
+            )}
 
             {/* Special Requests */}
             <section>

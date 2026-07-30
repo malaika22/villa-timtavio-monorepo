@@ -20,6 +20,7 @@ export const API = {
     included: '/api/v1/catalog/included',
     menus: '/api/v1/catalog/menus',
     recommendations: '/api/v1/catalog/recommendations',
+    priceUnits: '/api/v1/catalog/price-units',
     detail: (id: string) => `/api/v1/catalog/${id}/detail`,
     byId: (id: string) => `/api/v1/catalog/${id}`,
     adminAll: '/api/v1/catalog/admin/all',
@@ -38,6 +39,10 @@ export const API = {
       `/api/v1/requests/bookings/${bookingId}/pending-approval`,
     primaryApprove: (id: string) => `/api/v1/requests/${id}/primary-approve`,
     primaryDecline: (id: string) => `/api/v1/requests/${id}/primary-decline`,
+    pendingQuoteApproval: (bookingId: string) =>
+      `/api/v1/requests/bookings/${bookingId}/pending-quote-approval`,
+    approveQuote: (id: string) => `/api/v1/requests/${id}/approve-quote`,
+    declineQuote: (id: string) => `/api/v1/requests/${id}/decline-quote`,
     byId: (id: string) => `/api/v1/requests/${id}`,
     emQueue: '/api/v1/requests/em/queue',
     emActive: '/api/v1/requests/em/active',

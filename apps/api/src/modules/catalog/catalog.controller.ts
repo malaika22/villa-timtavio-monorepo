@@ -35,6 +35,13 @@ export class CatalogController {
     return this.catalogService.findIncluded();
   }
 
+  // Price units are a lookup, so the EM form and the guest surfaces read the
+  // same list rather than hard-coding per person / per group / per event.
+  @Get('price-units')
+  findPriceUnits() {
+    return this.catalogService.findPriceUnits();
+  }
+
   @Get('menus')
   findMenus(@Query('category') category?: string) {
     return this.catalogService.findAllMenuItems(category);

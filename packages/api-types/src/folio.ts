@@ -37,6 +37,19 @@ export interface FolioByType {
   PRE_STOCKED: FolioItem[];
 }
 
+/**
+ * One party member's share of the folio. Pre-tax charges only — tax and service
+ * are levied on the folio as a whole, not per guest — and financial only, so
+ * included experiences don't appear. Totals reconcile to `summary.subtotal`.
+ */
+export interface FolioGuestSpend {
+  email: string;
+  name: string;
+  isPrimary: boolean;
+  total: number;
+  itemCount: number;
+}
+
 export interface FolioResponse {
   booking: {
     id: string;
@@ -49,6 +62,8 @@ export interface FolioResponse {
   };
   items: FolioItem[];
   byType: FolioByType;
+  /** Spend per party member, so the primary can charge each guest independently. */
+  byGuest: FolioGuestSpend[];
   summary: FolioSummary;
 }
 

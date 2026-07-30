@@ -54,6 +54,15 @@ enum FolioItemType {
   PRE_STOCKED
 }
 
+// What a price unit multiplies its rate by when estimating a cost. Adding a new
+// unit (e.g. "per night") is a PriceUnit row, not a migration — but a unit whose
+// multiplier isn't one of these quantities needs a new source here first.
+enum PriceMultiplierSource {
+  NONE // flat — per group, per event
+  GUEST_COUNT // × ExperienceRequest.guestCount
+  NIGHTS // × Booking.nights
+}
+
 enum CatalogCategory {
   INCLUDED
   ARRIVAL_TRANSIT
@@ -313,6 +322,31 @@ model ExperienceCategory {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PRICE UNIT
+// ─────────────────────────────────────────────────────────────────────────────
+
+// A lookup rather than an enum so the estate can add units (e.g. "per night")
+// without a migration. `multiplierSource` is what makes the estimate compute;
+// a unit needing a quantity we don't capture yet (e.g. per hour) also needs a
+// new input on the request form before it will work end to end.
+model PriceUnit {
+  id               String                @id @default(cuid())
+  code             String                @unique // PER_PERSON
+  label            String // "Per person" — EM-facing
+  shortLabel       String // "/ person" — guest-facing, appended to the rate
+  multiplierSource PriceMultiplierSource @default(NONE)
+  isActive         Boolean               @default(true)
+  sortOrder        Int                   @default(0)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  catalogItems CatalogItem[]
+
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CATALOG ITEM
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -330,7 +364,13 @@ model CatalogItem {
   durationLabel        String?
   photoUrls            String[]            @default([])
   primaryPhotoUrl      String?
+  // Pricing is always an ESTIMATE — it varies with group size and season, and
+  // Rodrigo issues the hard quote before the service is booked. `basePrice` is
+  // the single estimate, or the low end when `priceMax` is set (a range).
   basePrice            Decimal?            @db.Decimal(10, 2)
+  priceMax             Decimal?            @db.Decimal(10, 2)
+  priceUnitId          String?
+  priceUnit            PriceUnit?          @relation(fields: [priceUnitId], references: [id])
   isMultiDay           Boolean             @default(false)
   multiDayDuration     Int?
   availableTimeSlots   String[]            @default([])
@@ -542,6 +582,21 @@ model ExperienceRequest {
   primaryApprovedAt       DateTime?
   primaryApprovedBy       String? // email of primary member who approved
   requiresPrimaryApproval Boolean       @default(false)
+
+  // Estimate shown to the guest at request time, snapshotted so later catalog
+  // edits never rewrite what the primary actually approved. estimatedMax is
+  // only set when the catalog item carries a range.
+  estimatedMin  Decimal? @db.Decimal(10, 2)
+  estimatedMax  Decimal? @db.Decimal(10, 2)
+  priceUnitCode String?
+
+  // Rodrigo's hard quote when it lands materially above the approved estimate:
+  // parked here awaiting a second primary approval instead of going straight to
+  // confirmedCost, so nobody is billed a number they never agreed to.
+  quotedCost            Decimal?  @db.Decimal(10, 2)
+  quoteApprovalRequired Boolean   @default(false)
+  quoteApprovedAt       DateTime?
+  quoteApprovedBy       String?
 
   @@index([bookingId])
   @@index([status])
