@@ -1,7 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { ExternalLink, Mail, CheckCircle2 } from 'lucide-react';
+import {
+  ExternalLink,
+  Mail,
+  CheckCircle2,
+  Paperclip,
+  Copy,
+} from 'lucide-react';
 import { Button, Input } from '@repo/ui';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
@@ -12,6 +18,7 @@ import {
 } from '@/hooks/useInquiries';
 import {
   buildLookbookMailto,
+  buildLookbookMessage,
   LODGIFY_NEW_BOOKING_URL,
 } from '@/lib/inquiry-utils';
 import type { Inquiry } from '@repo/api-types';
@@ -27,6 +34,21 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
 
   function handleOpenLodgify() {
     window.open(LODGIFY_NEW_BOOKING_URL, '_blank', 'noopener,noreferrer');
+  }
+
+  // The saved link is what lands in the email — the local input is only a
+  // draft until it's been saved against the inquiry.
+  const paymentLinkSaved = !!inquiry.stripePaymentLink?.trim();
+
+  async function handleCopyMessage() {
+    try {
+      await navigator.clipboard.writeText(buildLookbookMessage(inquiry));
+      toast.success('Message copied', {
+        description: 'Paste it into your mail client.',
+      });
+    } catch {
+      toast.error('Could not copy — select the message manually');
+    }
   }
 
   function handleSendLookbook() {
@@ -64,9 +86,9 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
       <div>
         <h2 className="text-sm font-semibold text-green-900">Next steps</h2>
         <p className="mt-1 text-sm text-green-800/80">
-          Create the reservation in Lodgify, then send the lookbook and payment
-          link to the guest. The inquiry will convert automatically when the
-          Lodgify webhook syncs.
+          Create the reservation in Lodgify and save the payment link, then send
+          the lookbook to the guest. The inquiry will convert automatically when
+          the Lodgify webhook syncs.
         </p>
       </div>
 
@@ -83,13 +105,45 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
           type="button"
           variant="outline"
           onClick={handleSendLookbook}
-          disabled={markLookbook.isPending}
+          // Blocked until the link is saved — the email embeds the SAVED link,
+          // so sending early quietly promises a link that never arrives.
+          disabled={markLookbook.isPending || !paymentLinkSaved}
+          title={
+            paymentLinkSaved ? undefined : 'Save the payment link first'
+          }
           className="flex-1 border-green-300 bg-white text-manager-text hover:bg-green-50"
         >
           <Mail className="mr-2 size-4" />
           Send lookbook + payment link
         </Button>
       </div>
+
+      {paymentLinkSaved ? (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-900">
+          <Paperclip className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          <span>
+            <strong className="font-semibold">
+              Attach the lookbook PDF
+            </strong>{' '}
+            in your mail client before sending — a draft opened this way
+            can&apos;t carry attachments. The message also links to the online
+            lookbook.
+            <button
+              type="button"
+              onClick={handleCopyMessage}
+              className="ml-1.5 inline-flex items-center gap-1 font-semibold underline underline-offset-2"
+            >
+              <Copy className="size-3" aria-hidden />
+              Copy message
+            </button>
+          </span>
+        </div>
+      ) : (
+        <p className="rounded-lg border border-manager-border bg-white px-3 py-2.5 text-xs text-manager-text-muted">
+          Save the Stripe payment link below to enable sending — it gets embedded
+          in the email.
+        </p>
+      )}
 
       <div className="space-y-3 rounded-lg border border-green-200 bg-white p-4">
         <p className="text-xs font-medium uppercase tracking-wider text-manager-text-muted">
