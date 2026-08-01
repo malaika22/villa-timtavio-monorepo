@@ -232,7 +232,12 @@ export function InquiryDetailPage({ id }: { id: string }) {
       </div>
 
       {isPending ? <InquiryVettingPanel inquiryId={inquiry.id} /> : null}
-      {isApproved ? <InquiryPostApprovalPanel inquiry={inquiry} /> : null}
+      {/* Stays visible after conversion. Creating the Lodgify booking is what
+          flips the inquiry to CONVERTED, so hiding this on conversion removed
+          the send button at exactly the point Rodrigo needed it. */}
+      {isApproved || isConverted ? (
+        <InquiryPostApprovalPanel inquiry={inquiry} />
+      ) : null}
       {isConverted ? <InquiryConvertedPanel inquiry={inquiry} /> : null}
 
       <InquiryDeleteButton

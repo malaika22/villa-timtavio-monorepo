@@ -32,6 +32,10 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [stripeLink, setStripeLink] = useState(inquiry.stripePaymentLink ?? '');
 
+  // The Lodgify booking is what converts the inquiry, so by the time it is
+  // CONVERTED that step is behind us and only the email remains.
+  const bookingCreated = inquiry.status === 'CONVERTED';
+
   function handleOpenLodgify() {
     window.open(LODGIFY_NEW_BOOKING_URL, '_blank', 'noopener,noreferrer');
   }
@@ -75,21 +79,23 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
       <div>
         <h2 className="text-sm font-semibold text-green-900">Next steps</h2>
         <p className="mt-1 text-sm text-green-800/80">
-          Create the reservation in Lodgify and save the payment link, then send
-          the lookbook to the guest. The inquiry will convert automatically when
-          the Lodgify webhook syncs.
+          {bookingCreated
+            ? 'Reservation synced from Lodgify. Save the payment link, then send the guest their confirmation.'
+            : 'Create the reservation in Lodgify and save the payment link, then send the lookbook to the guest. The inquiry will convert automatically when the Lodgify webhook syncs.'}
         </p>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Button
-          type="button"
-          onClick={handleOpenLodgify}
-          className="flex-1 bg-manager-accent text-white hover:opacity-90"
-        >
-          <ExternalLink className="mr-2 size-4" />
-          Create booking in Lodgify →
-        </Button>
+        {!bookingCreated && (
+          <Button
+            type="button"
+            onClick={handleOpenLodgify}
+            className="flex-1 bg-manager-accent text-white hover:opacity-90"
+          >
+            <ExternalLink className="mr-2 size-4" />
+            Create booking in Lodgify →
+          </Button>
+        )}
         <Button
           type="button"
           variant="outline"
