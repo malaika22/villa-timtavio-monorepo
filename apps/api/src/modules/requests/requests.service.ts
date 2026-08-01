@@ -847,6 +847,26 @@ export class RequestsService {
       status: 'CANCELLED',
     });
 
+    // Rodrigo quoted this and needs telling it was rejected — the experience
+    // was already confirmed, so there is a Breezeway setup task and very likely
+    // a vendor booked against it. Without this he finds out when staff turn up.
+    await this.prisma.systemAlert.create({
+      data: {
+        severity: 'WARNING',
+        title: 'Revised quote declined',
+        message: `${request.requestedByName}'s ${request.catalogItem.name} was cancelled — the primary member declined the ${formatPrice(
+          toNumber(request.quotedCost) ?? 0,
+        )} quote.${
+          request.breezeWayTaskId
+            ? ' A Breezeway setup task exists for it and needs cancelling.'
+            : ''
+        }`,
+        category: 'BOOKING',
+        entityType: 'ExperienceRequest',
+        entityId: requestId,
+      },
+    });
+
     return updated;
   }
 
