@@ -301,7 +301,7 @@ export class BookingsService {
       data: {
         bookingId: booking.id,
         type: 'ESTATE_BASE_RATE',
-        description: `Casa TimTavio Estate — ${booking.nights} nights`,
+        description: `Villa TimTavio Estate — ${booking.nights} nights`,
         amount: booking.baseRate,
         quantity: 1,
         loggedBy: 'system',
@@ -488,7 +488,7 @@ export class BookingsService {
           where: { id: existing.id },
           data: {
             amount: baseRate,
-            description: `Casa TimTavio Estate — ${booking.nights} nights`,
+            description: `Villa TimTavio Estate — ${booking.nights} nights`,
           },
         });
       } else {
@@ -496,7 +496,7 @@ export class BookingsService {
           data: {
             bookingId: booking.id,
             type: 'ESTATE_BASE_RATE',
-            description: `Casa TimTavio Estate — ${booking.nights} nights`,
+            description: `Villa TimTavio Estate — ${booking.nights} nights`,
             amount: baseRate,
             quantity: 1,
             loggedBy: 'system',

@@ -135,7 +135,7 @@ export function ManifestDetailSheet({
                 Guest Manifest
               </SheetTitle>
               <p className="text-sm text-[#8a8178] mt-0.5">
-                Casa TimTavio · {manifest.addedGuests} of {manifest.totalGuests}{' '}
+                Villa TimTavio · {manifest.addedGuests} of {manifest.totalGuests}{' '}
                 guests
               </p>
             </div>

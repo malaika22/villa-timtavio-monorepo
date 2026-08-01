@@ -28,10 +28,13 @@ export const OccupancyCalendar = () => {
         </span>
       </div>
 
+      {/* The grid reflows rather than forcing 10 columns — a fixed 10-wide
+          layout pushed the whole page sideways on a phone and clipped the
+          first column. */}
       {isLoading ? (
         <div className="h-40 animate-pulse rounded-lg bg-[#f0ede8]" />
       ) : (
-        <div className="grid grid-cols-10 gap-1.5">
+        <div className="grid grid-cols-5 gap-1.5 sm:grid-cols-10">
           {data.map((d) => (
             <div
               key={d.date}

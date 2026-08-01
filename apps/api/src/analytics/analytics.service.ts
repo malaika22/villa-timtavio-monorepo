@@ -969,7 +969,10 @@ export class AnalyticsService {
 
     const now = Date.now();
     const D90 = 90 * 24 * 3600 * 1000;
-    const base = (p: unknown) => Number(p ?? 0);
+    // An experience is BOOKED once the estate has committed to it — not only
+    // once it has finished. Counting COMPLETED alone made an estate with live
+    // confirmed and in-progress experiences report zero bookings.
+    const BOOKED_STATUSES = ['CONFIRMED', 'IN_PROGRESS', 'READY', 'COMPLETED'];
     // Bookings/revenue/rating honour the requested window; the trend is always
     // a 90d-over-90d comparison independent of the selected period.
     const windowStart = this.resolvePeriodStart(period);
@@ -979,12 +982,17 @@ export class AnalyticsService {
       const inWindow = reqs.filter(
         (r) => new Date(r.createdAt) >= windowStart,
       );
-      const completed = inWindow.filter((r) => r.status === 'COMPLETED');
+      const booked = inWindow.filter((r) => BOOKED_STATUSES.includes(r.status));
       const cancelled = inWindow.filter((r) => r.status === 'CANCELLED');
-      const bookings = completed.length;
+      const bookings = booked.length;
 
-      const revenue = completed.reduce(
-        (s, r) => s + (r.confirmedCost != null ? Number(r.confirmedCost) : base(item.basePrice)),
+      // Only money the estate has actually agreed counts as revenue. There used
+      // to be a fallback to `basePrice`, but since pricing became unit-aware
+      // that's an ESTIMATE and often a per-person rate — booking $150 for a
+      // seven-guest experience worth ~$1,050. An unquoted request has no
+      // agreed price, so it contributes nothing until Rodrigo confirms one.
+      const revenue = booked.reduce(
+        (s, r) => s + (r.confirmedCost != null ? Number(r.confirmedCost) : 0),
         0,
       );
 
@@ -996,14 +1004,18 @@ export class AnalyticsService {
           ? Math.round((ratings.reduce((s, v) => s + v, 0) / ratings.length) * 10) / 10
           : 0;
 
-      const declineBase = bookings + cancelled.length;
+      // Share of every request that was declined — not just of the resolved
+      // ones. The old denominator (booked + cancelled) turned a single decline
+      // into "100% declined" whenever nothing had completed yet.
       const declinedPercent =
-        declineBase > 0 ? Math.round((cancelled.length / declineBase) * 100) : 0;
+        inWindow.length > 0
+          ? Math.round((cancelled.length / inWindow.length) * 100)
+          : 0;
 
-      const last90 = completed.filter(
+      const last90 = booked.filter(
         (r) => now - new Date(r.createdAt).getTime() < D90,
       ).length;
-      const prior90 = completed.filter((r) => {
+      const prior90 = booked.filter((r) => {
         const age = now - new Date(r.createdAt).getTime();
         return age >= D90 && age < 2 * D90;
       }).length;
@@ -1023,6 +1035,9 @@ export class AnalyticsService {
         declined: cancelled.length,
         declinedPercent,
         trendPercent,
+        // Every request in the window, so the dashboard can aggregate a decline
+        // rate over all requests rather than re-deriving a skewed denominator.
+        requests: inWindow.length,
       };
     });
 
@@ -1047,11 +1062,14 @@ export class AnalyticsService {
       take: 10,
     });
 
-    // Privacy: only return abbreviated names to Owner
+    // The owner owns the estate and legitimately knows who is staying in it —
+    // Rodrigo runs operations on their behalf. Names used to be abbreviated
+    // here, which withheld guest identity from the one person entitled to it
+    // while still exposing spend, dates and party size.
     return bookings.map((b) => ({
       id: b.id,
       guestInitials: `${b.primaryGuest.firstName[0]}${b.primaryGuest.lastName[0]}`,
-      guestAbbreviated: `${b.primaryGuest.firstName}. ${b.primaryGuest.lastName[0]}.`,
+      guestName: `${b.primaryGuest.firstName} ${b.primaryGuest.lastName}`.trim(),
       checkIn: b.checkIn,
       checkOut: b.checkOut,
       nights: b.nights,

@@ -156,7 +156,7 @@ export const OverviewPage = () => {
                 >
                   <div>
                     <p className="text-sm font-medium text-manager-text">
-                      {s.guestAbbreviated}
+                      {s.guestName}
                     </p>
                     <p className="text-xs text-manager-text-muted">
                       {format(new Date(s.checkIn), 'MMM d')} –{' '}

@@ -26,18 +26,43 @@ const chartConfig = {
   y2025: { label: '2025', color: 'var(--intel-gold)' },
 } satisfies ChartConfig;
 
+/** Roll the real monthly series into quarters. */
+function toQuarters(months: RevenueMonth[]): RevenueMonth[] {
+  return ['Q1', 'Q2', 'Q3', 'Q4'].map((label, q) => {
+    const slice = months.slice(q * 3, q * 3 + 3);
+    return {
+      month: label,
+      y2026: slice.reduce((s, m) => s + m.y2026, 0),
+      y2025: slice.reduce((s, m) => s + m.y2025, 0),
+    };
+  });
+}
+
+/**
+ * Y-axis ceiling rounded up to a readable step. Never returns 0 — an all-zero
+ * dataset would otherwise collapse every tick to "0k" and render a scale with
+ * no height.
+ */
+function axisMax(rows: RevenueMonth[]): number {
+  const peak = Math.max(0, ...rows.flatMap((r) => [r.y2026, r.y2025]));
+  if (peak <= 0) return 10;
+  const magnitude = 10 ** Math.floor(Math.log10(peak));
+  return Math.ceil(peak / magnitude) * magnitude;
+}
+
 export const RevenueTrendChart = ({ data }: { data: RevenueMonth[] }) => {
   const [period, setPeriod] = useState<'monthly' | 'quarterly'>('monthly');
   const chartRef = useRef<HTMLDivElement>(null);
-  const chartData =
-    period === 'monthly'
-      ? data
-      : [
-          { month: 'Q1', y2026: 155, y2025: 136 },
-          { month: 'Q2', y2026: 222, y2025: 189 },
-          { month: 'Q3', y2026: 361, y2025: 293 },
-          { month: 'Q4', y2026: 194, y2025: 170 },
-        ];
+  // Quarterly used to serve hardcoded figures (155k/222k/361k/194k), showing
+  // the owner revenue that didn't exist while Monthly reported the truth.
+  const chartData = period === 'monthly' ? data : toQuarters(data);
+
+  // Derived, not hardcoded: a fixed [30,150] domain both invented a scale that
+  // wasn't there and would have clipped any revenue above $150k.
+  const yMax = axisMax(chartData);
+  const yTicks = Array.from({ length: 6 }, (_, i) =>
+    Math.round((yMax / 5) * i),
+  );
 
   return (
     <IntelCard className="flex flex-col">
@@ -110,8 +135,8 @@ export const RevenueTrendChart = ({ data }: { data: RevenueMonth[] }) => {
             <YAxis
               tickLine={false}
               axisLine={false}
-              domain={[30, 150]}
-              ticks={[30, 60, 90, 120, 150]}
+              domain={[0, yMax]}
+              ticks={yTicks}
               tick={{ fill: '#7A726C', fontSize: 11 }}
               tickFormatter={(v) => `${v}k`}
               width={36}

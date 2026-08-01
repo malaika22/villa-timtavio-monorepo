@@ -23,7 +23,7 @@ export const ManagerSidebar = () => {
     <aside className="sticky top-0 hidden h-screen w-[16rem] shrink-0 flex-col bg-manager-sidebar text-white lg:flex">
       <div className="border-b border-white/[0.08] px-5 py-6">
         <p className="font-cormorant text-[26px] leading-none tracking-wide text-white">
-          Casa TimTavio
+          Villa TimTavio
         </p>
         <p className="mt-2 text-[9px] tracking-[0.22em] text-white/45 uppercase">
           Estate Manager

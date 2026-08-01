@@ -49,6 +49,17 @@ export const EquipmentTracker = () => {
 
       {isLoading ? (
         <div className="h-48 animate-pulse rounded-lg bg-[#f0ede8]" />
+      ) : rows.length === 0 ? (
+        // Bare column headers over nothing read as a broken table rather than
+        // an empty one — say so here instead of in a separate section below.
+        <div className="rounded-lg border border-dashed border-intel-border px-6 py-10 text-center">
+          <p className="text-sm text-intel-text-muted">
+            No tracked equipment yet.
+          </p>
+          <p className="mt-1 text-xs text-intel-text-muted">
+            Add assets to see buy-vs-rent guidance and projected savings.
+          </p>
+        </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

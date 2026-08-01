@@ -6,6 +6,7 @@ import { auth0 } from '@/lib/auth0';
 const NS = appConfig.auth0.auth0Namespace;
 
 const PUBLIC_ROUTES = [
+  '/login',
   '/api/auth',
   '/unauthorized',
   '/error',
@@ -30,7 +31,11 @@ export async function middleware(request: NextRequest) {
   try {
     const session = await auth0.getSession(request);
     if (!session?.user) {
-      const loginUrl = new URL('/api/auth/login', request.url);
+      // Send unauthenticated visitors to the app's own sign-in screen rather
+      // than straight out to Auth0 — matching the estate manager dashboard,
+      // and keeping this redirect same-origin so route prefetches don't try to
+      // load an external /authorize URL from a subframe.
+      const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('returnTo', pathname);
       return NextResponse.redirect(loginUrl);
     }

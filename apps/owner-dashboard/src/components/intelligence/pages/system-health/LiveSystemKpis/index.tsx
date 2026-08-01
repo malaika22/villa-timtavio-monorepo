@@ -43,7 +43,9 @@ export const LiveSystemKpis = () => {
     },
     {
       icon: Users,
-      label: 'Active sessions',
+      // Counts signed-in GUESTS only, not staff — the table below says as much,
+      // so the label has to agree or it reads as broken when staff are online.
+      label: 'Guest sessions',
       value: data?.activeSessions ?? '—',
     },
     {

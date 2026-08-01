@@ -35,7 +35,7 @@ export const MobileManagerNav = () => {
       >
         <SheetHeader className="border-b border-white/10 px-5 py-6 text-left">
           <SheetTitle className="font-cormorant text-2xl font-normal text-white">
-            Casa TimTavio
+            Villa TimTavio
           </SheetTitle>
           <p className="text-[10px] tracking-[0.2em] text-white/50 uppercase">
             Estate Manager

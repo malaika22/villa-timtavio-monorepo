@@ -79,7 +79,7 @@ ${reservationLine}
 We look forward to welcoming you to Puerto Escondido.
 
 Warm regards,
-Casa TimTavio Estate Team`;
+Villa TimTavio Estate Team`;
 }
 
 export function buildLookbookSubject(inquiry: Inquiry): string {

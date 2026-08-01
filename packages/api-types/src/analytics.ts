@@ -46,7 +46,8 @@ export interface ExperiencePerformanceItem {
 export interface UpcomingStay {
   id: string;
   guestInitials: string;
-  guestAbbreviated: string;
+  /** Full guest name — the owner is entitled to know who is staying. */
+  guestName: string;
   checkIn: string;
   checkOut: string;
   nights: number;
