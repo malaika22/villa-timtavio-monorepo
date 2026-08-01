@@ -60,6 +60,17 @@ export function useDeclineInquiry() {
   });
 }
 
+/** Sends the branded lookbook + payment email — the guest's confirmation. */
+export function useSendLookbook() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => emInquiriesApi.sendLookbook(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['inquiries'] });
+    },
+  });
+}
+
 export function useMarkLookbookSent() {
   const queryClient = useQueryClient();
   return useMutation<Inquiry, Error, string>({

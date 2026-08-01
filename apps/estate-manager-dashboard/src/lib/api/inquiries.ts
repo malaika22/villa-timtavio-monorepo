@@ -17,6 +17,8 @@ export const emInquiriesApi = {
     api.patch<Inquiry>(API.inquiries.approve(id), dto),
   decline: (id: string, dto: DeclineInquiryDto) =>
     api.patch<Inquiry>(API.inquiries.decline(id), dto),
+  sendLookbook: (id: string) =>
+    api.post<Inquiry>(API.inquiries.sendLookbook(id)),
   markLookbookSent: (id: string) =>
     api.patch<Inquiry>(API.inquiries.lookbookSent(id), {}),
   markPaymentLinkSent: (id: string, dto: MarkPaymentLinkSentDto) =>

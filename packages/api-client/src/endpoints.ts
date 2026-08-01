@@ -92,6 +92,7 @@ export const API = {
     approve: (id: string) => `/api/v1/inquiries/${id}/approve`,
     decline: (id: string) => `/api/v1/inquiries/${id}/decline`,
     lookbookSent: (id: string) => `/api/v1/inquiries/${id}/lookbook-sent`,
+    sendLookbook: (id: string) => `/api/v1/inquiries/${id}/send-lookbook`,
     paymentLinkSent: (id: string) => `/api/v1/inquiries/${id}/payment-link-sent`,
     delete: (id: string) => `/api/v1/inquiries/${id}`,
   },

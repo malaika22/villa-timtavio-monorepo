@@ -72,6 +72,13 @@ export class InquiriesController {
     return this.inquiriesService.markLookbookSent(id, user.auth0Id);
   }
 
+  // ─── EM sends the lookbook + payment link (the guest's confirmation) ──────
+  @Post(':id/send-lookbook')
+  @Roles('estate_manager')
+  sendLookbook(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.inquiriesService.sendLookbookEmail(id, user.auth0Id);
+  }
+
   // ─── EM marks payment link sent ───────────────────────────────────────────
   @Patch(':id/payment-link-sent')
   @Roles('estate_manager')

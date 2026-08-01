@@ -14,6 +14,17 @@ import {
 import { Resend } from 'resend';
 import { PrismaService } from '../../prisma/prisma.service';
 import { getErrorMessage } from '../../commons/utils/error.util';
+import {
+  brandedEmail,
+  emailButton,
+  emailCopy,
+  emailParagraph,
+  emailRow,
+  emailRows,
+} from '../../common/email-template.util';
+
+/** The estate's public lookbook. */
+const LOOKBOOK_URL = 'https://www.villatimtavio.com/lookbook';
 
 @Injectable()
 export class InquiriesService {
@@ -222,6 +233,89 @@ export class InquiriesService {
         lookbookSentAt: new Date(),
         lookbookSentBy: markedBy,
       },
+    });
+  }
+
+  // ─── EM: send the lookbook + payment link ────────────────────────────────
+  // This is the guest's reservation confirmation. Nothing is emailed when the
+  // Lodgify booking is created, so this single message carries the stay
+  // details, the lookbook and the Stripe link that secures the reservation.
+
+  async sendLookbookEmail(id: string, sentBy: string) {
+    const inquiry = await this.findOne(id);
+
+    const paymentLink = inquiry.stripePaymentLink?.trim();
+    if (!paymentLink) {
+      throw new BadRequestException(
+        'Save the Stripe payment link before sending — it goes in the email.',
+      );
+    }
+
+    const fmt = (d: Date | null) =>
+      d
+        ? d.toLocaleDateString('en-US', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+            timeZone: 'UTC',
+          })
+        : null;
+
+    const arrival = fmt(inquiry.preferredFrom);
+    const departure = fmt(inquiry.preferredTo);
+
+    const rows = [
+      arrival ? emailRow('Arrival', arrival) : '',
+      departure ? emailRow('Departure', departure) : '',
+      inquiry.guestCount
+        ? emailRow(
+            'Guests',
+            `${inquiry.guestCount} ${inquiry.guestCount === 1 ? 'guest' : 'guests'}`,
+          )
+        : '',
+    ].join('');
+
+    const html = brandedEmail({
+      heading: `Welcome, ${inquiry.firstName}.`,
+      body: [
+        emailCopy([
+          emailParagraph(
+            'Your reservation at Villa TimTavio is confirmed. We are already preparing the estate for your arrival in Puerto Escondido.',
+          ),
+        ]),
+        rows ? emailRows(rows) : '',
+        emailCopy([
+          emailParagraph(
+            `Explore the estate in our lookbook — the villa, the suites, and the experiences we curate for each stay: <a href="${LOOKBOOK_URL}" style="color:#8c7261;">view the lookbook</a>.`,
+          ),
+          emailParagraph(
+            'To secure your reservation, complete payment using the private link below.',
+            { muted: true, small: true },
+          ),
+        ]),
+        emailButton('Complete Your Reservation', paymentLink),
+        emailCopy([
+          emailParagraph(
+            'Closer to your arrival we will send a private link to your guest portal, where you can introduce your party, choose rooms and share any preferences.',
+            { small: true },
+          ),
+        ]),
+      ].join(''),
+      note: 'Should anything need attention before then, simply reply to this message — our estate team will take care of it.',
+    });
+
+    await this.resend.emails.send({
+      from: process.env.EMAIL_FROM || 'reservations@villatimtavio.com',
+      to: inquiry.email,
+      subject: `Your Villa TimTavio reservation — ${inquiry.firstName}`,
+      html,
+    });
+
+    this.logger.log(`Lookbook + payment email sent to ${inquiry.email}`);
+
+    return this.prisma.inquiry.update({
+      where: { id },
+      data: { lookbookSentAt: new Date(), lookbookSentBy: sentBy },
     });
   }
 

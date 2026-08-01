@@ -1,26 +1,25 @@
 'use client';
 
 import { useState } from 'react';
+import { ExternalLink, Mail, CheckCircle2, Loader2 } from 'lucide-react';
 import {
-  ExternalLink,
-  Mail,
-  CheckCircle2,
-  Paperclip,
-  Copy,
-} from 'lucide-react';
-import { Button, Input } from '@repo/ui';
+  Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Input,
+} from '@repo/ui';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
 
 import {
-  useMarkLookbookSent,
   useMarkPaymentLinkSent,
+  useSendLookbook,
 } from '@/hooks/useInquiries';
-import {
-  buildLookbookMailto,
-  buildLookbookMessage,
-  LODGIFY_NEW_BOOKING_URL,
-} from '@/lib/inquiry-utils';
+import { LODGIFY_NEW_BOOKING_URL } from '@/lib/inquiry-utils';
 import type { Inquiry } from '@repo/api-types';
 
 type Props = {
@@ -28,8 +27,9 @@ type Props = {
 };
 
 export function InquiryPostApprovalPanel({ inquiry }: Props) {
-  const markLookbook = useMarkLookbookSent();
+  const sendLookbook = useSendLookbook();
   const markPaymentLink = useMarkPaymentLinkSent();
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [stripeLink, setStripeLink] = useState(inquiry.stripePaymentLink ?? '');
 
   function handleOpenLodgify() {
@@ -40,29 +40,18 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
   // draft until it's been saved against the inquiry.
   const paymentLinkSaved = !!inquiry.stripePaymentLink?.trim();
 
-  async function handleCopyMessage() {
-    try {
-      await navigator.clipboard.writeText(buildLookbookMessage(inquiry));
-      toast.success('Message copied', {
-        description: 'Paste it into your mail client.',
-      });
-    } catch {
-      toast.error('Could not copy — select the message manually');
-    }
-  }
-
-  function handleSendLookbook() {
-    window.location.href = buildLookbookMailto(inquiry);
-
-    if (!inquiry.lookbookSentAt) {
-      markLookbook.mutate(inquiry.id, {
-        onSuccess: () => {
-          toast.success('Lookbook email opened', {
-            description: 'Marked as sent in the inquiry record.',
-          });
-        },
-      });
-    }
+  // Sends the branded email straight from the app — this is the guest's
+  // reservation confirmation, so it goes out once and is not a draft.
+  function handleSend() {
+    sendLookbook.mutate(inquiry.id, {
+      onSuccess: () => {
+        setConfirmOpen(false);
+        toast.success('Reservation email sent', {
+          description: `Lookbook and payment link sent to ${inquiry.email}.`,
+        });
+      },
+      onError: (e) => toast.error((e as Error).message),
+    });
   }
 
   function handleLogPaymentLink() {
@@ -104,13 +93,11 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
         <Button
           type="button"
           variant="outline"
-          onClick={handleSendLookbook}
+          onClick={() => setConfirmOpen(true)}
           // Blocked until the link is saved — the email embeds the SAVED link,
-          // so sending early quietly promises a link that never arrives.
-          disabled={markLookbook.isPending || !paymentLinkSaved}
-          title={
-            paymentLinkSaved ? undefined : 'Save the payment link first'
-          }
+          // so sending early would confirm a reservation with no way to pay.
+          disabled={sendLookbook.isPending || !paymentLinkSaved}
+          title={paymentLinkSaved ? undefined : 'Save the payment link first'}
           className="flex-1 border-green-300 bg-white text-manager-text hover:bg-green-50"
         >
           <Mail className="mr-2 size-4" />
@@ -119,31 +106,57 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
       </div>
 
       {paymentLinkSaved ? (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-900">
-          <Paperclip className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          <span>
-            <strong className="font-semibold">
-              Attach the lookbook PDF
-            </strong>{' '}
-            in your mail client before sending — a draft opened this way
-            can&apos;t carry attachments. The message also links to the online
-            lookbook.
-            <button
-              type="button"
-              onClick={handleCopyMessage}
-              className="ml-1.5 inline-flex items-center gap-1 font-semibold underline underline-offset-2"
-            >
-              <Copy className="size-3" aria-hidden />
-              Copy message
-            </button>
-          </span>
-        </div>
+        <p className="rounded-lg border border-manager-border bg-white px-3 py-2.5 text-xs leading-relaxed text-manager-text-muted">
+          Sends the guest their reservation confirmation — stay details, the
+          lookbook and the payment link — in the estate&apos;s branded email.
+        </p>
       ) : (
         <p className="rounded-lg border border-manager-border bg-white px-3 py-2.5 text-xs text-manager-text-muted">
           Save the Stripe payment link below to enable sending — it gets embedded
           in the email.
         </p>
       )}
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send reservation email?</DialogTitle>
+            <DialogDescription>
+              This goes to the guest immediately — it is their confirmation, so
+              it can&apos;t be recalled.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 rounded-lg border border-manager-border bg-manager-main px-3 py-2.5 text-sm">
+            <div className="flex justify-between gap-3">
+              <span className="text-manager-text-muted">To</span>
+              <span className="truncate font-medium text-manager-text">
+                {inquiry.email}
+              </span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-manager-text-muted">Payment link</span>
+              <span className="truncate text-manager-text">
+                {inquiry.stripePaymentLink}
+              </span>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-manager-accent text-white hover:opacity-90"
+              disabled={sendLookbook.isPending}
+              onClick={handleSend}
+            >
+              {sendLookbook.isPending ? (
+                <Loader2 className="mr-1.5 size-4 animate-spin" />
+              ) : null}
+              Send now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="space-y-3 rounded-lg border border-green-200 bg-white p-4">
         <p className="text-xs font-medium uppercase tracking-wider text-manager-text-muted">

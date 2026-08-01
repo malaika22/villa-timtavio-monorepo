@@ -161,6 +161,11 @@ export const ExperienceFormDialog = ({
         photoUrls: [],
       });
     }
+  } else if (!open && activeSessionKey !== 'closed') {
+    // Re-arm on close so the next open always resets — another blank "new"
+    // session would otherwise produce the same key, skip the reset, and leave
+    // the last item's data sitting in the form.
+    setActiveSessionKey('closed');
   }
 
   const isIncluded = useWatch({ control: form.control, name: 'isIncluded' });
