@@ -92,4 +92,20 @@ export function buildLookbookMailto(inquiry: Inquiry): string {
   return `mailto:${inquiry.email}?subject=${subject}&body=${body}`;
 }
 
+/**
+ * Gmail's compose URL. `mailto:` only does anything when the machine has a
+ * default mail handler registered, which a webmail user typically doesn't —
+ * this opens a real draft in the browser instead.
+ */
+export function buildLookbookGmailUrl(inquiry: Inquiry): string {
+  const params = new URLSearchParams({
+    view: 'cm',
+    fs: '1',
+    to: inquiry.email,
+    su: buildLookbookSubject(inquiry),
+    body: buildLookbookMessage(inquiry),
+  });
+  return `https://mail.google.com/mail/?${params.toString()}`;
+}
+
 export const LODGIFY_NEW_BOOKING_URL = config.lodgify.newBookingUrl;

@@ -17,6 +17,7 @@ import {
   useMarkPaymentLinkSent,
 } from '@/hooks/useInquiries';
 import {
+  buildLookbookGmailUrl,
   buildLookbookMailto,
   buildLookbookMessage,
   LODGIFY_NEW_BOOKING_URL,
@@ -51,9 +52,7 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
     }
   }
 
-  function handleSendLookbook() {
-    window.location.href = buildLookbookMailto(inquiry);
-
+  function markSent() {
     if (!inquiry.lookbookSentAt) {
       markLookbook.mutate(inquiry.id, {
         onSuccess: () => {
@@ -63,6 +62,16 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
         },
       });
     }
+  }
+
+  function handleSendGmail() {
+    window.open(buildLookbookGmailUrl(inquiry), '_blank', 'noopener,noreferrer');
+    markSent();
+  }
+
+  function handleSendMailClient() {
+    window.location.href = buildLookbookMailto(inquiry);
+    markSent();
   }
 
   function handleLogPaymentLink() {
@@ -104,19 +113,29 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
         <Button
           type="button"
           variant="outline"
-          onClick={handleSendLookbook}
+          onClick={handleSendGmail}
           // Blocked until the link is saved — the email embeds the SAVED link,
           // so sending early quietly promises a link that never arrives.
           disabled={markLookbook.isPending || !paymentLinkSaved}
-          title={
-            paymentLinkSaved ? undefined : 'Save the payment link first'
-          }
+          title={paymentLinkSaved ? undefined : 'Save the payment link first'}
           className="flex-1 border-green-300 bg-white text-manager-text hover:bg-green-50"
         >
           <Mail className="mr-2 size-4" />
-          Send lookbook + payment link
+          Draft in Gmail
         </Button>
       </div>
+
+      {/* mailto: is kept as a second route — it only opens anything when the
+          machine has a default mail handler, which webmail users don't. */}
+      {paymentLinkSaved && (
+        <button
+          type="button"
+          onClick={handleSendMailClient}
+          className="-mt-2 text-xs text-manager-text-muted underline underline-offset-2 hover:text-manager-text"
+        >
+          Use my desktop mail app instead
+        </button>
+      )}
 
       {paymentLinkSaved ? (
         <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-900">
