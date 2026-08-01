@@ -33,12 +33,17 @@ const PARTY: FooterLink = { label: 'Party', href: '/party', Icon: Users };
 
 export function getFooterLinks(isSecondary: boolean): FooterLink[] {
   // Secondary: Home · Explore · Orders · Status.
-  // Primary: Home · Explore · Status · Party. Both tiers get a Status tab (the
-  // entry point for tracking requests); the primary's priced Folio moves to a
-  // card on Home. Party keeps approvals + the party overview.
+  // Primary: Home · Explore · Status · Folio.
+  //
+  // Folio sits here rather than on Home deliberately. As a Home card it led
+  // with a running total in large type, putting a price in front of the guest
+  // before they had seen a single experience — which is the last thing an
+  // estate selling experiences wants. As a nav item it stays one tap away
+  // without ever showing an amount. Party moves to a card on Home, where the
+  // approvals prompt already handles anything urgent.
   return isSecondary
     ? [HOME, EXPLORE, MY_ORDERS, STATUS]
-    : [HOME, EXPLORE, STATUS, PARTY];
+    : [HOME, EXPLORE, STATUS, FOLIO];
 }
 
 export const FOOTER_LINKS = getFooterLinks(false);

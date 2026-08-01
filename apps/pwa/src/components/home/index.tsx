@@ -8,7 +8,7 @@ import { ArrivalCountdown } from '../ArrivalCountdown';
 import { GuestManifestPrompt } from './guest-manifest/GuestManifestPrompt';
 import { GuestDetailsCard } from './guest-manifest/GuestDetailsCard';
 import { ApprovalsPromptCard } from './ApprovalsPromptCard';
-import { FolioSummaryCard } from './FolioSummaryCard';
+import { PartyCard } from './PartyCard';
 import { GuestManifestForm } from '@/components/GuestManifestForm';
 import type { GuestManifestFormValues } from '@/components/GuestManifestForm';
 import { GuestAddedSheet } from '@/components/manifest/GuestAddedSheet';
@@ -136,7 +136,7 @@ export const Home = () => {
           count={pendingApprovals.length + pendingQuotes.length}
         />
       )}
-      {isAuthenticated && isPrimary && <FolioSummaryCard />}
+      {isAuthenticated && isPrimary && <PartyCard />}
       <RoomsExploreCard
         roomCount={rooms?.length}
         previewImage={rooms?.find((r) => r.imageUrl)?.imageUrl}
