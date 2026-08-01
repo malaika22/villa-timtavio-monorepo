@@ -261,17 +261,20 @@ export class InquiriesService {
           })
         : null;
 
-    const arrival = fmt(inquiry.preferredFrom);
-    const departure = fmt(inquiry.preferredTo);
+    // Once the Lodgify booking exists it is the source of truth — Rodrigo may
+    // have booked different dates to the ones the guest originally asked for,
+    // and confirming a reservation with the wrong dates would be worse than
+    // sending nothing. Fall back to the requested dates pre-conversion.
+    const booking = inquiry.linkedBooking;
+    const arrival = fmt(booking?.checkIn ?? inquiry.preferredFrom);
+    const departure = fmt(booking?.checkOut ?? inquiry.preferredTo);
+    const guests = booking?.totalGuests ?? inquiry.guestCount;
 
     const rows = [
       arrival ? emailRow('Arrival', arrival) : '',
       departure ? emailRow('Departure', departure) : '',
-      inquiry.guestCount
-        ? emailRow(
-            'Guests',
-            `${inquiry.guestCount} ${inquiry.guestCount === 1 ? 'guest' : 'guests'}`,
-          )
+      guests
+        ? emailRow('Guests', `${guests} ${guests === 1 ? 'guest' : 'guests'}`)
         : '',
     ].join('');
 
