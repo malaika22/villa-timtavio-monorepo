@@ -571,7 +571,13 @@ export class RequestsService {
       },
     });
 
-    await this.createBreezeWayTask(updated);
+    // Only complimentary experiences get their setup task at confirm time. A
+    // priced one waits until its cost is agreed — otherwise a vendor is booked
+    // for something the primary might still decline, and there is no way to
+    // unwind a Breezeway task once it exists.
+    if (updated.catalogItem.isIncluded) {
+      await this.createBreezeWayTask(updated);
+    }
 
     await this.notificationsService.send({
       bookingId: request.bookingId,
@@ -856,11 +862,7 @@ export class RequestsService {
         title: 'Revised quote declined',
         message: `${request.requestedByName}'s ${request.catalogItem.name} was cancelled — the primary member declined the ${formatPrice(
           toNumber(request.quotedCost) ?? 0,
-        )} quote.${
-          request.breezeWayTaskId
-            ? ' A Breezeway setup task exists for it and needs cancelling.'
-            : ''
-        }`,
+        )} quote. No charge was raised and no setup task was created.`,
         category: 'BOOKING',
         entityType: 'ExperienceRequest',
         entityId: requestId,
@@ -890,6 +892,21 @@ export class RequestsService {
     loggedBy: string,
   ) {
     const request = await this.findOne(id);
+
+    // The price is settled, so the estate can commit staff to it. Both routes
+    // here — a quote inside tolerance, and one the primary re-approved — land
+    // in this method, so this is the only place the task needs creating.
+    //
+    // Skipped when a task already exists (the cost can be edited and re-logged,
+    // which would otherwise duplicate it in Breezeway) and when the request
+    // isn't confirmed, since the due date is derived from confirmedDate.
+    if (
+      !request.catalogItem.isIncluded &&
+      !request.breezeWayTaskId &&
+      request.confirmedDate
+    ) {
+      await this.createBreezeWayTask(request);
+    }
 
     const folio = await this.prisma.folioItem.create({
       data: {
