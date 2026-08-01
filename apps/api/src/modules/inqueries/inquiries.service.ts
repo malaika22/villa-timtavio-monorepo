@@ -316,6 +316,23 @@ export class InquiriesService {
 
     this.logger.log(`Lookbook + payment email sent to ${inquiry.email}`);
 
+    // Recorded so "did the guest ever get their confirmation?" is answerable
+    // from the audit log, not just from the inquiry's own timestamp.
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'BOOKING_UPDATED',
+        entityType: 'Inquiry',
+        entityId: id,
+        performedBy: sentBy,
+        performedByRole: 'estate_manager',
+        metadata: {
+          action: 'reservation_confirmation_sent',
+          to: inquiry.email,
+          resend: !!inquiry.lookbookSentAt,
+        } as any,
+      },
+    });
+
     return this.prisma.inquiry.update({
       where: { id },
       data: { lookbookSentAt: new Date(), lookbookSentBy: sentBy },

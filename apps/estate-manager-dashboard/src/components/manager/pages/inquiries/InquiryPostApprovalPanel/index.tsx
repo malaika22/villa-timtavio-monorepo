@@ -36,6 +36,10 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
   // CONVERTED that step is behind us and only the email remains.
   const bookingCreated = inquiry.status === 'CONVERTED';
 
+  // Once sent, this is the guest's confirmation — say so plainly and make a
+  // second send a deliberate act rather than an identical-looking button.
+  const sentAt = inquiry.lookbookSentAt;
+
   function handleOpenLodgify() {
     window.open(LODGIFY_NEW_BOOKING_URL, '_blank', 'noopener,noreferrer');
   }
@@ -107,11 +111,22 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
           className="flex-1 border-green-300 bg-white text-manager-text hover:bg-green-50"
         >
           <Mail className="mr-2 size-4" />
-          Send lookbook + payment link
+          {sentAt ? 'Resend confirmation' : 'Send lookbook + payment link'}
         </Button>
       </div>
 
-      {paymentLinkSaved ? (
+      {sentAt ? (
+        <div className="flex items-start gap-2 rounded-lg border border-green-300 bg-green-50 px-3 py-2.5 text-xs leading-relaxed text-green-900">
+          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-600" aria-hidden />
+          <span>
+            <strong className="font-semibold">Confirmation sent</strong> to{' '}
+            {inquiry.email} on{' '}
+            {format(parseISO(sentAt), 'MMM d')} at{' '}
+            {format(parseISO(sentAt), 'h:mm a')}, with the payment link. The
+            guest has everything they need to secure the reservation.
+          </span>
+        </div>
+      ) : paymentLinkSaved ? (
         <p className="rounded-lg border border-manager-border bg-white px-3 py-2.5 text-xs leading-relaxed text-manager-text-muted">
           Sends the guest their reservation confirmation — stay details, the
           lookbook and the payment link — in the estate&apos;s branded email.
@@ -126,10 +141,13 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Send reservation email?</DialogTitle>
+            <DialogTitle>
+              {sentAt ? 'Send this again?' : 'Send reservation email?'}
+            </DialogTitle>
             <DialogDescription>
-              This goes to the guest immediately — it is their confirmation, so
-              it can&apos;t be recalled.
+              {sentAt
+                ? `This guest was already sent their confirmation on ${format(parseISO(sentAt), 'MMM d')} at ${format(parseISO(sentAt), 'h:mm a')}. Sending again delivers a second copy.`
+                : 'This goes to the guest immediately — it is their confirmation, so it can\u2019t be recalled.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 rounded-lg border border-manager-border bg-manager-main px-3 py-2.5 text-sm">
@@ -158,7 +176,7 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
               {sendLookbook.isPending ? (
                 <Loader2 className="mr-1.5 size-4 animate-spin" />
               ) : null}
-              Send now
+              {sentAt ? 'Send again' : 'Send now'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -173,10 +191,10 @@ export function InquiryPostApprovalPanel({ inquiry }: Props) {
             className={`size-4 ${inquiry.lookbookSentAt ? 'text-green-600' : 'text-manager-text-muted'}`}
           />
           <span>
-            Lookbook{' '}
-            {inquiry.lookbookSentAt
-              ? `sent ${format(parseISO(inquiry.lookbookSentAt), 'MMM d · h:mm a')}`
-              : 'not logged yet'}
+            Confirmation{' '}
+            {sentAt
+              ? `sent ${format(parseISO(sentAt), 'MMM d · h:mm a')}`
+              : 'not sent yet'}
           </span>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
