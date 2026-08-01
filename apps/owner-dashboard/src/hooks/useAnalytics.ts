@@ -140,9 +140,11 @@ export function useExperienceKpis(period?: string) {
       const revenue = rows.reduce((s, r) => s + r.revenue, 0);
       const declined = rows.reduce((s, r) => s + r.declined, 0);
       const avgPer = booked > 0 ? Math.round(revenue / booked) : 0;
-      const declineBase = booked + declined;
+      // Share of ALL requests that were declined. Dividing by booked+declined
+      // instead reported "100% declined" whenever nothing had completed yet.
+      const requests = rows.reduce((s, r) => s + (r.requests ?? 0), 0);
       const declineRate =
-        declineBase > 0 ? Math.round((declined / declineBase) * 1000) / 10 : 0;
+        requests > 0 ? Math.round((declined / requests) * 1000) / 10 : 0;
       return [
         { id: 'exp-booked', label: 'TOTAL BOOKED YTD', value: String(booked) },
         {
@@ -299,7 +301,7 @@ export function useUpcomingStaysAbbrev() {
         const arrivingToday = s.checkIn.slice(0, 10) === today;
         return {
           id: s.id,
-          guestName: s.guestAbbreviated,
+          guestName: s.guestName,
           guestInitials: s.guestInitials,
           guestMeta: `${s.nights} night${s.nights === 1 ? '' : 's'}`,
           villas: 'Villa TimTavio',

@@ -73,6 +73,8 @@ export interface ExperiencePerfApiRow {
   declined: number;
   declinedPercent: number;
   trendPercent: number | null;
+  /** Every request in the window — the denominator for the decline rate. */
+  requests: number;
 }
 
 export interface RevenueSummaryResponse {
