@@ -1,6 +1,6 @@
 export type FolioItemCategory = 'villa' | 'experience' | 'incidental';
 
-export type FolioTabId = 'all' | 'by-type' | 'by-day';
+export type FolioTabId = 'all' | 'by-type' | 'by-day' | 'by-guest';
 
 export interface FolioItem {
   id: number;
@@ -111,4 +111,5 @@ export const FOLIO_TABS: { id: FolioTabId; label: string }[] = [
   { id: 'all', label: 'ALL' },
   { id: 'by-type', label: 'BY TYPE' },
   { id: 'by-day', label: 'BY DAY' },
+  { id: 'by-guest', label: 'BY GUEST' },
 ];

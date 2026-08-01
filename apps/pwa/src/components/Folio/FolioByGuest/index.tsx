@@ -19,19 +19,14 @@ export const FolioByGuest = ({
   byGuest: FolioGuestSpend[];
   className?: string;
 }) => {
-  // Worth showing as soon as ANY party member has spent — a single line naming
-  // a guest is exactly what the primary needs to charge back. Only a breakdown
-  // whose sole line is the primary themselves says nothing new.
+  // Lives on its own folio tab now. It used to sit above the line items, where
+  // a party of eight stacked eight cards ahead of the charges themselves.
   if (!byGuest.some((g) => !g.isPrimary)) return null;
 
   const largest = Math.max(...byGuest.map((g) => g.total));
 
   return (
-    <section className={cn('px-4 pb-2', className)}>
-      <p className="mb-2 text-[9px] font-semibold uppercase tracking-[1.5px] text-[#9A9288]">
-        Spend by guest
-      </p>
-
+    <section className={cn('flex flex-col', className)}>
       <div className="overflow-hidden rounded-[12px]">
         {byGuest.map((guest, i) => (
           <div
