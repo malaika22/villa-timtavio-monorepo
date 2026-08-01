@@ -20,6 +20,8 @@ export class LodgifyProcessor {
     const response = await this.lodgifyService.getBookings();
     const bookings = response.items || [];
 
+    let failures = 0;
+
     for (const booking of bookings) {
       try {
         // Normalize the raw Lodgify API shape (guest.name, etc.) into our
@@ -34,10 +36,27 @@ export class LodgifyProcessor {
         }
         await this.bookingsService.syncFromLodgify(payload);
       } catch (err: any) {
+        failures++;
         this.logger.error(
           `Failed to sync booking ${booking?.id}: ${err.message}`,
         );
       }
     }
+
+    // Reservations deleted in Lodgify send no webhook — they just stop being
+    // returned — so absences have to be reconciled here or their records live
+    // on as phantom "current" bookings.
+    //
+    // Only on a clean pass. If any booking failed to sync we can't tell a
+    // deletion from a row we simply failed to process, and the cost of getting
+    // that wrong is cancelling a live stay.
+    if (failures > 0) {
+      this.logger.warn(
+        `${failures} booking(s) failed to sync — skipping deletion reconciliation`,
+      );
+      return;
+    }
+
+    await this.bookingsService.reconcileDeletedFromLodgify(bookings);
   }
 }
