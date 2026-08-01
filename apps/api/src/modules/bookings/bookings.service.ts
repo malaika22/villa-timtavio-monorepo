@@ -6,14 +6,10 @@ import { InquiriesService } from '../inqueries/inquiries.service';
 import { PusherService } from '../pusher/pusher.service';
 import { PaymentsService } from '../payments/payments.service';
 import { realFirstName } from '../../commons/utils/name.util';
-import { Resend } from 'resend';
 
 @Injectable()
 export class BookingsService {
   private readonly logger = new Logger(BookingsService.name);
-  private readonly resend = process.env.RESEND_API_KEY
-    ? new Resend(process.env.RESEND_API_KEY)
-    : null;
 
   constructor(
     private prisma: PrismaService,
@@ -324,114 +320,13 @@ export class BookingsService {
         guestTier: 'primary',
         checkOutDate: booking.checkOut,
       });
-    } else {
-      // Booked further out, so the magic link is still weeks or months away —
-      // send a branded confirmation now so the guest isn't left with nothing
-      // after Lodgify's own guest email was switched off. Best-effort: a failed
-      // send must never break the Lodgify sync. This create path is guarded by
-      // the lodgifyId lookup above, so it runs once per booking regardless of
-      // whether the webhook or the poll fallback got here first.
-      await this.sendBookingConfirmationEmail(booking, guest).catch((err) =>
-        this.logger.error(`Confirmation email failed: ${String(err)}`),
-      );
     }
 
+    // Nothing else is emailed at booking time. The guest's confirmation is the
+    // lookbook + payment link Rodrigo sends from the inquiry, which carries the
+    // reservation details and the Stripe link together.
+
     return booking;
-  }
-
-  /**
-   * Branded booking confirmation, sent at booking time for stays that aren't
-   * imminent. Mirrors the Villa TimTavio receipt email so the guest's first and
-   * last touchpoints look like the same estate. Guarded by RESEND_API_KEY, so
-   * this is a no-op in local dev.
-   */
-  private async sendBookingConfirmationEmail(
-    booking: { checkIn: Date; checkOut: Date; nights: number; totalGuests: number },
-    guest: { email: string; firstName: string },
-  ) {
-    if (!this.resend) return;
-
-    const fmtDate = (d: Date) =>
-      d.toLocaleDateString('en-US', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-        timeZone: 'UTC',
-      });
-
-    const detailRow = (label: string, value: string) =>
-      `<tr>
-         <td style="padding:9px 0;color:#8a8178;font-size:14px;font-family:Helvetica,Arial,sans-serif">${label}</td>
-         <td align="right" style="padding:9px 0;color:#2b2824;font-size:14px;font-family:Helvetica,Arial,sans-serif">${value}</td>
-       </tr>`;
-
-    await this.resend.emails.send({
-      from: process.env.EMAIL_FROM ?? 'reservations@villatimtavio.com',
-      to: guest.email,
-      subject: 'Your Villa TimTavio reservation is confirmed',
-      html: `
-      <div style="margin:0;padding:0;background:#f3efe8;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3efe8;padding:32px 12px;">
-          <tr><td align="center">
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #eae4da;">
-              <!-- Brand header -->
-              <tr>
-                <td style="background:#0f1f2e;padding:28px 36px;text-align:center;">
-                  <div style="font-family:Georgia,'Times New Roman',serif;color:#ffffff;font-size:20px;letter-spacing:6px;">VILLA&nbsp;TIMTAVIO</div>
-                  <div style="height:2px;width:40px;background:#c8a96e;margin:12px auto 0;"></div>
-                  <div style="font-family:Helvetica,Arial,sans-serif;color:#c8a96e;font-size:10px;letter-spacing:3px;text-transform:uppercase;margin-top:12px;">Reservation confirmed</div>
-                </td>
-              </tr>
-              <!-- Body -->
-              <tr>
-                <td style="padding:36px 36px 8px;">
-                  <h1 style="margin:0;font-family:Georgia,'Times New Roman',serif;font-weight:500;font-size:26px;color:#1a1614;">Welcome, ${guest.firstName}</h1>
-                  <p style="margin:10px 0 0;font-family:Helvetica,Arial,sans-serif;color:#8a8178;font-size:14px;line-height:1.6;">Your reservation at Villa TimTavio is confirmed. We are already preparing the estate for your arrival in Puerto Escondido.</p>
-                </td>
-              </tr>
-              <!-- Stay details -->
-              <tr>
-                <td style="padding:20px 36px 8px;">
-                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                    ${detailRow('Arrival', fmtDate(booking.checkIn))}
-                    ${detailRow('Departure', fmtDate(booking.checkOut))}
-                    ${detailRow('Nights', String(booking.nights))}
-                    ${detailRow(
-                      'Guests',
-                      `${booking.totalGuests} ${booking.totalGuests === 1 ? 'guest' : 'guests'}`,
-                    )}
-                  </table>
-                </td>
-              </tr>
-              <!-- What happens next -->
-              <tr>
-                <td style="padding:24px 36px 8px;">
-                  <div style="border-top:1px solid #eae4da;padding-top:22px;">
-                    <div style="font-family:Helvetica,Arial,sans-serif;color:#c8a96e;font-size:10px;letter-spacing:3px;text-transform:uppercase;">What happens next</div>
-                    <p style="margin:12px 0 0;font-family:Helvetica,Arial,sans-serif;color:#8a8178;font-size:14px;line-height:1.7;">
-                      Closer to your arrival we will send a private link to your guest portal, where you can introduce your party, choose rooms, share dietary preferences and browse the experiences we curate on the estate.
-                    </p>
-                    <p style="margin:14px 0 0;font-family:Helvetica,Arial,sans-serif;color:#8a8178;font-size:14px;line-height:1.7;">
-                      Should anything need attention before then, simply reply to this message — our estate team will take care of it.
-                    </p>
-                  </div>
-                </td>
-              </tr>
-              <!-- Footer -->
-              <tr>
-                <td style="padding:32px 36px 34px;">
-                  <div style="border-top:1px solid #eae4da;padding-top:20px;font-family:Helvetica,Arial,sans-serif;color:#b3aaa0;font-size:12px;line-height:1.6;text-align:center;">
-                    Villa TimTavio &nbsp;·&nbsp; Puerto Escondido, Oaxaca
-                  </div>
-                </td>
-              </tr>
-            </table>
-          </td></tr>
-        </table>
-      </div>
-      `,
-    });
   }
 
   async updateFromLodgify(lodgifyData: any) {
