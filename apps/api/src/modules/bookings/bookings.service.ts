@@ -7,6 +7,24 @@ import { PusherService } from '../pusher/pusher.service';
 import { PaymentsService } from '../payments/payments.service';
 import { realFirstName } from '../../commons/utils/name.util';
 
+/**
+ * Which of several competing bookings the estate manager actually needs to see:
+ * the one with real activity on it. Manifest progress first, then party size,
+ * then the latest check-in.
+ */
+function byRealActivity(
+  a: { manifestStatus: string; manifestGuests: unknown[]; checkIn: Date },
+  b: { manifestStatus: string; manifestGuests: unknown[]; checkIn: Date },
+): number {
+  const rank = (s: string) =>
+    s === 'SUBMITTED' ? 3 : s === 'APPROVED' ? 2 : s === 'IN_PROGRESS' ? 1 : 0;
+  const byManifest = rank(b.manifestStatus) - rank(a.manifestStatus);
+  if (byManifest !== 0) return byManifest;
+  const byGuests = b.manifestGuests.length - a.manifestGuests.length;
+  if (byGuests !== 0) return byGuests;
+  return b.checkIn.getTime() - a.checkIn.getTime();
+}
+
 @Injectable()
 export class BookingsService {
   private readonly logger = new Logger(BookingsService.name);
@@ -82,16 +100,7 @@ export class BookingsService {
       include,
     });
     if (checkedIn.length > 0) {
-      const manifestRank = (s: string) =>
-        s === 'SUBMITTED' ? 3 : s === 'APPROVED' ? 2 : s === 'IN_PROGRESS' ? 1 : 0;
-      checkedIn.sort((a, b) => {
-        const byManifest =
-          manifestRank(b.manifestStatus) - manifestRank(a.manifestStatus);
-        if (byManifest !== 0) return byManifest;
-        const byGuests = b.manifestGuests.length - a.manifestGuests.length;
-        if (byGuests !== 0) return byGuests;
-        return b.checkIn.getTime() - a.checkIn.getTime();
-      });
+      checkedIn.sort(byRealActivity);
       return this.withPrimaryLinkSent(checkedIn[0]!);
     }
 
@@ -103,14 +112,18 @@ export class BookingsService {
     });
     if (upcoming) return this.withPrimaryLinkSent(upcoming);
 
-    // 3) Most recent still-active booking as a fallback. Exclude checked-out /
-    // cancelled stays — those belong under Past Bookings, not "Current".
-    const recent = await this.prisma.booking.findFirst({
+    // 3) Still-active bookings as a fallback. This used to take the first row
+    // ordered by checkIn alone — with several bookings sharing a check-in date
+    // that is a tie, so Postgres returned an arbitrary one and the EM could
+    // land on an empty duplicate while the guest's manifest sat on another.
+    // Rank by real activity first, exactly as the checked-in branch does.
+    const active = await this.prisma.booking.findMany({
       where: { status: { notIn: ['CHECKED_OUT', 'CANCELLED'] } },
-      orderBy: { checkIn: 'desc' },
       include,
     });
-    return recent ? this.withPrimaryLinkSent(recent) : null;
+    if (active.length === 0) return null;
+    active.sort(byRealActivity);
+    return this.withPrimaryLinkSent(active[0]!);
   }
 
   // The primary's access link isn't a manifestGuest.pwaLinkSent (those are
