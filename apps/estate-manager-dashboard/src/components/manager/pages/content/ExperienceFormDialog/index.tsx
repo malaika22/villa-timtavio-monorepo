@@ -108,8 +108,14 @@ export const ExperienceFormDialog = ({
   const formSessionKey = `${open}:${experience?.id ?? 'new'}:${defaultCategoryId}`;
   const [activeSessionKey, setActiveSessionKey] = useState(formSessionKey);
 
-  if (open && formSessionKey !== activeSessionKey) {
-    setActiveSessionKey(formSessionKey);
+  // Track the session key even while the dialog is closed. Guarding the whole
+  // block on `open` meant the key kept its "open" value after a save, so
+  // reopening Add produced an identical key, the reset never ran, and the form
+  // still held the last item that was added.
+  const isNewSession = formSessionKey !== activeSessionKey;
+  if (isNewSession) setActiveSessionKey(formSessionKey);
+
+  if (open && isNewSession) {
     if (experience) {
       form.reset({
         name: experience.name,

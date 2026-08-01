@@ -72,7 +72,15 @@ export const AddVendorDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      // Clear on close, not just on save — cancelling used to leave the typed
+      // values behind for the next time the dialog was opened.
+      onOpenChange={(next) => {
+        if (!next) reset();
+        onOpenChange(next);
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add vendor</DialogTitle>
