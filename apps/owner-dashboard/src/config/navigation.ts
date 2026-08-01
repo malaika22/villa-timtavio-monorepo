@@ -35,8 +35,10 @@ export type PageMeta = {
 
 export const pageMeta: Record<string, PageMeta> = {
   '/': {
+    // No date here — the page's own period selector states the range, and a
+    // hardcoded month goes stale the moment it ships.
     title: 'Estate Overview',
-    subtitle: 'Intelligence summary - March 2026',
+    subtitle: 'Intelligence summary across the estate',
   },
   '/heat-maps': {
     title: 'Service Heat Maps',

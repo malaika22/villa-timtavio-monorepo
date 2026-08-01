@@ -33,11 +33,18 @@ export const PageHeader = ({ meta }: { meta: PageMeta }) => {
   const showPeriodSelector = isOverview || isExperiences;
   const isFixedRange =
     isHeatMaps || isCapitalInsights || isAnalytics || isVendors;
+  // Derived, never hardcoded — a frozen date label silently misreports which
+  // day the heat map is actually showing.
+  const now = new Date();
   const fixedLabel = isHeatMaps
-    ? 'Mar 27, 2026'
+    ? now.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
     : isCapitalInsights
-      ? '2026 Annual'
-      : 'YTD 2026';
+      ? `${now.getFullYear()} Annual`
+      : `YTD ${now.getFullYear()}`;
 
   return (
     <header className="flex shrink-0 flex-col gap-2 border-y border-[#e8e4de] bg-white px-4 py-4 sm:flex-row sm:items-center sm:justify-between lg:px-6">
