@@ -306,11 +306,19 @@ export class BookingsService {
       },
     });
 
-    // Send magic link if check-in within 24 hours
-    const hoursUntilCheckIn =
-      (booking.checkIn.getTime() - Date.now()) / (1000 * 60 * 60);
+    // Send the magic link now if the stay is imminent or already under way.
+    //
+    // This used to require check-in to be strictly in the FUTURE, so a booking
+    // made on the day of arrival — after the check-in time had passed — fell
+    // through: the guest was already at the estate and got nothing until the
+    // 30-minute catch-up cron happened to run. The window now matches the
+    // scheduler's: arriving within 24h, or arrived and not yet departed.
+    const now = Date.now();
+    const in24h = now + 24 * 60 * 60 * 1000;
+    const stayIsImminentOrActive =
+      booking.checkIn.getTime() <= in24h && booking.checkOut.getTime() > now;
 
-    if (hoursUntilCheckIn <= 24 && hoursUntilCheckIn > 0) {
+    if (stayIsImminentOrActive) {
       await this.magicLinkService.sendMagicLink({
         email: guest.email,
         firstName: guest.firstName,
