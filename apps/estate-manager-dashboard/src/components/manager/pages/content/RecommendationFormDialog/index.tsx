@@ -63,15 +63,14 @@ export const RecommendationFormDialog = ({
   const formSessionKey = `${open}:${editing?.id ?? 'new'}`;
   const [activeSessionKey, setActiveSessionKey] = useState(formSessionKey);
 
-  // Track the session key even while the dialog is closed. Guarding the whole
-  // block on `open` meant the key kept its "open" value after a save, so
-  // reopening Add produced an identical key, the reset never ran, and the form
-  // still held the last item that was added.
-  const isNewSession = formSessionKey !== activeSessionKey;
-  if (isNewSession) setActiveSessionKey(formSessionKey);
-
-  if (open && isNewSession) {
+  if (open && formSessionKey !== activeSessionKey) {
+    setActiveSessionKey(formSessionKey);
     setForm(formFromEditing(editing));
+  } else if (!open && activeSessionKey !== 'closed') {
+    // Re-arm on close so the next open always resets — another blank "new"
+    // session would otherwise produce the same key, skip the reset, and leave
+    // the last item's data sitting in the form.
+    setActiveSessionKey('closed');
   }
 
   const set = (k: keyof typeof form, v: string | boolean | number) =>
