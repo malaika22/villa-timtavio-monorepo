@@ -11,6 +11,7 @@ import {
   type FolioTabId,
 } from '../mockData';
 import { FolioLineItemsProps } from './types';
+import { FolioByGuest } from '../FolioByGuest';
 
 const fmtAmount = (n: number) =>
   new Intl.NumberFormat('en-US', {
@@ -20,9 +21,16 @@ const fmtAmount = (n: number) =>
     maximumFractionDigits: 2,
   }).format(n);
 
-export const FolioLineItems = ({ data }: FolioLineItemsProps) => {
+export const FolioLineItems = ({ data, byGuest = [] }: FolioLineItemsProps) => {
   const [activeTab, setActiveTab] = useState<FolioTabId>('all');
   const { items, totals, checkedOut } = data;
+
+  // By guest only earns a tab once someone other than the primary has spent —
+  // on a solo stay it would group a single person against themselves.
+  const hasPartySpend = byGuest.some((g) => !g.isPrimary);
+  const tabs = hasPartySpend
+    ? FOLIO_TABS
+    : FOLIO_TABS.filter((t) => t.id !== 'by-guest');
 
   const tax = totals.taxAmount ?? totals.subtotal * totals.taxRate;
   const service = totals.serviceAmount ?? 0;
@@ -32,7 +40,7 @@ export const FolioLineItems = ({ data }: FolioLineItemsProps) => {
     <div className="flex flex-1 flex-col bg-[#F5F0E8]">
       {/* Tab bar */}
       <div className="bg-white border-b border-[#E3E0DA] flex">
-        {FOLIO_TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
@@ -57,6 +65,7 @@ export const FolioLineItems = ({ data }: FolioLineItemsProps) => {
         {activeTab === 'all' && <FlatList items={items} />}
         {activeTab === 'by-type' && <ByTypeList items={items} />}
         {activeTab === 'by-day' && <ByDayList items={items} />}
+        {activeTab === 'by-guest' && <FolioByGuest byGuest={byGuest} />}
       </div>
 
       {/* Summary */}
