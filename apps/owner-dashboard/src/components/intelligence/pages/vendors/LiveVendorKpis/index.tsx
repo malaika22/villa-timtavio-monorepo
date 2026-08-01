@@ -42,7 +42,12 @@ export const LiveVendorKpis = () => {
       id: 'vendor-revenue',
       label: 'REVENUE GENERATED',
       value: compactMoney(revenue),
-      subtext: `${roi.toFixed(1)}x ROI on vendor spend`,
+      // With no spend there is no ratio — "0.0x" asserts a computed result
+      // that doesn't exist. Match the em-dash every other empty state uses.
+      subtext:
+        spend > 0
+          ? `${roi.toFixed(1)}x ROI on vendor spend`
+          : 'ROI once vendor spend is recorded',
     },
     {
       id: 'vendor-rating',

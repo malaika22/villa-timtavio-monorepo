@@ -16,7 +16,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: 'Casa TimTavio | Owner Dashboard',
+  title: 'Villa TimTavio | Owner Dashboard',
 };
 
 export default function RootLayout({

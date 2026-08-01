@@ -5,6 +5,12 @@ import { useState } from 'react';
 
 const timeFilters = ['Today', 'This Week', 'This Month', 'Custom'] as const;
 
+// These four are the only serviceType values a ServiceEvent can currently
+// carry, because the sole writer of ServiceEvents is prisma/seed-service-events.
+// Adding the remaining CatalogCategory values (ARRIVAL_TRANSIT, EXCURSIONS,
+// INCLUDED) would add filters that can only ever return nothing. Revisit when
+// experience activity actually emits ServiceEvents — see the parked heat-map
+// work — and source this list from the estate's real categories then.
 const categoryFilters: { label: string; value?: string }[] = [
   { label: 'All Activity', value: undefined },
   { label: 'Wellness', value: 'WELLNESS' },

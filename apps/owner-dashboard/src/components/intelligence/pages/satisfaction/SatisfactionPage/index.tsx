@@ -29,9 +29,44 @@ export const SatisfactionPage = () => {
   }
 
   if (!data || data.reviewCount === 0) {
+    // Keep the score scaffolding visible with em-dashes, the way every other
+    // page does. Collapsing to a single line made the page look unfinished
+    // rather than simply empty, and hid what it will show once reviews land.
     return (
-      <div className="rounded-xl border border-[#e8e4de] bg-white p-10 text-center text-sm text-[#6b6661]">
-        No guest reviews yet.
+      <div className="space-y-6">
+        <section className="flex flex-wrap items-center gap-6 rounded-xl border border-[#e8e4de] bg-white p-6">
+          <div>
+            <div className="font-cormorant text-[52px] leading-none text-[#c9c4bd]">
+              —
+            </div>
+            <p className="mt-1 text-xs uppercase tracking-wider text-[#6b6661]">
+              Overall score
+            </p>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm text-[#3a3632]">No guest reviews yet.</p>
+            <p className="mt-1 text-sm text-[#6b6661]">
+              Scores, sentiment and themes appear here once guests review their
+              stay.
+            </p>
+          </div>
+        </section>
+
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {['Service', 'Cleanliness', 'Experiences', 'Value'].map((label) => (
+            <div
+              key={label}
+              className="rounded-xl border border-[#e8e4de] bg-white p-4"
+            >
+              <p className="text-xs uppercase tracking-wider text-[#6b6661]">
+                {label}
+              </p>
+              <p className="mt-2 font-cormorant text-[28px] leading-none text-[#c9c4bd]">
+                —
+              </p>
+            </div>
+          ))}
+        </section>
       </div>
     );
   }

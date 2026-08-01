@@ -27,7 +27,7 @@ export const MobileIntelligenceNav = () => {
         className="w-[260px] border-0 bg-intel-sidebar p-0 text-white"
       >
         <div className="border-b border-white/10 px-5 py-5">
-          <p className="font-cormorant text-xl">Casa TimTavio</p>
+          <p className="font-cormorant text-xl">Villa TimTavio</p>
           <p className="mt-1 text-[9px] tracking-[0.2em] text-white/40 uppercase">
             Intelligence
           </p>
