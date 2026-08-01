@@ -27,6 +27,7 @@ export const HeatMapFilters = ({
   onCategoryChange?: (value?: string) => void;
 }) => {
   const [time, setTime] = useState<(typeof timeFilters)[number]>('Today');
+  const now = new Date();
 
   return (
     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -69,8 +70,19 @@ export const HeatMapFilters = ({
           </div>
         </div>
       </div>
+      {/* Derived — a frozen timestamp on a page titled "Real-time activity
+          density" misreports the very thing the page is about. */}
       <p className="shrink-0 text-[11px] text-intel-text-muted sm:text-xs">
-        Friday, March 27 - 2:00 PM
+        {now.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+        })}{' '}
+        ·{' '}
+        {now.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        })}
       </p>
     </div>
   );
