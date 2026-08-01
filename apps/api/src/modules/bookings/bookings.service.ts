@@ -7,6 +7,11 @@ import { PusherService } from '../pusher/pusher.service';
 import { PaymentsService } from '../payments/payments.service';
 import { realFirstName } from '../../commons/utils/name.util';
 
+/** Matches the `size` LodgifyService requests; a full page means truncation. */
+const LODGIFY_PAGE_SIZE = 100;
+/** How settled a booking must be before absence counts as deletion. */
+const RECONCILE_GRACE_MS = 10 * 60 * 1000;
+
 /**
  * Which of several competing bookings the estate manager actually needs to see:
  * the one with real activity on it. Manifest progress first, then party size,
@@ -424,6 +429,110 @@ export class BookingsService {
     }
 
     return booking;
+  }
+
+  /**
+   * Mark bookings cancelled when they have disappeared from Lodgify.
+   *
+   * Deleting a reservation in Lodgify — as opposed to declining it — fires no
+   * webhook. It simply stops appearing in the poll, so our copy sat at
+   * CONFIRMED indefinitely; that is how four phantom bookings ended up
+   * competing to be the estate's "current" stay.
+   *
+   * This is the one place the sync DELETES information rather than adding it,
+   * and "Lodgify didn't mention it" is indistinguishable from "Lodgify didn't
+   * tell us everything". So it refuses to act whenever the response could be
+   * incomplete, and only ever judges bookings inside the date range the
+   * response actually covered. Set LODGIFY_RECONCILE_DELETIONS=false to
+   * disable it entirely without a deploy.
+   */
+  async reconcileDeletedFromLodgify(items: any[]): Promise<number> {
+    if (process.env.LODGIFY_RECONCILE_DELETIONS === 'false') return 0;
+
+    // An outage, a bad token, or a filtered query all return zero rows — which
+    // looks exactly like "every reservation was deleted". Never act on it.
+    if (items.length === 0) {
+      this.logger.warn('Lodgify returned no bookings — skipping reconciliation');
+      return 0;
+    }
+
+    // getBookings() asks for size: 100 and does not paginate. A full page means
+    // there may be more we never saw, and anything unseen would look deleted.
+    if (items.length >= LODGIFY_PAGE_SIZE) {
+      this.logger.warn(
+        `Lodgify returned a full page (${items.length}) — skipping reconciliation, results may be truncated`,
+      );
+      return 0;
+    }
+
+    const seen = new Set(
+      items.map((i) => String(i?.id)).filter((id) => id && id !== 'undefined'),
+    );
+    if (seen.size === 0) return 0;
+
+    // Only judge bookings inside the window Lodgify actually returned. If the
+    // API ever starts filtering to upcoming stays, past bookings would
+    // otherwise all look deleted.
+    const times = (key: 'arrival' | 'departure') =>
+      items
+        .map((i) => new Date(i?.[key]).getTime())
+        .filter((t) => Number.isFinite(t));
+    const arrivals = times('arrival');
+    const departures = times('departure');
+    if (arrivals.length === 0 || departures.length === 0) return 0;
+
+    const windowStart = new Date(Math.min(...arrivals));
+    const windowEnd = new Date(Math.max(...departures));
+
+    // A booking created moments ago (webhook) may post-date the poll's own
+    // request, so give it room before treating it as missing.
+    const createdBefore = new Date(Date.now() - RECONCILE_GRACE_MS);
+
+    const candidates = await this.prisma.booking.findMany({
+      where: {
+        status: { notIn: ['CHECKED_OUT', 'CANCELLED'] },
+        createdAt: { lt: createdBefore },
+        checkIn: { gte: windowStart },
+        checkOut: { lte: windowEnd },
+      },
+      select: { id: true, lodgifyId: true },
+    });
+
+    const vanished = candidates.filter(
+      (b) => b.lodgifyId && !seen.has(b.lodgifyId),
+    );
+    if (vanished.length === 0) return 0;
+
+    await this.prisma.booking.updateMany({
+      where: { id: { in: vanished.map((b) => b.id) } },
+      data: { status: 'CANCELLED' },
+    });
+
+    // Recorded per booking — this cancels a stay without a human involved, so
+    // it needs to be answerable later.
+    await this.prisma.auditLog.createMany({
+      data: vanished.map((b) => ({
+        action: 'BOOKING_STATUS_CHANGED',
+        entityType: 'Booking',
+        entityId: b.id,
+        performedBy: 'system',
+        performedByRole: 'system',
+        bookingId: b.id,
+        afterState: {
+          status: 'CANCELLED',
+          reason: 'No longer present in Lodgify',
+          lodgifyId: b.lodgifyId,
+        } as any,
+      })),
+    });
+
+    this.logger.warn(
+      `Cancelled ${vanished.length} booking(s) no longer in Lodgify: ${vanished
+        .map((b) => b.lodgifyId)
+        .join(', ')}`,
+    );
+
+    return vanished.length;
   }
 
   async cancelFromLodgify(lodgifyData: any) {
