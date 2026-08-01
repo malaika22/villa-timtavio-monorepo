@@ -19,8 +19,10 @@ export const FolioByGuest = ({
   byGuest: FolioGuestSpend[];
   className?: string;
 }) => {
-  // One line is just the primary's own spend — the breakdown says nothing new.
-  if (byGuest.length < 2) return null;
+  // Worth showing as soon as ANY party member has spent — a single line naming
+  // a guest is exactly what the primary needs to charge back. Only a breakdown
+  // whose sole line is the primary themselves says nothing new.
+  if (!byGuest.some((g) => !g.isPrimary)) return null;
 
   const largest = Math.max(...byGuest.map((g) => g.total));
 
