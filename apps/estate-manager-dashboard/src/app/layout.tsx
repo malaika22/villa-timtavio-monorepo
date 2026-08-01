@@ -14,7 +14,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: 'Casa TimTavio | Estate Manager',
+  title: 'Villa TimTavio | Estate Manager',
 };
 
 export default function RootLayout({
