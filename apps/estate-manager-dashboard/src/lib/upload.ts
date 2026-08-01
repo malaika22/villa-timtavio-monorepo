@@ -8,7 +8,7 @@ type SignResponse = {
   signature: string;
 };
 
-export type UploadFolder = 'rooms' | 'experiences';
+export type UploadFolder = 'rooms' | 'experiences' | 'menu';
 
 /**
  * Upload an image via a signed, direct browser → Cloudinary request. Our API

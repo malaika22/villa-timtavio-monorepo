@@ -6,6 +6,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 const FOLDERS: Record<string, string> = {
   rooms: 'villa-timtavio/rooms',
   experiences: 'villa-timtavio/experiences',
+  menu: 'villa-timtavio/menu',
 };
 
 @Controller('api/v1/uploads')
