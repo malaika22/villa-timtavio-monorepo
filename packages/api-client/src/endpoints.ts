@@ -43,6 +43,10 @@ export const API = {
       `/api/v1/requests/bookings/${bookingId}/pending-quote-approval`,
     approveQuote: (id: string) => `/api/v1/requests/${id}/approve-quote`,
     declineQuote: (id: string) => `/api/v1/requests/${id}/decline-quote`,
+    cancel: (id: string) => `/api/v1/requests/${id}/cancel`,
+    emCancellationRequests: '/api/v1/requests/em/cancellation-requests',
+    confirmCancellation: (id: string) =>
+      `/api/v1/requests/${id}/confirm-cancellation`,
     byId: (id: string) => `/api/v1/requests/${id}`,
     emQueue: '/api/v1/requests/em/queue',
     emActive: '/api/v1/requests/em/active',

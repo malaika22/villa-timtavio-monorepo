@@ -882,6 +882,223 @@ export class RequestsService {
     return updated;
   }
 
+  // ─── Guest cancels — two different acts behind one intention ─────────────
+
+  /**
+   * Before the estate confirms, nothing is committed: the request is simply
+   * withdrawn. Afterwards a vendor is booked, so the guest can only ASK, and
+   * Rodrigo unwinds it — possibly at a cost.
+   *
+   * The requester may cancel their own; the primary may cancel anyone's, since
+   * every charge on the booking lands on them.
+   */
+  async guestCancel(
+    requestId: string,
+    actorEmail: string,
+    bookingId: string,
+    reason?: string,
+  ) {
+    const request = await this.findOne(requestId);
+
+    if (request.bookingId !== bookingId) {
+      throw new ForbiddenException('That request belongs to another booking');
+    }
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { primaryGuest: true },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const isPrimary =
+      booking.primaryGuest.email.toLowerCase() === actorEmail.toLowerCase();
+    const isRequester =
+      request.requestedByEmail.toLowerCase() === actorEmail.toLowerCase();
+    if (!isPrimary && !isRequester) {
+      throw new ForbiddenException(
+        'Only the guest who requested this, or the primary member, can cancel it',
+      );
+    }
+
+    if (request.status === 'CANCELLED') {
+      throw new BadRequestException('This experience is already cancelled');
+    }
+    if (request.status === 'COMPLETED') {
+      throw new BadRequestException(
+        'This experience has already taken place and cannot be cancelled',
+      );
+    }
+    if (request.cancellationRequestedAt) {
+      throw new BadRequestException(
+        'A cancellation has already been requested for this experience',
+      );
+    }
+
+    // Nothing committed yet — withdraw it outright.
+    if (request.status === 'PENDING' || request.status === 'CONFLICT') {
+      const withdrawn = await this.prisma.experienceRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'CANCELLED',
+          statusUpdatedAt: new Date(),
+          declineReason: reason || 'Withdrawn by the guest',
+          cancellationRequestedAt: new Date(),
+          cancellationRequestedBy: actorEmail,
+          cancellationReason: reason,
+        },
+      });
+
+      await this.pusherService.experienceStatusChanged(bookingId, {
+        requestId,
+        status: 'CANCELLED',
+      });
+
+      this.logger.log(`Request ${requestId} withdrawn by ${actorEmail}`);
+      return { ...withdrawn, withdrawn: true };
+    }
+
+    // Confirmed or later — a vendor is involved, so this is a request, not an act.
+    const pending = await this.prisma.experienceRequest.update({
+      where: { id: requestId },
+      data: {
+        cancellationRequestedAt: new Date(),
+        cancellationRequestedBy: actorEmail,
+        cancellationReason: reason,
+      },
+    });
+
+    await this.prisma.systemAlert.create({
+      data: {
+        severity: 'WARNING',
+        title: 'Cancellation requested',
+        message: `${request.requestedByName} asked to cancel ${request.catalogItem.name}${
+          request.confirmedDate
+            ? ` on ${request.confirmedDate.toLocaleDateString('en-US', {
+                day: 'numeric',
+                month: 'short',
+              })}`
+            : ''
+        }${reason ? ` — “${reason}”` : ''}. Unwind it with the vendor, then confirm the cancellation and record any fee.`,
+        category: 'BOOKING',
+        entityType: 'ExperienceRequest',
+        entityId: requestId,
+      },
+    });
+
+    this.logger.log(
+      `Cancellation requested on ${requestId} by ${actorEmail} — awaiting the estate`,
+    );
+    return { ...pending, withdrawn: false };
+  }
+
+  /** Requests where a guest has asked to cancel something already confirmed. */
+  async getCancellationRequests() {
+    return this.prisma.experienceRequest.findMany({
+      where: {
+        cancellationRequestedAt: { not: null },
+        status: { notIn: ['CANCELLED', 'COMPLETED'] },
+      },
+      include: {
+        catalogItem: { include: { priceUnit: true } },
+        booking: { include: { primaryGuest: true } },
+      },
+      orderBy: { confirmedDate: 'asc' },
+    });
+  }
+
+  /**
+   * Rodrigo unwinds a confirmed experience the guest asked to drop.
+   *
+   * Any charge already on the folio is removed — they are not having the
+   * experience — and replaced by the vendor's cancellation fee if there was
+   * one. Recorded as an incidental against the guest who asked, so it shows in
+   * the by-guest breakdown and the primary can settle it with them.
+   */
+  async confirmCancellation(
+    requestId: string,
+    confirmedBy: string,
+    cancellationFee?: number,
+  ) {
+    const request = await this.findOne(requestId);
+
+    if (!request.cancellationRequestedAt) {
+      throw new BadRequestException(
+        'No cancellation has been requested for this experience',
+      );
+    }
+
+    if (request.folioItemId) {
+      await this.prisma.folioItem.delete({
+        where: { id: request.folioItemId },
+      });
+    }
+
+    const fee = cancellationFee && cancellationFee > 0 ? cancellationFee : null;
+    if (fee) {
+      await this.prisma.folioItem.create({
+        data: {
+          bookingId: request.bookingId,
+          type: 'INCIDENTAL',
+          description: `Cancellation fee — ${request.catalogItem.name}`,
+          amount: fee,
+          quantity: 1,
+          attributedToEmail: request.requestedByEmail,
+          attributedToName: request.requestedByName,
+          loggedBy: confirmedBy,
+          loggedAt: new Date(),
+          editableUntil: new Date(Date.now() + 30 * 60 * 1000),
+        },
+      });
+    }
+
+    const cancelled = await this.prisma.experienceRequest.update({
+      where: { id: requestId },
+      data: {
+        status: 'CANCELLED',
+        statusUpdatedAt: new Date(),
+        cancellationFee: fee,
+        folioItemId: null,
+        confirmedCost: null,
+        declineReason:
+          request.cancellationReason || 'Cancelled at the guest’s request',
+      },
+    });
+
+    await this.notificationsService.send({
+      bookingId: request.bookingId,
+      recipientEmail: request.requestedByEmail,
+      type: 'REQUEST_CANCELLED',
+      title: 'Experience cancelled',
+      body: fee
+        ? `${request.catalogItem.name} is cancelled. The vendor charged a ${formatPrice(fee)} cancellation fee, which is on your folio.`
+        : `${request.catalogItem.name} is cancelled — no charge.`,
+      deepLink: `/status/${requestId}`,
+    });
+
+    await this.pusherService.experienceStatusChanged(request.bookingId, {
+      requestId,
+      status: 'CANCELLED',
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'EXPERIENCE_CANCELLED',
+        entityType: 'ExperienceRequest',
+        entityId: requestId,
+        performedBy: confirmedBy,
+        performedByRole: 'estate_manager',
+        bookingId: request.bookingId,
+        metadata: {
+          action: 'guest_cancellation_confirmed',
+          requestedBy: request.cancellationRequestedBy,
+          cancellationFee: fee,
+        } as any,
+      },
+    });
+
+    return cancelled;
+  }
+
   /** Requests holding a revised quote the primary still needs to act on. */
   async getPendingQuoteApproval(bookingId: string) {
     return this.prisma.experienceRequest.findMany({
