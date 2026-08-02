@@ -41,12 +41,16 @@ export interface FolioMeta {
 
 export function mapFolioResponseToMeta(folio: FolioResponse): FolioMeta {
   const { summary, byType } = folio;
-  const villaTotal = byType.ESTATE_BASE_RATE.reduce((s, i) => s + i.amount, 0);
-  const experiencesTotal = byType.EXPERIENCE.reduce((s, i) => s + i.amount, 0);
-  const incidentalsTotal = [...byType.INCIDENTAL, ...byType.PRE_STOCKED].reduce(
-    (s, i) => s + i.amount,
-    0,
-  );
+  // `Number()` even though `amount` is typed `number`: it is a Decimal column,
+  // and if one ever reaches us as a string again, `+` concatenates silently
+  // rather than failing. `× quantity` so these three add up to the subtotal,
+  // which the API computes the same way.
+  const sum = (items: ApiFolioItem[]) =>
+    items.reduce((s, i) => s + Number(i.amount) * Number(i.quantity), 0);
+
+  const villaTotal = sum(byType.ESTATE_BASE_RATE);
+  const experiencesTotal = sum(byType.EXPERIENCE);
+  const incidentalsTotal = sum([...byType.INCIDENTAL, ...byType.PRE_STOCKED]);
 
   return {
     subtotal: summary.subtotal,
