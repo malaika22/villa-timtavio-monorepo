@@ -136,8 +136,19 @@ export function mapEmRequestToApprovalItem(
   const queueStatus: ApprovalQueueItem['status'] =
     req.status === 'CONFLICT' ? 'Conflict' : 'Pending';
 
+  const primary = req.booking?.primaryGuest;
+
   return {
     id: req.id,
+    bookingId: req.bookingId,
+    stayLabel: primary
+      ? `${primary.firstName} ${primary.lastName}`.trim() || primary.email
+      : 'Unassigned stay',
+    // The dashboard summary lists requests, never groups them — the stay's own
+    // dates aren't fetched here and would only be dead weight.
+    stayDates: '',
+    stayCheckIn: req.booking?.checkIn ?? null,
+    experienceDate: dateStr ?? null,
     guestName,
     initials: initialsFromName(guestName),
     partyLabel: `${req.guestCount} guest${req.guestCount === 1 ? '' : 's'}`,

@@ -9,18 +9,30 @@ import { CancellationRequestsPanel } from '@/components/manager/pages/approvals/
 import { ConflictDetectedBanner } from '@/components/manager/pages/approvals/ConflictDetectedBanner';
 import { NeedsPricingPanel } from '@/components/manager/pages/approvals/NeedsPricingPanel';
 import { LayoutList, LayoutGrid } from 'lucide-react';
-import type { ApprovalFilterTab, ApprovalQueueItem } from '@/types';
+import type {
+  ApprovalFilterTab,
+  ApprovalHorizon,
+  ApprovalQueueItem,
+} from '@/types';
 import {
   useApprovalQueue,
   useApprovalActive,
   useApprovalHistory,
 } from '@/hooks/useApprovals';
 import { mapRequestToApprovalItem } from '@/lib/mappers/request';
-import { filterBySearch, filterByTab } from './helpers';
+import {
+  filterByHorizon,
+  filterBySearch,
+  filterByTab,
+  groupByStay,
+} from './helpers';
 
 export const ApprovalsPage = () => {
   const [activeTab, setActiveTab] = useState<ApprovalFilterTab>('all');
   const [search, setSearch] = useState('');
+  // Everything still to come. A planning tool that opens on history would be
+  // showing the one thing nobody has to act on.
+  const [horizon, setHorizon] = useState<ApprovalHorizon>('upcoming');
 
   const { data: queueData, isLoading: queueLoading } = useApprovalQueue();
   const { data: activeData, isLoading: activeLoading } = useApprovalActive();
@@ -43,26 +55,37 @@ export const ApprovalsPage = () => {
     return [];
   }, [queueData, activeData, historyData]);
 
+  // Horizon first: it's the only filter that bounds the set, so everything
+  // downstream — including the counts — is scoped to the period being worked on.
+  const inHorizon = useMemo(
+    () => filterByHorizon(allItems, horizon),
+    [allItems, horizon],
+  );
+
   const filteredRows = useMemo(() => {
-    const byTab = filterByTab(allItems, activeTab);
+    const byTab = filterByTab(inHorizon, activeTab);
     return filterBySearch(byTab, search);
-  }, [allItems, activeTab, search]);
+  }, [inHorizon, activeTab, search]);
+
+  const stayGroups = useMemo(() => groupByStay(filteredRows), [filteredRows]);
 
   const counts = useMemo(
     () => ({
-      all: allItems.length,
-      pending: filterByTab(allItems, 'pending').length,
-      confirmed: filterByTab(allItems, 'confirmed').length,
-      'in-progress': filterByTab(allItems, 'in-progress').length,
-      completed: filterByTab(allItems, 'completed').length,
-      declined: filterByTab(allItems, 'declined').length,
+      all: inHorizon.length,
+      pending: filterByTab(inHorizon, 'pending').length,
+      confirmed: filterByTab(inHorizon, 'confirmed').length,
+      'in-progress': filterByTab(inHorizon, 'in-progress').length,
+      completed: filterByTab(inHorizon, 'completed').length,
+      declined: filterByTab(inHorizon, 'declined').length,
     }),
-    [allItems],
+    [inHorizon],
   );
 
   const isLoading = queueLoading || activeLoading;
   const [view, setView] = useState<'list' | 'board'>('list');
 
+  // Conflicts are read from the unfiltered set on purpose: a double-booking is
+  // still a double-booking when the horizon happens to be hiding it.
   const conflictItems = useMemo(
     () => allItems.filter((i) => i.status === 'Conflict'),
     [allItems],
@@ -90,6 +113,8 @@ export const ApprovalsPage = () => {
           search={search}
           onSearchChange={setSearch}
           counts={counts}
+          horizon={horizon}
+          onHorizonChange={setHorizon}
         />
         <div className="inline-flex rounded-lg border border-manager-border bg-manager-card p-0.5">
           <button
@@ -127,7 +152,7 @@ export const ApprovalsPage = () => {
       ) : view === 'board' ? (
         <ApprovalsKanban rows={filteredRows} />
       ) : (
-        <ApprovalsQueueTable rows={filteredRows} />
+        <ApprovalsQueueTable rows={filteredRows} stayGroups={stayGroups} />
       )}
     </div>
   );

@@ -115,6 +115,13 @@ export interface EmRequestGuest {
 
 export interface EmRequestBooking {
   id: string;
+  /**
+   * The stay's own dates. Returned by every EM request endpoint and needed to
+   * group a queue by party — a request read on its own says who asked for it,
+   * but not whose booking carries the cost or when they arrive.
+   */
+  checkIn?: string;
+  checkOut?: string;
   primaryRoomNumber?: number | null;
   primaryGuest?: EmRequestGuest | null;
 }

@@ -76,6 +76,13 @@ export type ApprovalFilterTab =
   | 'completed'
   | 'declined';
 
+/**
+ * How far ahead the queue looks. Every other filter is categorical, so without
+ * this one "All" is unbounded by construction and grows with every stay ever
+ * booked — the horizon is what actually keeps the page finite.
+ */
+export type ApprovalHorizon = 'week' | 'month' | 'upcoming' | 'past' | 'all';
+
 export type ApprovalQueueItem = {
   id: string;
   guestName: string;
@@ -101,6 +108,24 @@ export type ApprovalQueueItem = {
   priceUnitCode?: string | null;
   /** Set once a price has been agreed — then IT is the re-approval baseline. */
   confirmedCost?: number | null;
+  /**
+   * The stay this belongs to. The queue groups by booking rather than by guest
+   * because a party's secondaries are not separate customers — the primary
+   * carries every charge, so splitting them apart hides who is liable.
+   */
+  bookingId: string;
+  /** The primary member's name — the stay is known by theirs, not the requester's. */
+  stayLabel: string;
+  /** e.g. "Aug 3 – Aug 16, 2026". Empty when the booking didn't come back. */
+  stayDates: string;
+  /** Check-in, ISO. Orders the groups so the soonest arrival leads. */
+  stayCheckIn: string | null;
+  /**
+   * When the experience actually happens, ISO — the confirmed date if there is
+   * one, otherwise what the guest asked for. Drives both the in-group order and
+   * the horizon filter; `requestedDate` is display text and can't be compared.
+   */
+  experienceDate: string | null;
 };
 
 export type CurrentGuest = {

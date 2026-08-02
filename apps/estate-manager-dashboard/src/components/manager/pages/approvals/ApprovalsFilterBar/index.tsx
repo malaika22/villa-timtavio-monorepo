@@ -1,11 +1,10 @@
 'use client';
 
-import { Filter, Search } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
-import { Button } from '@repo/ui';
 import { Input } from '@repo/ui';
 
-import type { ApprovalFilterTab } from '@/types';
+import type { ApprovalFilterTab, ApprovalHorizon } from '@/types';
 
 const TABS: { value: ApprovalFilterTab; label: string }[] = [
   { value: 'all', label: 'All Requests' },
@@ -16,12 +15,27 @@ const TABS: { value: ApprovalFilterTab; label: string }[] = [
   { value: 'declined', label: 'Declined' },
 ];
 
+/**
+ * The only filter that bounds the page. Requests now arrive months ahead, so
+ * without a horizon the queue is every experience the estate has ever been
+ * asked for — defaults to everything still to come.
+ */
+const HORIZONS: { value: ApprovalHorizon; label: string }[] = [
+  { value: 'week', label: 'Next 7 days' },
+  { value: 'month', label: 'Next 30 days' },
+  { value: 'upcoming', label: 'All upcoming' },
+  { value: 'past', label: 'Past' },
+  { value: 'all', label: 'Everything' },
+];
+
 type Props = {
   activeTab: ApprovalFilterTab;
   onTabChange: (tab: ApprovalFilterTab) => void;
   search: string;
   onSearchChange: (value: string) => void;
   counts?: Partial<Record<ApprovalFilterTab, number>>;
+  horizon: ApprovalHorizon;
+  onHorizonChange: (horizon: ApprovalHorizon) => void;
 };
 
 export const ApprovalsFilterBar = ({
@@ -30,6 +44,8 @@ export const ApprovalsFilterBar = ({
   search,
   onSearchChange,
   counts = {},
+  horizon,
+  onHorizonChange,
 }: Props) => {
   return (
     <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:gap-3">
@@ -77,14 +93,18 @@ export const ApprovalsFilterBar = ({
             className="h-10 w-full rounded-lg border-manager-border bg-manager-card pl-9 text-sm text-manager-text shadow-none placeholder:text-[#a8a29e]"
           />
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          className="size-10 shrink-0 rounded-lg border-manager-border bg-manager-card shadow-none hover:bg-[#faf9f7]"
-          aria-label="Filter"
+        <select
+          value={horizon}
+          onChange={(e) => onHorizonChange(e.target.value as ApprovalHorizon)}
+          aria-label="Time range"
+          className="h-10 shrink-0 rounded-lg border border-manager-border bg-manager-card px-3 text-sm text-manager-text shadow-none"
         >
-          <Filter className="size-4 text-[#78716c]" strokeWidth={1.75} />
-        </Button>
+          {HORIZONS.map((h) => (
+            <option key={h.value} value={h.value}>
+              {h.label}
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   );

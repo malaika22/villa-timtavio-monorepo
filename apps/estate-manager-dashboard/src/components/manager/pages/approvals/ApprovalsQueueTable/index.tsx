@@ -13,8 +13,8 @@ import {
   Input,
 } from '@repo/ui';
 import { DataTable } from '@repo/dashboard-ui';
-import type { DataTableColumn } from '@repo/dashboard-ui';
-import { Loader2 } from 'lucide-react';
+import type { DataTableColumn, DataTableGroup } from '@repo/dashboard-ui';
+import { ChevronDown, Loader2 } from 'lucide-react';
 
 import { GuestAvatar } from '@/components/manager/ui/GuestAvatar';
 import { ApprovalStatusPill } from '@/components/manager/pages/approvals/ApprovalStatusPill';
@@ -31,6 +31,7 @@ import {
   quoteNeedsReapproval,
 } from '@repo/api-types';
 import type { ApprovalQueueItem, ApprovalQueueStatus } from '@/types';
+import type { StayGroup } from '@/components/manager/pages/approvals/ApprovalsPage/helpers';
 
 const primaryBtn =
   'h-9 rounded-md border-0 bg-manager-accent px-4 text-sm font-medium text-white shadow-none hover:bg-manager-accent-muted';
@@ -42,12 +43,25 @@ const isActionable = (status: ApprovalQueueStatus) =>
 
 export const ApprovalsQueueTable = ({
   rows,
+  stayGroups,
 }: {
   rows: ApprovalQueueItem[];
+  /** Present in the grouped view; the flat `rows` still drive the dialogs. */
+  stayGroups?: StayGroup[];
 }) => {
   const approve = useApproveRequest();
   const decline = useDeclineRequest();
   const confirmCost = useConfirmCost();
+
+  // Collapsed by booking id, so a stay stays shut as the queue refetches.
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const toggleGroup = (bookingId: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(bookingId)) next.delete(bookingId);
+      else next.add(bookingId);
+      return next;
+    });
 
   const [decliningId, setDecliningId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
@@ -190,13 +204,6 @@ export const ApprovalsQueueTable = ({
       ),
     },
     {
-      key: 'villa',
-      header: 'Villa',
-      cell: (row) => (
-        <span className="text-sm text-manager-text">{row.villa}</span>
-      ),
-    },
-    {
       key: 'time',
       header: 'Requested Time',
       cell: (row) => (
@@ -305,11 +312,57 @@ export const ApprovalsQueueTable = ({
     },
   ];
 
+  // Soonest arrival leads, so the party closest to the door is flagged. Only
+  // the leader — flagging several would flag nothing.
+  const leadBookingId = stayGroups?.[0]?.bookingId;
+
+  const groups: DataTableGroup<ApprovalQueueItem>[] | undefined =
+    stayGroups?.map((group) => ({
+      key: group.bookingId,
+      rows: group.items,
+      collapsed: collapsed.has(group.bookingId),
+      header: (
+        <button
+          type="button"
+          onClick={() => toggleGroup(group.bookingId)}
+          aria-expanded={!collapsed.has(group.bookingId)}
+          className="flex w-full flex-wrap items-baseline gap-x-3 gap-y-1 bg-[#faf6ee] px-5 py-3 text-left hover:bg-[#f6f0e4]"
+        >
+          <ChevronDown
+            className={`size-4 shrink-0 self-center text-manager-text-muted transition-transform ${
+              collapsed.has(group.bookingId) ? '-rotate-90' : ''
+            }`}
+            aria-hidden
+          />
+          <span className="text-[15px] font-semibold text-manager-text">
+            {group.stayLabel}
+          </span>
+          {group.stayDates ? (
+            <span className="text-xs text-manager-text-muted">
+              {group.stayDates}
+            </span>
+          ) : null}
+          <span className="text-xs text-manager-text-muted">
+            {group.openCount} open
+            {group.awaitingPrice > 0
+              ? ` · ${group.awaitingPrice} awaiting a price`
+              : ''}
+          </span>
+          {group.bookingId === leadBookingId && group.checkIn != null ? (
+            <span className="ml-auto rounded border border-manager-accent px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-manager-accent">
+              Next arrival
+            </span>
+          ) : null}
+        </button>
+      ),
+    }));
+
   return (
     <>
       <DataTable
         columns={columns}
         rows={rows}
+        groups={groups}
         variant="manager"
         striped={false}
         emptyState={
