@@ -2,10 +2,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth/useAuthStore';
-import { completeOtpSignIn } from '@/lib/auth/completeOtpSignIn';
-import { decodeJwt } from '@/helpers/jwt';
-import { getNamespaceUrl } from '@/helpers/namespace';
-import { API_URLS } from '@/urls';
+import {
+  applyAccessToken,
+  completeOtpSignIn,
+} from '@/lib/auth/completeOtpSignIn';
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -43,37 +43,7 @@ export default function AuthCallback() {
       }
 
       const { access_token } = await res.json();
-
-      // Store token
-      localStorage.setItem('access_token', access_token);
-
-      // Decode and set user in store
-      const payload = decodeJwt(access_token);
-      if (payload) {
-        setUser({
-          auth0Id: payload.sub,
-          email: payload.email || '',
-          firstName: payload.given_name || '',
-          roles: payload[`${getNamespaceUrl()}/roles`] || [],
-          bookingId: payload[`${getNamespaceUrl()}/bookingId`] || '',
-          guestTier: payload[`${getNamespaceUrl()}/guestTier`] || 'secondary',
-          accessToken: access_token,
-          tokenExpiry: payload.exp,
-        });
-
-        // Mark PWA link as opened (non-blocking)
-        const bookingId = payload[`${getNamespaceUrl()}/bookingId`];
-        if (bookingId) {
-          fetch(`${API_URLS.manifestLinkOpen}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${access_token}`,
-            },
-            body: JSON.stringify({ bookingId, email: payload.email }),
-          }).catch(() => {});
-        }
-      }
+      applyAccessToken(access_token, setUser);
 
       router.replace('/');
     } catch (err: any) {
