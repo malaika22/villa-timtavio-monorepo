@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { ApprovalsFilterBar } from '@/components/manager/pages/approvals/ApprovalsFilterBar';
 import { ApprovalsKanban } from '@/components/manager/pages/approvals/ApprovalsKanban';
 import { ApprovalsQueueTable } from '@/components/manager/pages/approvals/ApprovalsQueueTable';
+import { CancellationRequestsPanel } from '@/components/manager/pages/approvals/CancellationRequestsPanel';
 import { ConflictDetectedBanner } from '@/components/manager/pages/approvals/ConflictDetectedBanner';
 import { LayoutList, LayoutGrid } from 'lucide-react';
 import type { ApprovalFilterTab, ApprovalQueueItem } from '@/types';
@@ -73,6 +74,10 @@ export const ApprovalsPage = () => {
 
   return (
     <div className="space-y-5">
+      {/* Above the queue: a supplier is already booked and the date is coming,
+          which makes these more time-sensitive than a new request. */}
+      <CancellationRequestsPanel />
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <ApprovalsFilterBar
           activeTab={activeTab}

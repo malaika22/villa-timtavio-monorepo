@@ -17,6 +17,12 @@ export const emRequestsApi = {
     api.patch<ExperienceRequest>(API.requests.approve(id), dto),
   decline: (id: string, dto: DeclineRequestDto) =>
     api.patch<ExperienceRequest>(API.requests.decline(id), dto),
+  cancellationRequests: () =>
+    api.get<ExperienceRequest[]>(API.requests.emCancellationRequests),
+  confirmCancellation: (id: string, cancellationFee?: number) =>
+    api.post<ExperienceRequest>(API.requests.confirmCancellation(id), {
+      cancellationFee,
+    }),
   confirmCost: (id: string, dto: ConfirmCostDto) =>
     api.patch<ExperienceRequest>(API.requests.confirmCost(id), dto),
   // QA test affordance — simulate Breezeway completion → guest READY.
