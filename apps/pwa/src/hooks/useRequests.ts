@@ -144,6 +144,20 @@ export function usePendingQuoteApprovals() {
   });
 }
 
+/**
+ * The guest dropping something from their plan. Unconfirmed requests vanish;
+ * confirmed ones become a cancellation request for the estate, since a vendor
+ * is already booked by then.
+ */
+export function useCancelRequest() {
+  const invalidate = useInvalidateApprovals();
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      requestsApi.cancel(id, reason),
+    onSuccess: invalidate,
+  });
+}
+
 export function useApproveQuote() {
   const invalidate = useInvalidateApprovals();
   return useMutation({

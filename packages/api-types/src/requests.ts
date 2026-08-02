@@ -64,6 +64,17 @@ export interface ExperienceRequest {
    */
   quotedCost?: number | null;
   quoteApprovalRequired: boolean;
+  /**
+   * Set when a guest asks to cancel something the estate has already confirmed.
+   * Not a cancellation in itself — a vendor is booked by then, so the estate
+   * unwinds it and confirms. Unconfirmed requests are withdrawn outright and
+   * never sit in this state.
+   */
+  cancellationRequestedAt?: string | null;
+  cancellationRequestedBy?: string | null;
+  cancellationReason?: string | null;
+  /** What the supplier charged for cancelling late, if anything. */
+  cancellationFee?: number | null;
   quoteApprovedAt?: string | null;
   quoteApprovedBy?: string | null;
   createdAt: string;

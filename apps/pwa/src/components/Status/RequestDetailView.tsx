@@ -18,6 +18,7 @@ import {
   type RequestDetail,
 } from './mockData';
 import { useRequestById } from '@/hooks/useRequests';
+import { CancelRequestAction } from './CancelRequestAction';
 import {
   mapRequestToStatusRequest,
   buildTimelineFromRequest,
@@ -229,6 +230,14 @@ export const RequestDetailView = ({
                   </a>
                 </div>
               </section>
+
+              {/* Last, and understated. Changing your mind is allowed, but it
+                  shouldn't compete with the experience itself for attention. */}
+              {apiRequest && (
+                <section className="flex flex-col pt-1">
+                  <CancelRequestAction request={apiRequest} />
+                </section>
+              )}
             </>
           )}
         </div>

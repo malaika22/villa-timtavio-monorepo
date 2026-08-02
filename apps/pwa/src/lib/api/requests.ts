@@ -25,4 +25,10 @@ export const requestsApi = {
     api.post<ExperienceRequest>(API.requests.approveQuote(id)),
   declineQuote: (id: string, reason?: string) =>
     api.post<ExperienceRequest>(API.requests.declineQuote(id), { reason }),
+  // Withdrawn outright if unconfirmed; otherwise a request for the estate.
+  cancel: (id: string, reason?: string) =>
+    api.post<ExperienceRequest & { withdrawn: boolean }>(
+      API.requests.cancel(id),
+      { reason },
+    ),
 };
