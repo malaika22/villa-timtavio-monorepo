@@ -421,6 +421,16 @@ export class RequestsService {
       orderBy: { createdAt: 'asc' },
     });
 
+    // Ordered by when the experience HAPPENS, not when it was asked for.
+    // Guests now plan months ahead, so submission order put a request made in
+    // August for a November stay above one made yesterday for tomorrow —
+    // exactly backwards for someone working through a queue.
+    requests.sort(
+      (a, b) =>
+        (a.confirmedDate ?? a.preferredDate).getTime() -
+        (b.confirmedDate ?? b.preferredDate).getTime(),
+    );
+
     return requests.map((request) => ({
       ...request,
       booking: request.booking
@@ -1098,6 +1108,35 @@ export class RequestsService {
     });
 
     return cancelled;
+  }
+
+  /**
+   * What Rodrigo has to put a price on, soonest first.
+   *
+   * Pricing moved to whenever the supplier commits, which means the work is
+   * scheduled by the experience's own date rather than by when the guest asked.
+   * Nothing else in the dashboard answers "what must I price this week?".
+   *
+   * Complimentary experiences are excluded — they never carry a price — as is
+   * anything a guest has asked to cancel.
+   */
+  async getNeedsPricing(withinDays = 14) {
+    const horizon = new Date(Date.now() + withinDays * 24 * 60 * 60 * 1000);
+
+    return this.prisma.experienceRequest.findMany({
+      where: {
+        status: { in: ['CONFIRMED', 'IN_PROGRESS', 'READY'] },
+        confirmedCost: null,
+        cancellationRequestedAt: null,
+        confirmedDate: { not: null, lte: horizon },
+        catalogItem: { isIncluded: false },
+      },
+      include: {
+        catalogItem: { include: { priceUnit: true } },
+        booking: { include: { primaryGuest: true } },
+      },
+      orderBy: { confirmedDate: 'asc' },
+    });
   }
 
   /** Requests holding a revised quote the primary still needs to act on. */

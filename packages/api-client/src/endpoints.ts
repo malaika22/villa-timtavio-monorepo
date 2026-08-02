@@ -45,6 +45,7 @@ export const API = {
     declineQuote: (id: string) => `/api/v1/requests/${id}/decline-quote`,
     cancel: (id: string) => `/api/v1/requests/${id}/cancel`,
     emCancellationRequests: '/api/v1/requests/em/cancellation-requests',
+    emNeedsPricing: '/api/v1/requests/em/needs-pricing',
     confirmCancellation: (id: string) =>
       `/api/v1/requests/${id}/confirm-cancellation`,
     byId: (id: string) => `/api/v1/requests/${id}`,

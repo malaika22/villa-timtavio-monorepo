@@ -52,6 +52,15 @@ export function useDeclineRequest() {
   });
 }
 
+/** Experiences happening soon that still have no agreed price. */
+export function useNeedsPricing() {
+  return useQuery({
+    queryKey: ['requests', 'needs-pricing'],
+    queryFn: emRequestsApi.needsPricing,
+    refetchInterval: 60_000,
+  });
+}
+
 /** Experiences a guest has asked the estate to unwind. */
 export function useCancellationRequests() {
   return useQuery({

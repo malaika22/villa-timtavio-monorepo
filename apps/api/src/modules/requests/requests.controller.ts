@@ -159,6 +159,15 @@ export class RequestsController {
     );
   }
 
+  // EM — what needs a price before it happens, soonest first
+  @Get('em/needs-pricing')
+  @Roles('estate_manager')
+  getNeedsPricing(@Query('withinDays') withinDays?: string) {
+    return this.requestsService.getNeedsPricing(
+      withinDays ? Number(withinDays) : undefined,
+    );
+  }
+
   // EM — experiences a guest has asked to cancel
   @Get('em/cancellation-requests')
   @Roles('estate_manager')
