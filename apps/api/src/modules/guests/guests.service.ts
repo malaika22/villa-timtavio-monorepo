@@ -96,29 +96,78 @@ export class GuestsService {
     );
   }
 
+  /**
+   * Stays not yet arrived — the planning pipeline.
+   *
+   * The 90-day ceiling came out: guests can plan from the moment they book, so
+   * a stay six months off can have a manifest, a party and a list of requested
+   * experiences while being invisible to the estate. If someone is planning it,
+   * Rodrigo needs to see it.
+   *
+   * Each booking carries how far that planning has got, so the list answers
+   * "which stays need attention?" rather than only "who is coming?".
+   */
   async findUpcoming() {
     const in7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    const in90Days = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
-    return this.prisma.guest.findMany({
+    const guests = await this.prisma.guest.findMany({
       where: {
         primaryBookings: {
-          some: {
-            status: 'CONFIRMED',
-            checkIn: { gt: in7Days, lte: in90Days },
-          },
+          some: { status: 'CONFIRMED', checkIn: { gt: in7Days } },
         },
       },
       include: {
         primaryBookings: {
-          where: {
-            status: 'CONFIRMED',
-            checkIn: { gt: in7Days },
-          },
+          where: { status: 'CONFIRMED', checkIn: { gt: in7Days } },
           take: 1,
           orderBy: { checkIn: 'asc' },
+          include: {
+            _count: { select: { manifestGuests: true } },
+            experienceRequests: {
+              where: { status: { notIn: ['CANCELLED'] } },
+              select: { status: true, confirmedCost: true, estimatedMax: true },
+            },
+          },
         },
       },
+    });
+
+    return guests.map((guest) => {
+      const booking = guest.primaryBookings[0];
+      if (!booking) return guest;
+
+      const requests = booking.experienceRequests;
+      const awaitingPrice = requests.filter(
+        (r) =>
+          r.confirmedCost == null &&
+          ['CONFIRMED', 'IN_PROGRESS', 'READY'].includes(r.status),
+      ).length;
+
+      // What the stay is shaping up to be worth: agreed prices where they
+      // exist, the guest's estimate everywhere else.
+      const plannedValue = requests.reduce(
+        (sum, r) =>
+          sum + Number(r.confirmedCost ?? r.estimatedMax ?? 0),
+        0,
+      );
+
+      const { experienceRequests, _count, ...rest } = booking;
+      void experienceRequests;
+
+      return {
+        ...guest,
+        primaryBookings: [
+          {
+            ...rest,
+            planning: {
+              guestsAdded: _count.manifestGuests + 1, // the primary counts too
+              experiencesPlanned: requests.length,
+              awaitingPrice,
+              plannedValue: Math.round(plannedValue * 100) / 100,
+            },
+          },
+        ],
+      };
     });
   }
 
