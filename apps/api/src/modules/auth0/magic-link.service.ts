@@ -149,6 +149,23 @@ export class MagicLinkService {
                     </td>
                   </tr>
                   <tr>
+                    <td align="center" class="tt-pad" style="padding:26px 32px 0 32px;">
+                      <p style="margin:0 0 10px 0;font-family:Arial,sans-serif;font-size:11px;
+                                letter-spacing:0.14em;text-transform:uppercase;color:#b0a898;">
+                        Or enter this code
+                      </p>
+                      <p style="margin:0;font-family:Georgia,'Times New Roman',serif;font-size:26px;
+                                letter-spacing:0.32em;color:#0f1f2e;text-indent:0.32em;">
+                        ${otp}
+                      </p>
+                      <p style="margin:10px 0 0 0;font-family:Arial,sans-serif;font-size:12px;
+                                color:#8c7261;line-height:1.6;">
+                        Use this if you have added Villa TimTavio to your home screen —
+                        tapping the button above opens your browser instead.
+                      </p>
+                    </td>
+                  </tr>
+                  <tr>
                     <td align="center" class="tt-pad" style="padding:22px 32px 0 32px;">
                       <p style="margin:0;font-family:Arial,sans-serif;font-size:12px;color:#b0a898;line-height:1.6;">
                         If you did not request this link, please disregard this email.

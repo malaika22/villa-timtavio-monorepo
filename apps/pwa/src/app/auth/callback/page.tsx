@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth/useAuthStore';
+import { completeOtpSignIn } from '@/lib/auth/completeOtpSignIn';
 import { decodeJwt } from '@/helpers/jwt';
 import { getNamespaceUrl } from '@/helpers/namespace';
 import { API_URLS } from '@/urls';
@@ -18,47 +19,9 @@ export default function AuthCallback() {
 
   const handleOtpExchange = async (otp: string, email: string) => {
     try {
-      const res = await fetch('/api/auth/exchange-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ otp, email }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.message || 'Token exchange failed');
-      }
-
-      const { access_token } = await res.json();
-
-      localStorage.setItem('access_token', access_token);
-
-      const payload = decodeJwt(access_token);
-      if (payload) {
-        setUser({
-          auth0Id: payload.sub,
-          email: payload.email || '',
-          firstName: payload.given_name || '',
-          roles: payload[`${getNamespaceUrl()}/roles`] || [],
-          bookingId: payload[`${getNamespaceUrl()}/bookingId`] || '',
-          guestTier: payload[`${getNamespaceUrl()}/guestTier`] || 'secondary',
-          accessToken: access_token,
-          tokenExpiry: payload.exp,
-        });
-
-        const bookingId = payload[`${getNamespaceUrl()}/bookingId`];
-        if (bookingId) {
-          fetch(`${API_URLS.manifestLinkOpen}`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${access_token}`,
-            },
-            body: JSON.stringify({ bookingId, email: payload.email }),
-          }).catch(() => {});
-        }
-      }
-
+      // Shared with the typed-code path on /link-expired, so a guest signing in
+      // by hand lands in exactly the same state as one who tapped the link.
+      await completeOtpSignIn(otp, email, setUser);
       router.replace('/welcome');
     } catch (err: any) {
       setErrorMessage(err.message || 'Something went wrong');

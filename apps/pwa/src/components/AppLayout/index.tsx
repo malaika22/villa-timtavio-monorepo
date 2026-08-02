@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { Footer } from './Footer';
 import { Header } from './Header';
 import { PushRegistrar } from './PushRegistrar';
+import { InstallPrompt } from '@/components/InstallPrompt';
 
 // Pre-auth / error routes render bare — no header, bottom nav, or push
 // registration, so PWA feature entry points aren't shown to an unauthenticated
@@ -27,6 +28,9 @@ export const AppLayout = ({ children }: { children: React.ReactNode }) => {
       <PushRegistrar />
       <Header />
       <main className="flex flex-1 flex-col">{children}</main>
+      {/* Fixed chrome, so it never depends on the guest scrolling. Bare routes
+          return above — nothing is offered before a session exists. */}
+      <InstallPrompt />
       <Footer />
     </div>
   );
