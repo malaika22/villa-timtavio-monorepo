@@ -242,7 +242,24 @@ export class MagicLinkService {
     const role =
       record.guestTier === 'primary' ? 'primary_member' : 'secondary_guest';
 
-    const expiresIn = 86400; // 24h
+    // The session lasts the life of the booking, not a flat day. A guest who
+    // signs in during August to plan a September stay must still be signed in
+    // when they arrive — otherwise the pre-arrival planning flow only works for
+    // people who never close the tab.
+    //
+    // Bounded by the same moment access is revoked anyway (24h after checkout),
+    // so a stale token can't outlive the stay it belongs to. Falls back to a day
+    // if the booking has somehow gone.
+    const ONE_DAY = 86400;
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: record.bookingId },
+      select: { checkOut: true },
+    });
+    const secondsUntilRevocation = booking
+      ? Math.floor((booking.checkOut.getTime() - Date.now()) / 1000) + ONE_DAY
+      : ONE_DAY;
+    const expiresIn = Math.max(ONE_DAY, secondsUntilRevocation);
+
     const payload = {
       sub: auth0User?.user_id || email,
       email,

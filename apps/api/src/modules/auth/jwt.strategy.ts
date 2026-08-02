@@ -101,6 +101,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         if (new Date() > expiresAt)
           throw new UnauthorizedException('Your stay access has expired');
       }
+
+      // A secondary must still be on the manifest. Sessions now last the life
+      // of the booking, so without this a guest removed from the party in
+      // August would keep access right through to September — deleting their
+      // pending link does nothing to a token already issued.
+      if (guestTier === 'secondary' && payload.email) {
+        const stillOnManifest = await this.prisma.manifestGuest.findFirst({
+          where: {
+            bookingId,
+            email: { equals: payload.email, mode: 'insensitive' },
+          },
+          select: { id: true },
+        });
+        if (!stillOnManifest) {
+          throw new UnauthorizedException(
+            'You are no longer listed on this reservation',
+          );
+        }
+      }
     }
 
     return {
