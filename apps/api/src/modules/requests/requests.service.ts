@@ -17,6 +17,7 @@ import {
 import {
   BREEZEWAY_ASSIGNEE_MAP,
   EXPERIENCE_LEAD_TIMES,
+  isWithinTaskWindow,
 } from '../breezeway/breezeway.config';
 import { derivePrimaryRoomNumber } from '../../common/booking-room.util';
 import { getErrorMessage } from '../../commons/utils/error.util';
@@ -575,7 +576,7 @@ export class RequestsService {
     // priced one waits until its cost is agreed — otherwise a vendor is booked
     // for something the primary might still decline, and there is no way to
     // unwind a Breezeway task once it exists.
-    if (updated.catalogItem.isIncluded) {
+    if (updated.catalogItem.isIncluded && isWithinTaskWindow(confirmedDate)) {
       await this.createBreezeWayTask(updated);
     }
 
@@ -1127,10 +1128,13 @@ export class RequestsService {
     // Skipped when a task already exists (the cost can be edited and re-logged,
     // which would otherwise duplicate it in Breezeway) and when the request
     // isn't confirmed, since the due date is derived from confirmedDate.
+    // Held back until the experience is near. A price agreed weeks early would
+    // otherwise put a task in front of staff a month before they can act on it;
+    // the scheduler creates it when the date comes round.
     if (
       !request.catalogItem.isIncluded &&
       !request.breezeWayTaskId &&
-      request.confirmedDate
+      isWithinTaskWindow(request.confirmedDate)
     ) {
       await this.createBreezeWayTask(request);
     }
@@ -1255,6 +1259,18 @@ export class RequestsService {
       where: { breezeWayTaskId: taskId },
       include: { catalogItem: { include: { priceUnit: true } } },
     });
+  }
+
+  /**
+   * Scheduler entry point — creates a setup task for an experience that has come
+   * within its window. Re-reads the request so a task raised in the meantime,
+   * or a cancellation, is respected.
+   */
+  async createDueBreezeWayTask(id: string) {
+    const request = await this.findOne(id);
+    if (request.breezeWayTaskId || request.cancellationRequestedAt) return;
+    if (!request.confirmedDate) return;
+    await this.createBreezeWayTask(request);
   }
 
   private async createBreezeWayTask(request: any) {
