@@ -29,25 +29,18 @@ const CATEGORY_LABEL: Record<CatalogCategory, string> = {
   PRIVATE: 'Private',
 };
 
-export function mapCatalogItemToExperience(
-  item: CatalogItem,
-  bookingStatus?: BookingStatus,
-): Experience {
-  const isPreArrival = bookingStatus === 'CONFIRMED';
-  const isCheckedOut = bookingStatus === 'CHECKED_OUT';
-
-  let status: ExperienceStatus;
-  if (item.isIncluded) {
-    status = isPreArrival
-      ? ExperienceStatus.LOCKED_PRE_ARRIVAL
-      : ExperienceStatus.AVAILABLE;
-  } else if (isCheckedOut) {
-    status = ExperienceStatus.AVAILABLE;
-  } else {
-    status = isPreArrival
-      ? ExperienceStatus.LOCKED_PRE_ARRIVAL
-      : ExperienceStatus.AVAILABLE;
-  }
+/**
+ * Experiences are browsable and requestable from the moment the booking
+ * exists. They used to be locked until the estate manager set the booking to
+ * CHECKED_IN — which made the catalogue useless during exactly the weeks a
+ * guest is deciding what to do with their stay. Planning ahead is now the
+ * point of the portal, so there is nothing left to gate on.
+ *
+ * Access itself is the boundary: a magic link is only issued for a live
+ * booking and is revoked 24 hours after checkout.
+ */
+export function mapCatalogItemToExperience(item: CatalogItem): Experience {
+  const status = ExperienceStatus.AVAILABLE;
 
   return {
     id: item.id,
@@ -77,9 +70,8 @@ export function mapCatalogItemToExperience(
 
 export function mapCatalogItemsToExperiences(
   items: CatalogItem[],
-  bookingStatus?: BookingStatus,
 ): Experience[] {
-  return items.map((item) => mapCatalogItemToExperience(item, bookingStatus));
+  return items.map((item) => mapCatalogItemToExperience(item));
 }
 
 function slotLabel(time: string): string {

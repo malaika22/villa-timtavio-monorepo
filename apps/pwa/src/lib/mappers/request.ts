@@ -86,8 +86,13 @@ export function mapRequestToStatusRequest(
       'READY',
       'COMPLETED',
     ].includes(req.status),
-    // A confirmed cost is the real charge; until then all the guest has is the
-    // estimate they were shown, which is labelled as such.
+    // Three states, not two. A guest planning weeks ahead can have an
+    // experience the estate has committed to but not yet priced — the vendor
+    // may not quote until nearer the date. Saying only "estimate" there reads
+    // as though nothing has been settled, when in fact the slot is theirs.
+    awaitingFinalPrice:
+      req.confirmedCost == null &&
+      ['CONFIRMED', 'IN_PROGRESS', 'READY'].includes(req.status),
     costLabel:
       req.confirmedCost != null
         ? formatPrice(req.confirmedCost)
