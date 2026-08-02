@@ -5,7 +5,7 @@ export { MetricCardGrid } from './MetricCardGrid';
 export { StatusPill } from './StatusPill';
 export { SectionHeading } from './SectionHeading';
 export { DataTable } from './DataTable';
-export type { DataTableColumn } from './DataTable';
+export type { DataTableColumn, DataTableGroup } from './DataTable';
 export { dashboardTokens, getDashboardTokens } from './dashboard-tokens';
 export type { DashboardVariant } from './dashboard-tokens';
 export type { DashboardMetricCard, StatusPillVariant } from './types';

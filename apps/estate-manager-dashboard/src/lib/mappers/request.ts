@@ -1,4 +1,4 @@
-import type { ExperienceRequest, RequestStatus } from '@repo/api-types';
+import type { EmExperienceRequest, RequestStatus } from '@repo/api-types';
 import type { ApprovalQueueItem, ApprovalQueueStatus } from '@/types';
 import { format, parseISO } from 'date-fns';
 
@@ -22,7 +22,7 @@ function initials(name: string): string {
 }
 
 export function mapRequestToApprovalItem(
-  req: ExperienceRequest,
+  req: EmExperienceRequest,
 ): ApprovalQueueItem {
   const dateStr = req.confirmedDate ?? req.preferredDate;
   const timeStr = req.confirmedTime ?? req.preferredTime ?? '';
@@ -55,8 +55,32 @@ export function mapRequestToApprovalItem(
     }
   })();
 
+  const booking = req.booking ?? null;
+  const primary = booking?.primaryGuest;
+  const stayLabel = primary
+    ? `${primary.firstName} ${primary.lastName}`.trim() || primary.email
+    : 'Unassigned stay';
+
+  // "Aug 3 – Aug 16, 2026" — the year once, at the end, since a stay almost
+  // never straddles one.
+  const stayDates = (() => {
+    if (!booking?.checkIn || !booking.checkOut) return '';
+    try {
+      const from = parseISO(booking.checkIn);
+      const to = parseISO(booking.checkOut);
+      return `${format(from, 'MMM d')} – ${format(to, 'MMM d, yyyy')}`;
+    } catch {
+      return '';
+    }
+  })();
+
   return {
     id: req.id,
+    bookingId: req.bookingId,
+    stayLabel,
+    stayDates,
+    stayCheckIn: booking?.checkIn ?? null,
+    experienceDate: dateStr ?? null,
     guestName: req.requestedByName,
     initials: initials(req.requestedByName),
     partyLabel: `${req.guestCount} guest${req.guestCount === 1 ? '' : 's'}`,
