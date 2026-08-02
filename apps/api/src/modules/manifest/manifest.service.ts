@@ -224,6 +224,34 @@ export class ManifestService {
       `Added guest ${dto.firstName} ${dto.lastName} to booking ${bookingId}`,
     );
 
+    // Access on being added, not on the manifest being approved. Approval is a
+    // check-in readiness gate; it only ever governed access because everything
+    // used to begin at arrival. A guest added in August should be able to plan
+    // in August. Best-effort — a failed send must not lose the guest.
+    if (guest.email) {
+      await this.magicLinkService
+        .sendMagicLink({
+          email: guest.email,
+          firstName: guest.firstName,
+          lastName: guest.lastName,
+          bookingId,
+          role: 'secondary_guest',
+          guestTier: 'secondary',
+          checkOutDate: booking.checkOut,
+        })
+        .then(() =>
+          this.prisma.manifestGuest.update({
+            where: { id: guest.id },
+            data: { pwaLinkSent: true },
+          }),
+        )
+        .catch((err) =>
+          this.logger.error(
+            `Link to ${guest.email} failed: ${String(err)} — Rodrigo can resend`,
+          ),
+        );
+    }
+
     return guest;
   }
 
@@ -300,12 +328,20 @@ export class ManifestService {
       throw new NotFoundException('Guest not found in this manifest');
     }
 
-    // Cannot remove a guest whose PWA link has already been sent
-    if (guest.pwaLinkSent) {
-      throw new BadRequestException(
-        'Cannot remove a guest after their PWA link has been sent. Contact the estate to make changes.',
-      );
-    }
+    // Removal used to be blocked once a link had been sent, on the reasoning
+    // that a sent link meant a committed guest. Links now go out the moment a
+    // guest is added, so that rule would freeze the party list for weeks — the
+    // primary could never correct a mistake.
+    //
+    // Safe to allow because access genuinely goes with them: pending links are
+    // deleted here, and the JWT strategy re-checks manifest membership on every
+    // request, so an already-issued token stops working immediately.
+    await this.prisma.magicToken.deleteMany({
+      where: {
+        bookingId,
+        email: { equals: guest.email, mode: 'insensitive' },
+      },
+    });
 
     await this.prisma.manifestGuest.delete({ where: { id: guestId } });
 

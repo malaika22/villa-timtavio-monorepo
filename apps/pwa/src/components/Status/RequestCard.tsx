@@ -54,7 +54,13 @@ export function RequestCard({ request, onSelect }: RequestCardProps) {
             {request.costIsEstimate ? `≈ ${request.costLabel}` : request.costLabel}
           </span>
           <span className="text-[8.5px] font-bold uppercase tracking-[1.3px] text-[#8A6D3B]/85">
-            {request.costIsEstimate ? 'Estimate' : 'Confirmed'}
+            {/* The slot is secured; only the figure is outstanding. Saying
+                "estimate" alone would read as though nothing had been settled. */}
+            {!request.costIsEstimate
+              ? 'Confirmed'
+              : request.awaitingFinalPrice
+                ? 'Final price to follow'
+                : 'Estimate'}
           </span>
         </p>
       )}

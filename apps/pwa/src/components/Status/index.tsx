@@ -6,6 +6,7 @@ import { RequestDetailView } from './RequestDetailView';
 import { RequestSection } from './RequestSection';
 import { StatusSectionLabel } from './StatusSectionLabel';
 import { StatusTabFilter } from './StatusTabFilter';
+import { PlanSummary } from './PlanSummary';
 import { StatusTabId } from './type';
 import { useBookingRequests } from '@/hooks/useRequests';
 import { mapRequestToStatusRequest } from '@/lib/mappers/request';
@@ -49,6 +50,10 @@ export const Status = () => {
           Tracking every experience for your stay — we&apos;ll notify you when
           ready.
         </p>
+
+        {/* What the stay is shaping up to cost, above the list it comes from.
+            Pre-arrival this is the number the guest is actually deciding on. */}
+        <PlanSummary requests={apiRequests ?? []} />
 
         <StatusTabFilter activeTab={activeTab} setActiveTab={setActiveTab} />
         <StatusSectionLabel activeTab={activeTab} />

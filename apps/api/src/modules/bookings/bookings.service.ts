@@ -554,8 +554,13 @@ export class BookingsService {
       data: { manifestStatus: 'APPROVED' },
     });
 
+    // Guests are sent their link when they are ADDED now, so approval is only a
+    // backstop for anyone whose send failed at the time. Without this filter
+    // every guest would get a second, identical link on approval.
+    const needLink = booking.manifestGuests.filter((g) => !g.pwaLinkSent);
+
     const results = await Promise.allSettled(
-      booking.manifestGuests.map((guest) =>
+      needLink.map((guest) =>
         this.magicLinkService.sendMagicLink({
           email: guest.email,
           firstName: guest.firstName,
@@ -570,7 +575,7 @@ export class BookingsService {
 
     const sent = results.filter((r) => r.status === 'fulfilled').length;
     this.logger.log(
-      `Sent ${sent}/${booking.manifestGuests.length} secondary guest links`,
+      `Manifest approved — ${sent}/${needLink.length} outstanding secondary links sent (${booking.manifestGuests.length} guests total)`,
     );
 
     return { sent, total: booking.manifestGuests.length };

@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
-import { EXPERIENCE_LEAD_TIMES } from '../breezeway/breezeway.config';
+import {
+  BREEZEWAY_TASK_LEAD_DAYS,
+  EXPERIENCE_LEAD_TIMES,
+} from '../breezeway/breezeway.config';
+import { RequestsService } from './requests.service';
 
 /** Extra margin on top of the setup lead time before we start nagging. */
 const WARNING_BUFFER_MINUTES = 60;
@@ -10,7 +14,56 @@ const WARNING_BUFFER_MINUTES = 60;
 export class RequestsScheduler {
   private readonly logger = new Logger(RequestsScheduler.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private requestsService: RequestsService,
+  ) {}
+
+  /**
+   * Create the setup tasks whose experiences are now near enough to matter.
+   *
+   * Tasks are no longer raised when a price is agreed — a guest can plan in
+   * August and be quoted the same week, and a task sitting in Breezeway for a
+   * month is one that gets scrolled past. They are raised a few days out
+   * instead, which is when staff can actually act on them.
+   */
+  @Cron(CronExpression.EVERY_30_MINUTES)
+  async createDueBreezewayTasks() {
+    const windowEnd = new Date(
+      Date.now() + BREEZEWAY_TASK_LEAD_DAYS * 24 * 60 * 60 * 1000,
+    );
+
+    const due = await this.prisma.experienceRequest.findMany({
+      where: {
+        status: { in: ['CONFIRMED', 'IN_PROGRESS', 'READY'] },
+        breezeWayTaskId: null,
+        confirmedDate: { not: null, lte: windowEnd },
+        cancellationRequestedAt: null,
+        // Complimentary experiences need no price; the rest must have one
+        // agreed, so nothing is staffed before the estate has committed to it.
+        OR: [
+          { catalogItem: { isIncluded: true } },
+          { confirmedCost: { not: null } },
+        ],
+      },
+      select: { id: true },
+    });
+
+    if (due.length === 0) return;
+
+    let created = 0;
+    for (const { id } of due) {
+      try {
+        await this.requestsService.createDueBreezeWayTask(id);
+        created++;
+      } catch (err) {
+        // One vendor task failing must not stop the rest of the sweep.
+        this.logger.error(`Setup task for ${id} failed: ${String(err)}`);
+      }
+    }
+
+    this.logger.log(`Created ${created}/${due.length} due setup tasks`);
+  }
 
   /**
    * A priced experience only gets its Breezeway setup task once its cost is

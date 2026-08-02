@@ -598,6 +598,16 @@ model ExperienceRequest {
   quoteApprovedAt       DateTime?
   quoteApprovedBy       String?
 
+  // A guest asking to cancel something the estate has already confirmed. Not a
+  // cancellation in itself — a vendor is booked by that point, so Rodrigo has
+  // to unwind it and may incur a fee. Requests not yet confirmed skip this
+  // entirely and are simply withdrawn.
+  cancellationRequestedAt DateTime?
+  cancellationRequestedBy String?
+  cancellationReason      String?
+  /** Charged when a vendor bills the estate for cancelling late. */
+  cancellationFee         Decimal?  @db.Decimal(10, 2)
+
   @@index([bookingId])
   @@index([status])
   @@index([catalogItemId])

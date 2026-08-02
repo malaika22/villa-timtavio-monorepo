@@ -26,3 +26,22 @@ export const EXPERIENCE_LEAD_TIMES: Record<string, number> = {
   EXCURSIONS: 240,
   PRIVATE: 60,
 };
+
+/**
+ * How far ahead of an experience its setup task is created.
+ *
+ * Tasks used to appear the moment a price was agreed. That was fine when
+ * pricing happened hours before the experience; now a guest can plan in August
+ * and a supplier can quote the same week, which would leave a task sitting in
+ * Breezeway for a month — long enough to be scrolled past, actioned early, or
+ * quietly forgotten.
+ */
+export const BREEZEWAY_TASK_LEAD_DAYS = 3;
+
+/** Whether an experience is close enough for its setup task to be created. */
+export function isWithinTaskWindow(confirmedDate: Date | null): boolean {
+  if (!confirmedDate) return false;
+  const windowOpens =
+    confirmedDate.getTime() - BREEZEWAY_TASK_LEAD_DAYS * 24 * 60 * 60 * 1000;
+  return Date.now() >= windowOpens;
+}

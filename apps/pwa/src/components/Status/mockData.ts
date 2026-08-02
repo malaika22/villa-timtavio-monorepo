@@ -28,6 +28,12 @@ export interface StatusRequest {
    */
   costLabel?: string;
   costIsEstimate?: boolean;
+  /**
+   * Confirmed by the estate but not yet priced — the slot is secured and only
+   * the final figure is outstanding. Distinct from a request still awaiting
+   * any answer at all.
+   */
+  awaitingFinalPrice?: boolean;
   /** Requester's display name (first name), used for party attribution */
   requestedByName?: string;
   /** Requester's email — compared to the viewer's to render "You" */

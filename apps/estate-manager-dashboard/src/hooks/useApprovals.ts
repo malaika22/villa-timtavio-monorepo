@@ -52,6 +52,36 @@ export function useDeclineRequest() {
   });
 }
 
+/** Experiences happening soon that still have no agreed price. */
+export function useNeedsPricing() {
+  return useQuery({
+    queryKey: ['requests', 'needs-pricing'],
+    queryFn: emRequestsApi.needsPricing,
+    refetchInterval: 60_000,
+  });
+}
+
+/** Experiences a guest has asked the estate to unwind. */
+export function useCancellationRequests() {
+  return useQuery({
+    queryKey: ['requests', 'cancellation-requests'],
+    queryFn: emRequestsApi.cancellationRequests,
+    refetchInterval: 60_000,
+  });
+}
+
+export function useConfirmCancellation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, fee }: { id: string; fee?: number }) =>
+      emRequestsApi.confirmCancellation(id, fee),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['requests'] });
+      void queryClient.invalidateQueries({ queryKey: ['folio'] });
+    },
+  });
+}
+
 export function useConfirmCost() {
   const queryClient = useQueryClient();
   return useMutation({

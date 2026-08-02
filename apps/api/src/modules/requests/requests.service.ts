@@ -17,6 +17,7 @@ import {
 import {
   BREEZEWAY_ASSIGNEE_MAP,
   EXPERIENCE_LEAD_TIMES,
+  isWithinTaskWindow,
 } from '../breezeway/breezeway.config';
 import { derivePrimaryRoomNumber } from '../../common/booking-room.util';
 import { getErrorMessage } from '../../commons/utils/error.util';
@@ -420,6 +421,16 @@ export class RequestsService {
       orderBy: { createdAt: 'asc' },
     });
 
+    // Ordered by when the experience HAPPENS, not when it was asked for.
+    // Guests now plan months ahead, so submission order put a request made in
+    // August for a November stay above one made yesterday for tomorrow —
+    // exactly backwards for someone working through a queue.
+    requests.sort(
+      (a, b) =>
+        (a.confirmedDate ?? a.preferredDate).getTime() -
+        (b.confirmedDate ?? b.preferredDate).getTime(),
+    );
+
     return requests.map((request) => ({
       ...request,
       booking: request.booking
@@ -575,7 +586,7 @@ export class RequestsService {
     // priced one waits until its cost is agreed — otherwise a vendor is booked
     // for something the primary might still decline, and there is no way to
     // unwind a Breezeway task once it exists.
-    if (updated.catalogItem.isIncluded) {
+    if (updated.catalogItem.isIncluded && isWithinTaskWindow(confirmedDate)) {
       await this.createBreezeWayTask(updated);
     }
 
@@ -657,13 +668,15 @@ export class RequestsService {
   ) {
     const request = await this.findOne(id);
 
-    // The guest approved an ESTIMATE. If Rodrigo's hard quote lands materially
-    // above it, park the quote and send it back to the primary rather than
-    // billing a number they never agreed to. Within tolerance it goes straight
-    // through, so ordinary drift doesn't nag anyone.
-    const estimateMax = toNumber(request.estimatedMax);
-    if (quoteNeedsReapproval(data.confirmedCost, estimateMax)) {
-      return this.parkQuoteForReapproval(id, data, confirmedBy, estimateMax!);
+    // Measure against whatever the guest last agreed to — not always the
+    // estimate. Once a price has been confirmed, THAT is what they consented to,
+    // and a later revision has to be judged against it. Comparing a revision to
+    // the original estimate let a firm $1,000 be raised to $1,400 unchallenged,
+    // because it still sat inside tolerance of the estimate's ceiling.
+    const agreedBaseline =
+      toNumber(request.confirmedCost) ?? toNumber(request.estimatedMax);
+    if (quoteNeedsReapproval(data.confirmedCost, agreedBaseline)) {
+      return this.parkQuoteForReapproval(id, data, confirmedBy, agreedBaseline!);
     }
 
     await this.prisma.experienceRequest.update({
@@ -687,9 +700,15 @@ export class RequestsService {
     id: string,
     data: { confirmedCost: number; emNotes?: string },
     quotedBy: string,
-    estimateMax: number,
+    /** What the guest last agreed to — an estimate, or a price already set. */
+    agreedBaseline: number,
   ) {
     const request = await this.findOne(id);
+    // Wording has to follow which of the two it was, or a guest who agreed a
+    // firm price is told their "estimate" changed.
+    const baselineLabel = request.confirmedCost
+      ? 'the price you approved'
+      : 'the estimate';
 
     await this.prisma.experienceRequest.update({
       where: { id },
@@ -715,7 +734,9 @@ export class RequestsService {
         title: 'Revised quote needs your approval',
         body: `${request.catalogItem.name} is quoted at ${formatPrice(
           data.confirmedCost,
-        )}, above the ${formatPrice(estimateMax)} estimate — tap to approve.`,
+        )}, above ${baselineLabel} of ${formatPrice(
+          agreedBaseline,
+        )} — tap to approve.`,
         deepLink: '/approvals',
       });
     }
@@ -731,20 +752,20 @@ export class RequestsService {
         metadata: {
           action: 'quote_awaiting_reapproval',
           quotedCost: data.confirmedCost,
-          estimateMax,
+          agreedBaseline,
         } as any,
       },
     });
 
     this.logger.log(
-      `Quote ${formatPrice(data.confirmedCost)} on request ${id} exceeds the ${formatPrice(estimateMax)} estimate — awaiting primary re-approval`,
+      `Quote ${formatPrice(data.confirmedCost)} on request ${id} exceeds ${baselineLabel} of ${formatPrice(agreedBaseline)} — awaiting primary re-approval`,
     );
 
     return {
       success: true,
       quoteApprovalRequired: true,
       quotedCost: data.confirmedCost,
-      estimateMax,
+      agreedBaseline,
     };
   }
 
@@ -872,6 +893,252 @@ export class RequestsService {
     return updated;
   }
 
+  // ─── Guest cancels — two different acts behind one intention ─────────────
+
+  /**
+   * Before the estate confirms, nothing is committed: the request is simply
+   * withdrawn. Afterwards a vendor is booked, so the guest can only ASK, and
+   * Rodrigo unwinds it — possibly at a cost.
+   *
+   * The requester may cancel their own; the primary may cancel anyone's, since
+   * every charge on the booking lands on them.
+   */
+  async guestCancel(
+    requestId: string,
+    actorEmail: string,
+    bookingId: string,
+    reason?: string,
+  ) {
+    const request = await this.findOne(requestId);
+
+    if (request.bookingId !== bookingId) {
+      throw new ForbiddenException('That request belongs to another booking');
+    }
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: { primaryGuest: true },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const isPrimary =
+      booking.primaryGuest.email.toLowerCase() === actorEmail.toLowerCase();
+    const isRequester =
+      request.requestedByEmail.toLowerCase() === actorEmail.toLowerCase();
+    if (!isPrimary && !isRequester) {
+      throw new ForbiddenException(
+        'Only the guest who requested this, or the primary member, can cancel it',
+      );
+    }
+
+    if (request.status === 'CANCELLED') {
+      throw new BadRequestException('This experience is already cancelled');
+    }
+    if (request.status === 'COMPLETED') {
+      throw new BadRequestException(
+        'This experience has already taken place and cannot be cancelled',
+      );
+    }
+    if (request.cancellationRequestedAt) {
+      throw new BadRequestException(
+        'A cancellation has already been requested for this experience',
+      );
+    }
+
+    // Nothing committed yet — withdraw it outright.
+    if (request.status === 'PENDING' || request.status === 'CONFLICT') {
+      const withdrawn = await this.prisma.experienceRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'CANCELLED',
+          statusUpdatedAt: new Date(),
+          declineReason: reason || 'Withdrawn by the guest',
+          cancellationRequestedAt: new Date(),
+          cancellationRequestedBy: actorEmail,
+          cancellationReason: reason,
+        },
+      });
+
+      await this.pusherService.experienceStatusChanged(bookingId, {
+        requestId,
+        status: 'CANCELLED',
+      });
+
+      this.logger.log(`Request ${requestId} withdrawn by ${actorEmail}`);
+      return { ...withdrawn, withdrawn: true };
+    }
+
+    // Confirmed or later — a vendor is involved, so this is a request, not an act.
+    const pending = await this.prisma.experienceRequest.update({
+      where: { id: requestId },
+      data: {
+        cancellationRequestedAt: new Date(),
+        cancellationRequestedBy: actorEmail,
+        cancellationReason: reason,
+      },
+    });
+
+    await this.prisma.systemAlert.create({
+      data: {
+        severity: 'WARNING',
+        title: 'Cancellation requested',
+        message: `${request.requestedByName} asked to cancel ${request.catalogItem.name}${
+          request.confirmedDate
+            ? ` on ${request.confirmedDate.toLocaleDateString('en-US', {
+                day: 'numeric',
+                month: 'short',
+              })}`
+            : ''
+        }${reason ? ` — “${reason}”` : ''}. Unwind it with the vendor, then confirm the cancellation and record any fee.`,
+        category: 'BOOKING',
+        entityType: 'ExperienceRequest',
+        entityId: requestId,
+      },
+    });
+
+    this.logger.log(
+      `Cancellation requested on ${requestId} by ${actorEmail} — awaiting the estate`,
+    );
+    return { ...pending, withdrawn: false };
+  }
+
+  /** Requests where a guest has asked to cancel something already confirmed. */
+  async getCancellationRequests() {
+    return this.prisma.experienceRequest.findMany({
+      where: {
+        cancellationRequestedAt: { not: null },
+        status: { notIn: ['CANCELLED', 'COMPLETED'] },
+      },
+      include: {
+        catalogItem: { include: { priceUnit: true } },
+        booking: { include: { primaryGuest: true } },
+      },
+      orderBy: { confirmedDate: 'asc' },
+    });
+  }
+
+  /**
+   * Rodrigo unwinds a confirmed experience the guest asked to drop.
+   *
+   * Any charge already on the folio is removed — they are not having the
+   * experience — and replaced by the vendor's cancellation fee if there was
+   * one. Recorded as an incidental against the guest who asked, so it shows in
+   * the by-guest breakdown and the primary can settle it with them.
+   */
+  async confirmCancellation(
+    requestId: string,
+    confirmedBy: string,
+    cancellationFee?: number,
+  ) {
+    const request = await this.findOne(requestId);
+
+    if (!request.cancellationRequestedAt) {
+      throw new BadRequestException(
+        'No cancellation has been requested for this experience',
+      );
+    }
+
+    if (request.folioItemId) {
+      await this.prisma.folioItem.delete({
+        where: { id: request.folioItemId },
+      });
+    }
+
+    const fee = cancellationFee && cancellationFee > 0 ? cancellationFee : null;
+    if (fee) {
+      await this.prisma.folioItem.create({
+        data: {
+          bookingId: request.bookingId,
+          type: 'INCIDENTAL',
+          description: `Cancellation fee — ${request.catalogItem.name}`,
+          amount: fee,
+          quantity: 1,
+          attributedToEmail: request.requestedByEmail,
+          attributedToName: request.requestedByName,
+          loggedBy: confirmedBy,
+          loggedAt: new Date(),
+          editableUntil: new Date(Date.now() + 30 * 60 * 1000),
+        },
+      });
+    }
+
+    const cancelled = await this.prisma.experienceRequest.update({
+      where: { id: requestId },
+      data: {
+        status: 'CANCELLED',
+        statusUpdatedAt: new Date(),
+        cancellationFee: fee,
+        folioItemId: null,
+        confirmedCost: null,
+        declineReason:
+          request.cancellationReason || 'Cancelled at the guest’s request',
+      },
+    });
+
+    await this.notificationsService.send({
+      bookingId: request.bookingId,
+      recipientEmail: request.requestedByEmail,
+      type: 'REQUEST_CANCELLED',
+      title: 'Experience cancelled',
+      body: fee
+        ? `${request.catalogItem.name} is cancelled. The vendor charged a ${formatPrice(fee)} cancellation fee, which is on your folio.`
+        : `${request.catalogItem.name} is cancelled — no charge.`,
+      deepLink: `/status/${requestId}`,
+    });
+
+    await this.pusherService.experienceStatusChanged(request.bookingId, {
+      requestId,
+      status: 'CANCELLED',
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'EXPERIENCE_CANCELLED',
+        entityType: 'ExperienceRequest',
+        entityId: requestId,
+        performedBy: confirmedBy,
+        performedByRole: 'estate_manager',
+        bookingId: request.bookingId,
+        metadata: {
+          action: 'guest_cancellation_confirmed',
+          requestedBy: request.cancellationRequestedBy,
+          cancellationFee: fee,
+        } as any,
+      },
+    });
+
+    return cancelled;
+  }
+
+  /**
+   * What Rodrigo has to put a price on, soonest first.
+   *
+   * Pricing moved to whenever the supplier commits, which means the work is
+   * scheduled by the experience's own date rather than by when the guest asked.
+   * Nothing else in the dashboard answers "what must I price this week?".
+   *
+   * Complimentary experiences are excluded — they never carry a price — as is
+   * anything a guest has asked to cancel.
+   */
+  async getNeedsPricing(withinDays = 14) {
+    const horizon = new Date(Date.now() + withinDays * 24 * 60 * 60 * 1000);
+
+    return this.prisma.experienceRequest.findMany({
+      where: {
+        status: { in: ['CONFIRMED', 'IN_PROGRESS', 'READY'] },
+        confirmedCost: null,
+        cancellationRequestedAt: null,
+        confirmedDate: { not: null, lte: horizon },
+        catalogItem: { isIncluded: false },
+      },
+      include: {
+        catalogItem: { include: { priceUnit: true } },
+        booking: { include: { primaryGuest: true } },
+      },
+      orderBy: { confirmedDate: 'asc' },
+    });
+  }
+
   /** Requests holding a revised quote the primary still needs to act on. */
   async getPendingQuoteApproval(bookingId: string) {
     return this.prisma.experienceRequest.findMany({
@@ -900,38 +1167,60 @@ export class RequestsService {
     // Skipped when a task already exists (the cost can be edited and re-logged,
     // which would otherwise duplicate it in Breezeway) and when the request
     // isn't confirmed, since the due date is derived from confirmedDate.
+    // Held back until the experience is near. A price agreed weeks early would
+    // otherwise put a task in front of staff a month before they can act on it;
+    // the scheduler creates it when the date comes round.
     if (
       !request.catalogItem.isIncluded &&
       !request.breezeWayTaskId &&
-      request.confirmedDate
+      isWithinTaskWindow(request.confirmedDate)
     ) {
       await this.createBreezeWayTask(request);
     }
 
-    const folio = await this.prisma.folioItem.create({
-      data: {
-        bookingId: request.bookingId,
-        type: 'EXPERIENCE',
-        description: request.catalogItem.name,
-        amount: confirmedCost,
-        quantity: 1,
-        // The requester carries the charge — this is what lets the primary see
-        // what each of their guests spent and settle up independently.
-        attributedToEmail: request.requestedByEmail,
-        attributedToName: request.requestedByName,
-        loggedBy,
-        loggedAt: new Date(),
-        editableUntil: new Date(Date.now() + 30 * 60 * 1000),
-        experienceRequest: {
-          connect: { id },
-        },
-      },
-    });
+    // A price can be agreed once and revised later — a vendor booked in August
+    // for a September experience has weeks to change its mind. Raising a second
+    // folio item would bill the guest for both, so an existing charge is
+    // updated in place instead.
+    const editableUntil = new Date(Date.now() + 30 * 60 * 1000);
+    const isRevision = !!request.folioItemId;
 
-    await this.prisma.experienceRequest.update({
-      where: { id },
-      data: { folioItemId: folio.id },
-    });
+    const folio = isRevision
+      ? await this.prisma.folioItem.update({
+          where: { id: request.folioItemId! },
+          data: {
+            amount: confirmedCost,
+            loggedBy,
+            loggedAt: new Date(),
+            editableUntil,
+          },
+        })
+      : await this.prisma.folioItem.create({
+          data: {
+            bookingId: request.bookingId,
+            type: 'EXPERIENCE',
+            description: request.catalogItem.name,
+            amount: confirmedCost,
+            quantity: 1,
+            // The requester carries the charge — this is what lets the primary
+            // see what each guest spent and settle up independently.
+            attributedToEmail: request.requestedByEmail,
+            attributedToName: request.requestedByName,
+            loggedBy,
+            loggedAt: new Date(),
+            editableUntil,
+            experienceRequest: {
+              connect: { id },
+            },
+          },
+        });
+
+    if (!isRevision) {
+      await this.prisma.experienceRequest.update({
+        where: { id },
+        data: { folioItemId: folio.id },
+      });
+    }
 
     await this.pusherService.folioUpdated(request.bookingId, {
       newItem: {
@@ -955,7 +1244,7 @@ export class RequestsService {
         bookingId: request.bookingId,
         recipientEmail: booking.primaryGuest.email,
         type: 'CHARGE_ADDED',
-        title: 'Charge added to folio',
+        title: isRevision ? 'Folio charge revised' : 'Charge added to folio',
         body: `${request.catalogItem.name} — ${formatPrice(confirmedCost)}`,
         deepLink: '/folio',
       });
@@ -1009,6 +1298,18 @@ export class RequestsService {
       where: { breezeWayTaskId: taskId },
       include: { catalogItem: { include: { priceUnit: true } } },
     });
+  }
+
+  /**
+   * Scheduler entry point — creates a setup task for an experience that has come
+   * within its window. Re-reads the request so a task raised in the meantime,
+   * or a cancellation, is respected.
+   */
+  async createDueBreezeWayTask(id: string) {
+    const request = await this.findOne(id);
+    if (request.breezeWayTaskId || request.cancellationRequestedAt) return;
+    if (!request.confirmedDate) return;
+    await this.createBreezeWayTask(request);
   }
 
   private async createBreezeWayTask(request: any) {

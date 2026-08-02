@@ -141,6 +141,55 @@ export class RequestsController {
     );
   }
 
+  // ─── Guest cancels ───────────────────────────────────────────────────────
+  // Withdrawn outright if the estate hasn't confirmed it; otherwise recorded as
+  // a request for Rodrigo, who has a vendor to unwind.
+  @Post(':id/cancel')
+  @Roles('primary_member', 'secondary_guest')
+  guestCancel(
+    @Param('id') id: string,
+    @Body('reason') reason: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.requestsService.guestCancel(
+      id,
+      user.email,
+      user.bookingId,
+      reason,
+    );
+  }
+
+  // EM — what needs a price before it happens, soonest first
+  @Get('em/needs-pricing')
+  @Roles('estate_manager')
+  getNeedsPricing(@Query('withinDays') withinDays?: string) {
+    return this.requestsService.getNeedsPricing(
+      withinDays ? Number(withinDays) : undefined,
+    );
+  }
+
+  // EM — experiences a guest has asked to cancel
+  @Get('em/cancellation-requests')
+  @Roles('estate_manager')
+  getCancellationRequests() {
+    return this.requestsService.getCancellationRequests();
+  }
+
+  // EM — unwind it, recording any fee the vendor charged
+  @Post(':id/confirm-cancellation')
+  @Roles('estate_manager')
+  confirmCancellation(
+    @Param('id') id: string,
+    @Body('cancellationFee') cancellationFee: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.requestsService.confirmCancellation(
+      id,
+      user.auth0Id,
+      cancellationFee,
+    );
+  }
+
   // Guest — get single request
   @Get(':id')
   async findOne(@Param('id') id: string, @CurrentUser() user: any) {

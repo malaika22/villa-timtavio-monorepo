@@ -30,7 +30,7 @@ export function ExperiencesCatalog() {
   const apiExperiences = useMemo(
     () =>
       catalogItems
-        ? mapCatalogItemsToExperiences(catalogItems, bookingStatus)
+        ? mapCatalogItemsToExperiences(catalogItems)
         : null,
     [catalogItems, bookingStatus],
   );

@@ -17,7 +17,7 @@ export const FeaturedExperiences = () => {
   const featured = (catalog ?? [])
     .filter((item) => item.isActive)
     .slice(0, 2)
-    .map((item) => mapCatalogItemToExperience(item, bookingStatus));
+    .map((item) => mapCatalogItemToExperience(item));
 
   // Don't render the section at all when there are no featured experiences.
   if (!isLoading && featured.length === 0) {

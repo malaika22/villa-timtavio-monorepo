@@ -73,5 +73,6 @@ export function mapRequestToApprovalItem(
     estimatedMin: req.estimatedMin ?? null,
     estimatedMax: req.estimatedMax ?? null,
     priceUnitCode: req.priceUnitCode ?? null,
+    confirmedCost: req.confirmedCost ?? null,
   };
 }
