@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 
 import { NotificationsDrawer } from '@/components/Notifications';
+import { InstallHeaderChip } from '@/components/InstallPrompt';
 import { useUnreadCount } from '@/hooks/useNotifications';
 
 export const Header = () => {
@@ -22,7 +23,10 @@ export const Header = () => {
           width={100}
           height={100}
         />
-        <div className="space-x-3">
+        <div className="flex items-center gap-3">
+          {/* Renders only once the pill has been dismissed and the app isn't
+              already installed — see useInstallPrompt. */}
+          <InstallHeaderChip />
           <Button
             onClick={() => setNotificationsOpen(true)}
             className="relative rounded-full bg-timtavio-background border border-[#E3E0DA] w-[28px] h-[28px]"
