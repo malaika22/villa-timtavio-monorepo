@@ -41,6 +41,16 @@ export class FolioService {
 
     if (!booking) throw new NotFoundException('Booking not found');
 
+    // Prisma hands Decimal columns back as objects that serialise to STRINGS,
+    // while FolioItem.amount is typed `number`. Anything summing them
+    // client-side concatenated instead of adding — "200" + "1200" + "1400"
+    // showed a guest $20,012,001,400 of experiences. Coerce once, here, so the
+    // response matches the contract it declares and no caller has to know.
+    const items = booking.folioItems.map((item) => ({
+      ...item,
+      amount: Number(item.amount),
+    }));
+
     const subtotal = booking.folioItems.reduce(
       (sum, item) => sum + Number(item.amount) * item.quantity,
       0,
@@ -52,20 +62,18 @@ export class FolioService {
 
     // Group by type
     const byType = {
-      ESTATE_BASE_RATE: booking.folioItems.filter(
-        (i) => i.type === 'ESTATE_BASE_RATE',
-      ),
-      PRE_STOCKED: booking.folioItems.filter((i) => i.type === 'PRE_STOCKED'),
-      EXPERIENCE: booking.folioItems.filter((i) => i.type === 'EXPERIENCE'),
-      INCIDENTAL: booking.folioItems.filter((i) => i.type === 'INCIDENTAL'),
+      ESTATE_BASE_RATE: items.filter((i) => i.type === 'ESTATE_BASE_RATE'),
+      PRE_STOCKED: items.filter((i) => i.type === 'PRE_STOCKED'),
+      EXPERIENCE: items.filter((i) => i.type === 'EXPERIENCE'),
+      INCIDENTAL: items.filter((i) => i.type === 'INCIDENTAL'),
     };
 
     return {
       booking,
-      items: booking.folioItems,
+      items,
       byType,
       byGuest: this.groupByGuest(
-        booking.folioItems,
+        items,
         booking.primaryGuest.email,
         `${booking.primaryGuest.firstName} ${booking.primaryGuest.lastName}`.trim(),
       ),
@@ -91,17 +99,36 @@ export class FolioService {
    */
   private groupByGuest(
     items: {
-      amount: unknown;
+      id: string;
+      description: string;
+      type: string;
+      amount: number;
       quantity: number;
+      loggedAt: Date;
       attributedToEmail?: string | null;
       attributedToName?: string | null;
     }[],
     primaryEmail: string,
     primaryName: string,
   ) {
+    type Line = {
+      id: string;
+      description: string;
+      type: string;
+      quantity: number;
+      total: number;
+      loggedAt: Date;
+    };
     const buckets = new Map<
       string,
-      { email: string; name: string; isPrimary: boolean; total: number; itemCount: number }
+      {
+        email: string;
+        name: string;
+        isPrimary: boolean;
+        total: number;
+        itemCount: number;
+        items: Line[];
+      }
     >();
 
     for (const item of items) {
@@ -120,9 +147,20 @@ export class FolioService {
         isPrimary,
         total: 0,
         itemCount: 0,
+        items: [],
       };
       bucket.total += total;
       bucket.itemCount += 1;
+      // The charges behind the figure. A total on its own is unverifiable —
+      // "Sara · $3,600" tells the primary nothing about what to settle for.
+      bucket.items.push({
+        id: item.id,
+        description: item.description,
+        type: item.type,
+        quantity: item.quantity,
+        total: Math.round(total * 100) / 100,
+        loggedAt: item.loggedAt,
+      });
       buckets.set(email, bucket);
     }
 

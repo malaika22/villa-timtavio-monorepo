@@ -37,6 +37,17 @@ export interface FolioByType {
   PRE_STOCKED: FolioItem[];
 }
 
+/** A single charge behind a guest's total, so the figure can be checked. */
+export interface FolioGuestSpendItem {
+  id: string;
+  description: string;
+  type: FolioItemType;
+  quantity: number;
+  /** amount × quantity — what this line contributes to the guest's total. */
+  total: number;
+  loggedAt: string;
+}
+
 /**
  * One party member's share of the folio. Pre-tax charges only — tax and service
  * are levied on the folio as a whole, not per guest — and financial only, so
@@ -48,6 +59,8 @@ export interface FolioGuestSpend {
   isPrimary: boolean;
   total: number;
   itemCount: number;
+  /** The charges making up `total`, newest first. */
+  items: FolioGuestSpendItem[];
 }
 
 export interface FolioResponse {
