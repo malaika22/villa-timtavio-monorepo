@@ -58,7 +58,12 @@ export const ApprovalsQueueTable = ({
   // The guest approved an estimate; a quote materially above it goes back to the
   // primary rather than to the folio. Surface that before the EM commits.
   const costRow = rows.find((r) => r.id === costId);
-  const estimateMax = costRow?.estimatedMax ?? null;
+  // Once a price is agreed, that is what the guest consented to — a revision is
+  // judged against it, not against the original estimate. Mirrors the server.
+  const alreadyPriced = costRow?.confirmedCost != null;
+  const estimateMax = alreadyPriced
+    ? costRow!.confirmedCost!
+    : (costRow?.estimatedMax ?? null);
   const enteredCost = Number(costAmount);
   const ceiling = estimateMax != null ? quoteApprovalCeiling(estimateMax) : null;
   const willNeedReapproval =
@@ -387,10 +392,17 @@ export const ApprovalsQueueTable = ({
               <div className="rounded-md border border-manager-border bg-manager-main px-3 py-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-manager-text-muted">
-                    Estimate the guest approved
+                    {alreadyPriced
+                      ? 'Price the guest approved'
+                      : 'Estimate the guest approved'}
                   </span>
                   <span className="font-medium tabular-nums text-manager-text">
-                    {formatRateRange(costRow?.estimatedMin, costRow?.estimatedMax)}
+                    {alreadyPriced
+                      ? formatPrice(costRow!.confirmedCost!)
+                      : formatRateRange(
+                          costRow?.estimatedMin,
+                          costRow?.estimatedMax,
+                        )}
                   </span>
                 </div>
                 {ceiling != null && (

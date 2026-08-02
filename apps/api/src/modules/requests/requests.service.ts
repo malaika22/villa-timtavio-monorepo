@@ -657,13 +657,15 @@ export class RequestsService {
   ) {
     const request = await this.findOne(id);
 
-    // The guest approved an ESTIMATE. If Rodrigo's hard quote lands materially
-    // above it, park the quote and send it back to the primary rather than
-    // billing a number they never agreed to. Within tolerance it goes straight
-    // through, so ordinary drift doesn't nag anyone.
-    const estimateMax = toNumber(request.estimatedMax);
-    if (quoteNeedsReapproval(data.confirmedCost, estimateMax)) {
-      return this.parkQuoteForReapproval(id, data, confirmedBy, estimateMax!);
+    // Measure against whatever the guest last agreed to — not always the
+    // estimate. Once a price has been confirmed, THAT is what they consented to,
+    // and a later revision has to be judged against it. Comparing a revision to
+    // the original estimate let a firm $1,000 be raised to $1,400 unchallenged,
+    // because it still sat inside tolerance of the estimate's ceiling.
+    const agreedBaseline =
+      toNumber(request.confirmedCost) ?? toNumber(request.estimatedMax);
+    if (quoteNeedsReapproval(data.confirmedCost, agreedBaseline)) {
+      return this.parkQuoteForReapproval(id, data, confirmedBy, agreedBaseline!);
     }
 
     await this.prisma.experienceRequest.update({
@@ -687,9 +689,15 @@ export class RequestsService {
     id: string,
     data: { confirmedCost: number; emNotes?: string },
     quotedBy: string,
-    estimateMax: number,
+    /** What the guest last agreed to — an estimate, or a price already set. */
+    agreedBaseline: number,
   ) {
     const request = await this.findOne(id);
+    // Wording has to follow which of the two it was, or a guest who agreed a
+    // firm price is told their "estimate" changed.
+    const baselineLabel = request.confirmedCost
+      ? 'the price you approved'
+      : 'the estimate';
 
     await this.prisma.experienceRequest.update({
       where: { id },
@@ -715,7 +723,9 @@ export class RequestsService {
         title: 'Revised quote needs your approval',
         body: `${request.catalogItem.name} is quoted at ${formatPrice(
           data.confirmedCost,
-        )}, above the ${formatPrice(estimateMax)} estimate — tap to approve.`,
+        )}, above ${baselineLabel} of ${formatPrice(
+          agreedBaseline,
+        )} — tap to approve.`,
         deepLink: '/approvals',
       });
     }
@@ -731,20 +741,20 @@ export class RequestsService {
         metadata: {
           action: 'quote_awaiting_reapproval',
           quotedCost: data.confirmedCost,
-          estimateMax,
+          agreedBaseline,
         } as any,
       },
     });
 
     this.logger.log(
-      `Quote ${formatPrice(data.confirmedCost)} on request ${id} exceeds the ${formatPrice(estimateMax)} estimate — awaiting primary re-approval`,
+      `Quote ${formatPrice(data.confirmedCost)} on request ${id} exceeds ${baselineLabel} of ${formatPrice(agreedBaseline)} — awaiting primary re-approval`,
     );
 
     return {
       success: true,
       quoteApprovalRequired: true,
       quotedCost: data.confirmedCost,
-      estimateMax,
+      agreedBaseline,
     };
   }
 
@@ -908,30 +918,49 @@ export class RequestsService {
       await this.createBreezeWayTask(request);
     }
 
-    const folio = await this.prisma.folioItem.create({
-      data: {
-        bookingId: request.bookingId,
-        type: 'EXPERIENCE',
-        description: request.catalogItem.name,
-        amount: confirmedCost,
-        quantity: 1,
-        // The requester carries the charge — this is what lets the primary see
-        // what each of their guests spent and settle up independently.
-        attributedToEmail: request.requestedByEmail,
-        attributedToName: request.requestedByName,
-        loggedBy,
-        loggedAt: new Date(),
-        editableUntil: new Date(Date.now() + 30 * 60 * 1000),
-        experienceRequest: {
-          connect: { id },
-        },
-      },
-    });
+    // A price can be agreed once and revised later — a vendor booked in August
+    // for a September experience has weeks to change its mind. Raising a second
+    // folio item would bill the guest for both, so an existing charge is
+    // updated in place instead.
+    const editableUntil = new Date(Date.now() + 30 * 60 * 1000);
+    const isRevision = !!request.folioItemId;
 
-    await this.prisma.experienceRequest.update({
-      where: { id },
-      data: { folioItemId: folio.id },
-    });
+    const folio = isRevision
+      ? await this.prisma.folioItem.update({
+          where: { id: request.folioItemId! },
+          data: {
+            amount: confirmedCost,
+            loggedBy,
+            loggedAt: new Date(),
+            editableUntil,
+          },
+        })
+      : await this.prisma.folioItem.create({
+          data: {
+            bookingId: request.bookingId,
+            type: 'EXPERIENCE',
+            description: request.catalogItem.name,
+            amount: confirmedCost,
+            quantity: 1,
+            // The requester carries the charge — this is what lets the primary
+            // see what each guest spent and settle up independently.
+            attributedToEmail: request.requestedByEmail,
+            attributedToName: request.requestedByName,
+            loggedBy,
+            loggedAt: new Date(),
+            editableUntil,
+            experienceRequest: {
+              connect: { id },
+            },
+          },
+        });
+
+    if (!isRevision) {
+      await this.prisma.experienceRequest.update({
+        where: { id },
+        data: { folioItemId: folio.id },
+      });
+    }
 
     await this.pusherService.folioUpdated(request.bookingId, {
       newItem: {
@@ -955,7 +984,7 @@ export class RequestsService {
         bookingId: request.bookingId,
         recipientEmail: booking.primaryGuest.email,
         type: 'CHARGE_ADDED',
-        title: 'Charge added to folio',
+        title: isRevision ? 'Folio charge revised' : 'Charge added to folio',
         body: `${request.catalogItem.name} — ${formatPrice(confirmedCost)}`,
         deepLink: '/folio',
       });

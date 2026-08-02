@@ -99,6 +99,8 @@ export type ApprovalQueueItem = {
   estimatedMin?: number | null;
   estimatedMax?: number | null;
   priceUnitCode?: string | null;
+  /** Set once a price has been agreed — then IT is the re-approval baseline. */
+  confirmedCost?: number | null;
 };
 
 export type CurrentGuest = {
