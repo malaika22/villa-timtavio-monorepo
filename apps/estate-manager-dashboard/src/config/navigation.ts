@@ -44,6 +44,9 @@ export const managerNavSections: ManagerNavSection[] = [
         href: '/approvals',
         icon: CheckSquare,
       },
+      // Beside Approvals, not under Content: the Menu page is what the estate
+      // publishes, this is what guests have asked for and nobody has answered.
+      { title: 'Dining', href: '/dining', icon: UtensilsCrossed },
       { title: 'Bookings + Manifest', href: '/bookings', icon: BookMarked },
       { title: 'Rooms', href: '/rooms', icon: BedDouble },
       { title: 'Guests', href: '/guests', icon: Users },
@@ -191,6 +194,11 @@ export const pageMeta: Record<string, PageMeta> = {
     subtitle: 'Experiences, menus & recommendations shown to guests',
     showPreviewGuestView: true,
     showAddContentItem: true,
+    showNotifications: true,
+  },
+  '/dining': {
+    title: 'Dining',
+    subtitle: 'Sittings & orders awaiting confirmation',
     showNotifications: true,
   },
   '/menu': {

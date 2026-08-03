@@ -12,6 +12,7 @@ import type {
 } from './dining.types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PusherService, PUSHER_CHANNELS } from '../pusher/pusher.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateDiningRequestDto } from './dto/create-dining-request.dto';
 
 const SETTINGS_SINGLETON = 'singleton';
@@ -26,6 +27,7 @@ export class DiningService {
   constructor(
     private prisma: PrismaService,
     private pusher: PusherService,
+    private notifications: NotificationsService,
   ) {}
 
   async findByBooking(bookingId: string) {
@@ -94,19 +96,140 @@ export class DiningService {
   }
 
   async confirm(id: string) {
-    await this.ensureExists(id);
-    return this.prisma.diningRequest.update({
+    const request = await this.ensureExists(id);
+
+    const updated = await this.prisma.diningRequest.update({
       where: { id },
       data: { status: 'CONFIRMED' },
     });
+
+    // The guest asked for a table and heard nothing back — dining used to
+    // change status silently while every experience step notified. From the
+    // guest's side that is indistinguishable from being ignored.
+    await this.notifyRequester(updated, {
+      type: 'REQUEST_CONFIRMED',
+      title: this.isSitting(updated) ? 'Your table is confirmed' : 'Your order is confirmed',
+      body: this.describe(updated),
+    });
+
+    return updated;
   }
 
-  async cancel(id: string) {
-    await this.ensureExists(id);
-    return this.prisma.diningRequest.update({
+  /**
+   * @param cancelledBy the email of whoever cancelled, when known. A guest who
+   * cancels their own request already knows; telling them again is noise.
+   */
+  async cancel(id: string, cancelledBy?: string) {
+    const request = await this.ensureExists(id);
+
+    const updated = await this.prisma.diningRequest.update({
       where: { id },
       data: { status: 'CANCELLED' },
     });
+
+    const cancelledThemselves =
+      !!cancelledBy &&
+      cancelledBy.toLowerCase() === request.requestedByEmail.toLowerCase();
+
+    if (!cancelledThemselves) {
+      await this.notifyRequester(updated, {
+        type: 'REQUEST_CANCELLED',
+        title: this.isSitting(updated) ? 'Your table was cancelled' : 'Your order was cancelled',
+        body: `${this.describe(updated)} — please speak to your concierge if this is unexpected.`,
+      });
+    }
+
+    // The EM's own list needs to lose a guest-cancelled row without a refresh.
+    await this.pusher.trigger(PUSHER_CHANNELS.emDashboard, 'dining.cancelled', {
+      id: updated.id,
+      bookingId: updated.bookingId,
+    });
+
+    return updated;
+  }
+
+  private isSitting(request: { kind: string }) {
+    return request.kind === 'SITTING';
+  }
+
+  /** A line a guest would recognise as their own request. */
+  private describe(request: {
+    kind: string;
+    mealType?: string | null;
+    date?: Date | null;
+    time?: string | null;
+    partySize?: number | null;
+    items?: unknown;
+  }): string {
+    if (this.isSitting(request)) {
+      const meal = request.mealType
+        ? request.mealType.charAt(0) + request.mealType.slice(1).toLowerCase()
+        : 'Sitting';
+      const when = request.date
+        ? request.date.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+          })
+        : '';
+      const parts = [meal, when, request.time].filter(Boolean).join(' · ');
+      return request.partySize ? `${parts} · ${request.partySize} guests` : parts;
+    }
+
+    const items = Array.isArray(request.items) ? request.items : [];
+    const count = items.reduce(
+      (sum: number, i: unknown) =>
+        sum + Number((i as { quantity?: number })?.quantity ?? 1),
+      0,
+    );
+    return `${count} item${count === 1 ? '' : 's'}`;
+  }
+
+  private async notifyRequester(
+    request: {
+      id: string;
+      bookingId: string;
+      requestedByEmail: string;
+      kind: string;
+    },
+    notice: { type: 'REQUEST_CONFIRMED' | 'REQUEST_CANCELLED'; title: string; body: string },
+  ) {
+    await this.notifications.send({
+      bookingId: request.bookingId,
+      recipientEmail: request.requestedByEmail,
+      type: notice.type,
+      title: notice.title,
+      body: notice.body,
+      deepLink: '/dining',
+    });
+
+    // And live, so an open app updates without the guest pulling to refresh.
+    await this.pusher.trigger(
+      PUSHER_CHANNELS.guestBooking(request.bookingId),
+      'dining.status',
+      { id: request.id, status: notice.type === 'REQUEST_CONFIRMED' ? 'CONFIRMED' : 'CANCELLED' },
+    );
+  }
+
+  /**
+   * Everything awaiting the estate's attention, across every booking.
+   *
+   * Dining requests only ever surfaced on a booking's own detail page, so one
+   * nobody happened to open was one nobody answered. Ordered by when the meal
+   * is, not when it was asked for — a breakfast tomorrow outranks a dinner next
+   * week however late it came in.
+   */
+  async getQueue() {
+    const requests = await this.prisma.diningRequest.findMany({
+      where: { status: 'REQUESTED' },
+      include: {
+        booking: { include: { primaryGuest: true } },
+      },
+    });
+
+    const at = (r: (typeof requests)[number]) =>
+      r.date ? r.date.getTime() : r.createdAt.getTime();
+
+    return requests.sort((a, b) => at(a) - at(b));
   }
 
   // ─── Recommended sitting times (estate-configured) ────────────────────────

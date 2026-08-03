@@ -1,0 +1,211 @@
+'use client';
+
+import { differenceInCalendarDays, format, parseISO } from 'date-fns';
+import { Coffee, Loader2, UtensilsCrossed } from 'lucide-react';
+import { Button } from '@repo/ui';
+import { cn } from '@repo/ui/lib/utils';
+import { toast } from 'sonner';
+import type { DiningOrderItem, EmDiningQueueItem } from '@repo/api-types';
+
+import {
+  useCancelDining,
+  useConfirmDining,
+  useDiningQueue,
+} from '@/hooks/useDining';
+
+/** A meal today or tomorrow is being cooked for now, not planned for. */
+const URGENT_WITHIN_DAYS = 1;
+
+const MEAL_LABEL: Record<string, string> = {
+  BREAKFAST: 'Breakfast',
+  LUNCH: 'Lunch',
+  DINNER: 'Dinner',
+  SNACKS: 'Snacks',
+  BEVERAGES: 'Beverages',
+};
+
+function partyOf(r: EmDiningQueueItem): string {
+  const p = r.booking?.primaryGuest;
+  if (!p) return 'Unassigned stay';
+  return `${p.firstName} ${p.lastName}`.trim() || p.email;
+}
+
+/**
+ * Everything the kitchen is waiting on, across every stay.
+ *
+ * Dining requests previously appeared only inside a booking's own detail page,
+ * which meant a request nobody happened to open was a request nobody answered —
+ * while experiences had a whole approvals queue. Ordered by when the meal is,
+ * not when it was asked for: a breakfast tomorrow outranks a dinner next week
+ * however late it came in.
+ */
+export const DiningQueuePage = () => {
+  const { data: requests = [], isLoading } = useDiningQueue();
+  const confirm = useConfirmDining(null);
+  const cancel = useCancelDining(null);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-20 animate-pulse rounded-lg bg-manager-border" />
+        ))}
+      </div>
+    );
+  }
+
+  if (requests.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-manager-border bg-manager-card p-12 text-center">
+        <UtensilsCrossed
+          className="mx-auto mb-3 size-6 text-manager-text-muted"
+          aria-hidden
+        />
+        <p className="text-sm font-medium text-manager-text">
+          Nothing waiting on the kitchen
+        </p>
+        <p className="mt-1 text-sm text-manager-text-muted">
+          Sittings and orders appear here the moment a guest submits one.
+        </p>
+      </div>
+    );
+  }
+
+  const act = (
+    kind: 'confirm' | 'cancel',
+    r: EmDiningQueueItem,
+    label: string,
+  ) => {
+    const mutation = kind === 'confirm' ? confirm : cancel;
+    mutation.mutate(r.id, {
+      onSuccess: () =>
+        toast.success(
+          kind === 'confirm' ? `${label} confirmed` : `${label} cancelled`,
+          {
+            description:
+              kind === 'confirm'
+                ? `${r.requestedByName} has been notified.`
+                : `${r.requestedByName} has been notified.`,
+          },
+        ),
+      onError: (e) => toast.error((e as Error).message),
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-manager-text-muted">
+        {requests.length} request{requests.length === 1 ? '' : 's'} awaiting
+        confirmation, soonest first. Confirming or cancelling notifies the guest.
+      </p>
+
+      <ul className="flex flex-col gap-2">
+        {requests.map((r) => {
+          const isSitting = r.kind === 'SITTING';
+          const items = (r.items ?? []) as DiningOrderItem[];
+          const when = r.date ? parseISO(r.date) : null;
+          const daysAway = when
+            ? differenceInCalendarDays(when, new Date())
+            : null;
+          const urgent = daysAway != null && daysAway <= URGENT_WITHIN_DAYS;
+          const label = isSitting
+            ? (MEAL_LABEL[r.mealType ?? ''] ?? 'Sitting')
+            : 'Order';
+          const busy =
+            (confirm.isPending && confirm.variables === r.id) ||
+            (cancel.isPending && cancel.variables === r.id);
+
+          return (
+            <li
+              key={r.id}
+              className="flex flex-col gap-3 rounded-lg border border-manager-border bg-manager-card p-4 sm:flex-row sm:items-center"
+            >
+              <span
+                className={cn(
+                  'flex size-9 shrink-0 items-center justify-center rounded-full',
+                  isSitting ? 'bg-[#f5ebe0]' : 'bg-[#eef2f6]',
+                )}
+                aria-hidden
+              >
+                {isSitting ? (
+                  <UtensilsCrossed className="size-4 text-[#8b6914]" />
+                ) : (
+                  <Coffee className="size-4 text-[#3d6382]" />
+                )}
+              </span>
+
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-manager-text">
+                  {label}
+                  {isSitting && r.partySize ? ` · ${r.partySize} guests` : ''}
+                  {!isSitting && items.length > 0
+                    ? ` · ${items.reduce((s, i) => s + i.quantity, 0)} items`
+                    : ''}
+                </p>
+                <p className="mt-0.5 text-xs text-manager-text-muted">
+                  {partyOf(r)}
+                  {r.requestedByName !== partyOf(r)
+                    ? ` · asked by ${r.requestedByName}`
+                    : ''}
+                  {when ? ` · ${format(when, 'MMM d')}` : ''}
+                  {r.time ? ` · ${r.time}` : ''}
+                  {r.requestedFor ? ` · for ${r.requestedFor}` : ''}
+                </p>
+
+                {!isSitting && items.length > 0 ? (
+                  <p className="mt-1 text-xs text-manager-text-muted">
+                    {items.map((i) => `${i.quantity}× ${i.name}`).join(', ')}
+                  </p>
+                ) : null}
+
+                {/* Allergies are the one thing here that can actually hurt
+                    someone, so they are never collapsed behind a detail view. */}
+                {r.allergies ? (
+                  <p className="mt-1 text-xs font-medium text-[#b42318]">
+                    Allergies: {r.allergies}
+                  </p>
+                ) : null}
+                {r.specialRequests || r.notes ? (
+                  <p className="mt-1 text-xs italic text-manager-text-muted">
+                    “{r.specialRequests || r.notes}”
+                  </p>
+                ) : null}
+                {(r.lateArrivals ?? []).length > 0 ? (
+                  <p className="mt-1 text-xs text-manager-text-muted">
+                    {r.lateArrivals!.length} arriving late
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2">
+                {urgent && (
+                  <span className="rounded-full bg-[#fdecea] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#b42318]">
+                    {daysAway! <= 0 ? 'Today' : 'Tomorrow'}
+                  </span>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => act('cancel', r, label)}
+                  disabled={busy}
+                  className="border-manager-border bg-manager-card text-manager-text"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => act('confirm', r, label)}
+                  disabled={busy}
+                  className="bg-manager-accent text-white hover:opacity-90"
+                >
+                  {busy ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : null}
+                  Confirm
+                </Button>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+};

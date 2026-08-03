@@ -7,6 +7,8 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCatalogItemDto } from './dto/create-catalog-item.dto';
 import { UpdateCatalogItemDto } from './dto/update-catalog-item.dto';
+import { CreateMenuItemDto } from './dto/create-menu-item.dto';
+import { UpdateMenuItemDto } from './dto/update-menu-item.dto';
 import { CatalogCategory } from '@prisma/client';
 import * as csv from 'csv-parse/sync';
 import { getErrorMessage } from '../../commons/utils/error.util';
@@ -232,13 +234,13 @@ export class CatalogService {
     });
   }
 
-  async createMenuItem(data: any, createdBy: string) {
+  async createMenuItem(data: CreateMenuItemDto, createdBy: string) {
     return this.prisma.menuItem.create({
       data: { ...data, createdBy },
     });
   }
 
-  async updateMenuItem(id: string, data: any) {
+  async updateMenuItem(id: string, data: UpdateMenuItemDto) {
     return this.prisma.menuItem.update({ where: { id }, data });
   }
 

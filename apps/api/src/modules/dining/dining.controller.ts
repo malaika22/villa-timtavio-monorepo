@@ -29,6 +29,14 @@ export class DiningController {
     return this.diningService.getSittingTimes();
   }
 
+  // EM — everything awaiting confirmation, across every booking.
+  // Also declared before the :param routes.
+  @Get('queue')
+  @Roles('estate_manager', 'owner')
+  getQueue() {
+    return this.diningService.getQueue();
+  }
+
   // EM/owner — configure the recommended sitting times.
   @Patch('sitting-times')
   @Roles('estate_manager', 'owner')
@@ -80,10 +88,11 @@ export class DiningController {
     return this.diningService.confirm(id);
   }
 
-  // Guest or EM — cancel a dining request
+  // Guest or EM — cancel a dining request. The actor is passed through so a
+  // guest cancelling their own isn't notified about their own action.
   @Patch(':id/cancel')
   @HttpCode(HttpStatus.OK)
-  cancel(@Param('id') id: string) {
-    return this.diningService.cancel(id);
+  cancel(@Param('id') id: string, @CurrentUser() user: { email?: string }) {
+    return this.diningService.cancel(id, user?.email);
   }
 }
