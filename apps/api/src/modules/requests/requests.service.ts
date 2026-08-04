@@ -77,6 +77,27 @@ export class RequestsService {
       );
     }
 
+    // The requested date must fall inside the stay.
+    //
+    // The picker now greys out everything else, but a picker is a courtesy —
+    // the rule belongs where it can't be skipped. Booking a vendor for a day
+    // the guest isn't at the villa costs the estate a supplier and nobody
+    // notices until the date.
+    const preferred = new Date(dto.preferredDate);
+    if (!Number.isNaN(preferred.getTime())) {
+      const day = (d: Date) =>
+        new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      const requested = day(preferred);
+      if (
+        requested < day(new Date(booking.checkIn)) ||
+        requested > day(new Date(booking.checkOut))
+      ) {
+        throw new BadRequestException(
+          'Experiences can only be arranged for dates during your stay.',
+        );
+      }
+    }
+
     // Check for duplicate active request
     const activeRequest = await this.prisma.experienceRequest.findFirst({
       where: {
@@ -850,22 +871,42 @@ export class RequestsService {
       );
     }
 
+    // Take the charge back off.
+    //
+    // The experience was confirmed at the ORIGINAL price, so a folio item
+    // already exists. Ending the request without removing it billed the guest
+    // for the old figure on something nobody was going to deliver — they
+    // declined precisely to avoid being charged. No fee applies either: they
+    // refused before the estate committed to the new price.
+    if (request.folioItemId) {
+      await this.prisma.folioItem
+        .delete({ where: { id: request.folioItemId } })
+        .catch(() => undefined);
+    }
+
     const updated = await this.prisma.experienceRequest.update({
       where: { id: requestId },
       data: {
         status: 'CANCELLED',
         statusUpdatedAt: new Date(),
         quoteApprovalRequired: false,
+        folioItemId: null,
         declineReason: reason || 'Revised quote declined by primary member',
       },
     });
+
+    if (request.folioItemId) {
+      await this.pusherService.folioUpdated(bookingId, {
+        removedItemId: request.folioItemId,
+      });
+    }
 
     await this.notificationsService.send({
       bookingId,
       recipientEmail: request.requestedByEmail,
       type: 'REQUEST_CANCELLED',
       title: 'Request update',
-      body: `${request.catalogItem.name} was not booked — the final quote wasn't approved`,
+      body: `${request.catalogItem.name} was not booked — the final quote wasn't approved, and the charge has come off your folio`,
       deepLink: `/status/${requestId}`,
     });
 
@@ -1041,6 +1082,11 @@ export class RequestsService {
     if (request.folioItemId) {
       await this.prisma.folioItem.delete({
         where: { id: request.folioItemId },
+      });
+      // Same reason as the quote-decline path: a folio left open would keep
+      // showing a charge that no longer exists.
+      await this.pusherService.folioUpdated(request.bookingId, {
+        removedItemId: request.folioItemId,
       });
     }
 

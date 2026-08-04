@@ -3,12 +3,29 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { MONTH_NAMES } from '../RequestExperienceSheet/constants';
 
+/** Local midnight for an ISO date, so a timezone can't shift the day. */
+function dayStart(iso?: string | null): Date | null {
+  if (!iso) return null;
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
 export function CalenderPicker({
   selectedDate,
   onSelect,
+  checkIn,
+  checkOut,
 }: {
   selectedDate: Date | null;
   onSelect: (d: Date) => void;
+  /**
+   * The stay. Without it the picker offered every day of the month, so a guest
+   * could book a massage for a day they aren't at the villa — the estate would
+   * commit a therapist and nobody would notice until the date.
+   */
+  checkIn?: string | null;
+  checkOut?: string | null;
 }) {
   const today = new Date();
   const todayStart = new Date(
@@ -17,8 +34,14 @@ export function CalenderPicker({
     today.getDate(),
   );
 
-  const [displayYear, setDisplayYear] = useState(today.getFullYear());
-  const [displayMonth, setDisplayMonth] = useState(today.getMonth());
+  const stayStart = dayStart(checkIn);
+  const stayEnd = dayStart(checkOut);
+
+  // Open on the stay when it hasn't begun — a guest planning in August for a
+  // September stay shouldn't land on August and have to page forward.
+  const initial = stayStart && stayStart > todayStart ? stayStart : today;
+  const [displayYear, setDisplayYear] = useState(initial.getFullYear());
+  const [displayMonth, setDisplayMonth] = useState(initial.getMonth());
 
   const firstWeekday = new Date(displayYear, displayMonth, 1).getDay();
   const daysInMonth = new Date(displayYear, displayMonth + 1, 0).getDate();
@@ -101,6 +124,13 @@ export function CalenderPicker({
         {cells.map((day, i) => {
           if (day === null) return <div key={i} />;
           const past = isPastCell(day);
+          const cellDate = new Date(displayYear, displayMonth, day);
+          // Outside the stay is as unbookable as the past — the estate can't
+          // serve a guest who isn't here.
+          const outsideStay =
+            (!!stayStart && cellDate < stayStart) ||
+            (!!stayEnd && cellDate > stayEnd);
+          const unavailable = past || outsideStay;
           const selected = isSelectedCell(day);
           const isToday = isTodayCell(day);
 
@@ -108,15 +138,22 @@ export function CalenderPicker({
             <div key={i} className="flex items-center justify-center py-0.5">
               <button
                 type="button"
-                disabled={past}
+                disabled={unavailable}
+                title={
+                  outsideStay && !past
+                    ? 'Outside your stay'
+                    : undefined
+                }
                 onClick={() =>
                   onSelect(new Date(displayYear, displayMonth, day))
                 }
                 className={cn(
                   'relative flex size-8 items-center justify-center rounded-full text-[13px] transition-colors',
                   selected && 'bg-[#181818] text-white',
-                  !selected && !past && 'text-[#2B2824] hover:bg-[#F5F3F0]',
-                  past && 'cursor-not-allowed text-[#D0CBC3]',
+                  !selected &&
+                    !unavailable &&
+                    'text-[#2B2824] hover:bg-[#F5F3F0]',
+                  unavailable && 'cursor-not-allowed text-[#D0CBC3]',
                 )}
               >
                 {day}

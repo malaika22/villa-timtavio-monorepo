@@ -13,6 +13,7 @@ import { useMemo, useState } from 'react';
 import { GuestStepper } from './GuestStepper';
 import { ExperienceSheetProps } from './types';
 import { CalenderPicker } from '../CalenderPicker';
+import { useBookingStore } from '@/store/useBookingStore';
 import { SubmitRequestButton } from './SubmitRequestButton';
 import { TimePicker, buildGroups, firstRecommended } from '../TimePicker';
 import { useCreateRequest, isQueuedResult } from '@/hooks/useRequests';
@@ -38,6 +39,10 @@ export function RequestExperienceSheet({
   preSelectedTimeId,
   onClose,
 }: ExperienceSheetProps) {
+  // The stay bounds the picker — an experience can only happen while the guest
+  // is here.
+  const checkIn = useBookingStore((b) => b.checkIn);
+  const checkOut = useBookingStore((b) => b.checkOut);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [guestCount, setGuestCount] = useState(1);
   const [specialRequests, setSpecialRequests] = useState('');
@@ -286,6 +291,8 @@ export function RequestExperienceSheet({
               <CalenderPicker
                 selectedDate={selectedDate}
                 onSelect={setSelectedDate}
+                checkIn={checkIn}
+                checkOut={checkOut}
               />
             </section>
 

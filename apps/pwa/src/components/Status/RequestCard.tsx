@@ -41,7 +41,10 @@ export function RequestCard({ request, onSelect }: RequestCardProps) {
         <h3 className="font-cormorant text-[17px] font-medium leading-tight text-[#2B2824]">
           {request.title}
         </h3>
-        <StatusChip requestStatus={request.status} />
+        <StatusChip
+          requestStatus={request.status}
+          removedByGuest={!!request.removedByName && !request.declineReason}
+        />
       </div>
 
       <p className="mt-[2px] text-[9px] font-medium uppercase tracking-[1.4px] text-[#797168]">
@@ -64,6 +67,23 @@ export function RequestCard({ request, onSelect }: RequestCardProps) {
           </span>
         </p>
       )}
+
+      {/* Why it ended. The estate's reason was captured and never shown, so a
+          guest saw only a red pill — and a decline nearly always has a way
+          forward the guest can't guess at. */}
+      {request.declineReason ? (
+        <p className="mt-2 rounded-[8px] border border-[#E3E0DA] bg-[#FBF7F5] px-2.5 py-2 text-[10.5px] leading-snug text-[#7A3324]">
+          <span className="font-semibold">The estate couldn’t arrange this.</span>{' '}
+          “{request.declineReason}”
+        </p>
+      ) : request.removedByName ? (
+        <p className="mt-2 text-[10.5px] leading-snug text-[#797168]">
+          <span className="font-medium text-[#2B2824]">
+            {request.removedByName}
+          </span>{' '}
+          removed this from the plan.
+        </p>
+      ) : null}
 
       {whoLabel && (
         <div className="mt-1.5 flex items-center gap-1.5">

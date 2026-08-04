@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'motion/react';
 import { Clock } from 'lucide-react';
 
@@ -25,8 +25,21 @@ const buttonClass =
  * than the app. Without somewhere to type the code by hand, they would be
  * permanently locked out of an icon they just installed.
  */
+/**
+ * A revocation isn't an expiry.
+ *
+ * Every 401 used to land here reading "sign in to your stay", so a guest taken
+ * off the manifest requested a new link, received one, and was bounced again —
+ * with nothing ever telling them they'd been removed. The API said so all
+ * along; only the app threw the message away.
+ */
+const REVOKED = /no longer listed/i;
+
 export default function LinkExpiredPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const reason = searchParams.get('reason');
+  const wasRemoved = !!reason && REVOKED.test(reason);
   const { setUser } = useAuthStore();
 
   const [email, setEmail] = useState('');
@@ -113,18 +126,27 @@ export default function LinkExpiredPage() {
 
         <div className="space-y-2">
           <h1 className="font-cormorant text-[28px] italic leading-tight text-white">
-            Sign in to your stay
+            {wasRemoved ? 'You’re no longer on this reservation' : 'Sign in to your stay'}
           </h1>
           <p className="mx-auto max-w-[300px] text-[13px] leading-relaxed text-white/65">
-            {status === 'sent'
-              ? 'Tap the button in the email, or enter the six-digit code it contains.'
-              : 'We’ll send a secure link and a six-digit code to the email on your reservation.'}
+            {wasRemoved
+              ? 'The primary member has removed you from the guest list. If that wasn’t expected, please speak to them or to the estate — a new link won’t restore access.'
+              : status === 'sent'
+                ? 'Tap the button in the email, or enter the six-digit code it contains.'
+                : 'We’ll send a secure link and a six-digit code to the email on your reservation.'}
           </p>
         </div>
 
-        {status === 'sent' ? (
+        {wasRemoved ? null : status === 'sent' ? (
           <div className="flex w-full max-w-[300px] flex-col gap-3">
             <p className="text-[13px] leading-relaxed text-[#C8A96E]">{message}</p>
+            {/* The address is echoed back deliberately. We can't say whether it
+                matched — that would let anyone probe who is staying — but a
+                guest who mistyped would otherwise wait for an email that is
+                never coming, with nothing to check. */}
+            <p className="text-[11.5px] leading-relaxed text-white/45">
+              Sent to <span className="text-white/75">{email.trim()}</span>
+            </p>
 
             <form onSubmit={handleCode} className="flex flex-col gap-2.5">
               <input
@@ -164,9 +186,9 @@ export default function LinkExpiredPage() {
                 setCode('');
                 setCodeError('');
               }}
-              className="text-[12px] text-white/50 underline underline-offset-2"
+              className="rounded-full border border-white/15 px-4 py-2.5 text-[12px] text-white/80"
             >
-              Use a different email
+              Not your email? Change it
             </button>
           </div>
         ) : (

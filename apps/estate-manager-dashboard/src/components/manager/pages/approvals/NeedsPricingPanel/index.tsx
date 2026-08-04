@@ -67,10 +67,15 @@ export const NeedsPricingPanel = () => {
                   {r.requestedByName}
                 </span>
               </span>
-              <span className="text-xs text-manager-text-muted">
+              {/* The figure is the reason this row exists — it was rendering
+                  smaller and fainter than everything beside it. */}
+              <span className="text-sm font-medium tabular-nums text-manager-text">
                 {r.estimatedMin != null
-                  ? `est. ${formatRateRange(r.estimatedMin, r.estimatedMax)}`
-                  : 'no estimate'}
+                  ? formatRateRange(r.estimatedMin, r.estimatedMax)
+                  : '—'}
+                <span className="ml-1 text-[10px] font-normal uppercase tracking-wide text-manager-text-muted">
+                  {r.estimatedMin != null ? 'est.' : 'no estimate'}
+                </span>
               </span>
               {urgent && (
                 <span className="rounded-full bg-[#fdecea] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#b42318]">

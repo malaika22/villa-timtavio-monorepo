@@ -89,11 +89,21 @@ export class ManifestService {
       experiences: (byEmail.get(guest.email.toLowerCase()) ?? []).map(toSummary),
     }));
 
-    // Progress — the primary counts as one of the party (they aren't a
-    // manifestGuest row), so the added count always includes them. totalGuests
-    // is the whole party incl. the primary (Lodgify reservation headcount).
+    // Progress.
+    //
+    // The primary isn't a manifestGuest row, so they have to be counted
+    // separately — but they used to be added with an unconditional `+ 1`,
+    // which counted them as done by definition rather than by evidence. The
+    // bar therefore hit 100% the moment the last secondary was added, telling
+    // a primary who had picked no room and entered nothing that they had
+    // finished. They then submitted, and the estate discovered the gap at
+    // check-in.
+    //
+    // A room is the minimum: it's the one thing the estate cannot work around,
+    // and it's per-stay rather than per-guest so it can only be set here.
+    const primaryComplete = booking.primaryRoomNumber != null;
     const totalGuests = booking.totalGuests;
-    const addedGuests = booking.manifestGuests.length + 1;
+    const addedGuests = booking.manifestGuests.length + (primaryComplete ? 1 : 0);
     const progressPercent =
       totalGuests > 0
         ? Math.min(100, Math.round((addedGuests / totalGuests) * 100))
@@ -105,6 +115,12 @@ export class ManifestService {
       totalGuests,
       addedGuests,
       progressPercent,
+      /**
+       * Whether the primary has finished their own entry. Surfaced so the app
+       * can ask them to complete it rather than implying — with a full bar —
+       * that there is nothing left to do.
+       */
+      primaryComplete,
       primaryGuest: {
         ...booking.primaryGuest,
         // Room + presence are per-stay (Booking); dietary/allergies/beverage

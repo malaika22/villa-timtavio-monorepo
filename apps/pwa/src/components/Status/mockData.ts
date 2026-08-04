@@ -23,6 +23,18 @@ export interface StatusRequest {
   /** Which tabs this request should appear in */
   tabs: StatusTabId[];
   /**
+   * Why the estate couldn't arrange it. Written by the EM, stored and returned
+   * all along — and until now displayed nowhere, so a guest saw "Declined" and
+   * was told nothing about the reason or the way forward.
+   */
+  declineReason?: string | null;
+  /**
+   * Set when a guest ended it themselves. Distinguishes "you removed this" from
+   * "the estate refused it" — two very different events that both land as
+   * CANCELLED in the data.
+   */
+  removedByName?: string | null;
+  /**
    * Formatted cost: the confirmed charge once the estate has quoted it, else the
    * estimate. `costIsEstimate` says which, so the UI can label it honestly.
    */

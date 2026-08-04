@@ -191,7 +191,7 @@ function LineItemCard({ item }: { item: FolioItem }) {
               {config.label}
             </span>
           </span>
-          <span className="text-[14px] font-medium text-[#1A1A18] leading-tight truncate">
+          <span className="text-[14px] font-medium text-[#1A1A18] leading-tight line-clamp-2">
             {item.title}
           </span>
         </div>

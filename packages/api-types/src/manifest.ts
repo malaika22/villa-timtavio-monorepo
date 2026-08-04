@@ -8,6 +8,12 @@ export interface ManifestResponse {
   totalGuests: number;
   addedGuests: number;
   progressPercent: number;
+  /**
+   * Whether the primary has finished their own entry — currently, whether a
+   * room is assigned. False means the manifest is incomplete however many
+   * secondaries have been added.
+   */
+  primaryComplete?: boolean;
   primaryGuest: {
     id: string;
     firstName: string;

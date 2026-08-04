@@ -1,6 +1,5 @@
 'use client';
 
-import { Button } from '@repo/ui/components/button';
 import { cn } from '@repo/ui/lib/utils';
 
 const variants = {
@@ -12,6 +11,17 @@ const variants = {
 
 export type RequestExperienceButtonVariant = keyof typeof variants;
 
+/**
+ * The call to action on an experience card.
+ *
+ * Deliberately NOT a button: the whole card is the control, and this is its
+ * label. It used to render a real `<button>` with no handler — which took
+ * keyboard focus, announced itself as a button and did nothing when activated.
+ * It only appeared to work because a click bubbled to the card behind it, so
+ * it broke the moment a card forgot to pass one.
+ *
+ * Rendering it as presentation makes the card the single, honest target.
+ */
 export const RequestExperienceButton = ({
   className,
   variant = 'primary',
@@ -21,13 +31,15 @@ export const RequestExperienceButton = ({
   confirmationMessage?: string;
 }) => {
   return (
-    <>
-      <Button
-        type="button"
-        className={cn('w-full uppercase', variants[variant], className)}
-      >
-        {variant === 'requestAgain' ? 'Request again' : 'Request'}
-      </Button>
-    </>
+    <span
+      aria-hidden
+      className={cn(
+        'flex w-full items-center justify-center uppercase',
+        variants[variant],
+        className,
+      )}
+    >
+      {variant === 'requestAgain' ? 'Request again' : 'Request'}
+    </span>
   );
 };

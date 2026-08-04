@@ -13,7 +13,8 @@ export interface ApiClientConfig {
   getAccessToken?: () => string | null | Promise<string | null>;
   requestInterceptors?: RequestInterceptor[];
   responseInterceptors?: ResponseInterceptor[];
-  onUnauthorized?: () => void;
+  /** @param reason the server's message, so the app can say which 401 it was. */
+  onUnauthorized?: (reason?: string) => void;
 }
 
 export interface ApiClient {

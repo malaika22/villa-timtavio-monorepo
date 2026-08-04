@@ -249,9 +249,13 @@ export class MagicLinkService {
     });
 
     if (!record) {
-      // Invalid / expired link — a client error, not a 500.
+      // Worded for a typed code, because that is now the likelier path and the
+      // likelier cause is a typo — a guest holding a code should be told to
+      // check it, not to throw it away and request another. The link path
+      // reaches the same message via the callback, where "check the six
+      // digits" still reads sensibly next to a failed link.
       throw new UnauthorizedException(
-        'This access link is invalid or has expired. Please request a new one.',
+        'That code didn’t match. Check the six digits, or send yourself a new link.',
       );
     }
 

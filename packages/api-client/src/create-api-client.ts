@@ -56,8 +56,13 @@ export function createApiClient(config: ApiClientConfig): ApiClient {
     }
 
     if (res.status === 401) {
-      onUnauthorized?.();
-      throw new ApiError(401, 'Unauthorized');
+      // Pass the server's reason on. "Your link expired" and "you are no
+      // longer on this reservation" both arrive as 401, but only one of them
+      // is worth retrying — and a guest told the wrong one requests another
+      // link, gets it, and is bounced again with no idea why.
+      const reason = await parseErrorMessage(res).catch(() => 'Unauthorized');
+      onUnauthorized?.(reason);
+      throw new ApiError(401, reason);
     }
 
     if (!res.ok) {
