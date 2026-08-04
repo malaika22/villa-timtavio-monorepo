@@ -304,9 +304,22 @@ export function GuestManifestForm({
   return (
     <>
       <Drawer open={open} onOpenChange={onClose}>
-        <DrawerContent className="min-h-screen">
+        {/*
+         * Bounded by the *dynamic* viewport, not the layout one.
+         *
+         * This was `min-h-screen`, which fought vaul's own `max-h-[80vh]` — and
+         * a min-height beats a max-height, so the drawer stood taller than the
+         * screen. With the keyboard up, the focused field was pushed into the
+         * part of the drawer below the fold and the guest lost sight of what
+         * they were typing. `dvh` shrinks when the keyboard appears, so the
+         * form always fits what's actually visible.
+         *
+         * The variant prefixes are deliberate: they let twMerge replace vaul's
+         * own values rather than sit alongside them and lose to specificity.
+         */}
+        <DrawerContent className="flex h-[100dvh] flex-col bg-white data-[vaul-drawer-direction=bottom]:mt-0 data-[vaul-drawer-direction=bottom]:max-h-[100dvh] data-[vaul-drawer-direction=bottom]:rounded-t-none">
           <Button
-            className="absolute right-2 top-3"
+            className="absolute right-2 top-3 z-10"
             variant="ghost"
             onClick={onClose}
           >
@@ -314,7 +327,13 @@ export function GuestManifestForm({
           </Button>
           <form
             onSubmit={onSubmit}
-            className="max-w-md space-y-6 rounded-[10px]  bg-white px-[24px] py-5 shadow-[0_1px_2px_rgba(15,31,46,0.04)] h-full overflow-scroll"
+            /*
+             * Tells vaul this region scrolls, so a swipe here is never read as
+             * a drag-to-dismiss. Without it, scrolling the form closed it and
+             * threw away everything typed.
+             */
+            data-vaul-no-drag
+            className="min-h-0 w-full max-w-md flex-1 space-y-6 overflow-y-auto overscroll-contain bg-white px-[24px] py-5 pb-[max(2rem,env(safe-area-inset-bottom))]"
             noValidate
           >
             {uiStep === 1 ? (

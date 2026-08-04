@@ -608,7 +608,7 @@ function SittingSheet({
 
   return (
     <Drawer open={open} onOpenChange={(v) => !v && close()} direction="right">
-      <DrawerContent className="flex h-full w-full flex-col border-0 bg-[#FAF8F4] p-0 data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:rounded-none">
+      <DrawerContent className="flex h-[100dvh] w-full flex-col border-0 bg-[#FAF8F4] p-0 data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:rounded-none">
         <DrawerTitle className="sr-only">Reserve a sitting</DrawerTitle>
         <div className="flex shrink-0 items-center gap-3 border-b border-[#E3E0DA] px-5 pb-4 pt-5">
           <button onClick={close} className="text-[#2B2824]" aria-label="Close">
@@ -780,7 +780,7 @@ function LateArrivalSheet({
 
   return (
     <Drawer open={!!sitting} onOpenChange={(v) => !v && close()} direction="right">
-      <DrawerContent className="flex h-full w-full flex-col border-0 bg-[#FAF8F4] p-0 data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:rounded-none">
+      <DrawerContent className="flex h-[100dvh] w-full flex-col border-0 bg-[#FAF8F4] p-0 data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:rounded-none">
         <DrawerTitle className="sr-only">Flag a late arrival</DrawerTitle>
         <div className="flex shrink-0 items-center gap-3 border-b border-[#E3E0DA] px-5 pb-4 pt-5">
           <button onClick={close} className="text-[#2B2824]" aria-label="Close">
@@ -903,7 +903,7 @@ function OrderSheet({
 
   return (
     <Drawer open={open} onOpenChange={(v) => !v && close()} direction="right">
-      <DrawerContent className="flex h-full w-full flex-col border-0 bg-[#FAF8F4] p-0 data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:rounded-none">
+      <DrawerContent className="flex h-[100dvh] w-full flex-col border-0 bg-[#FAF8F4] p-0 data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:rounded-none">
         <DrawerTitle className="sr-only">Your order</DrawerTitle>
         <div className="flex shrink-0 items-center gap-3 border-b border-[#E3E0DA] px-5 pb-4 pt-5">
           <button onClick={close} className="text-[#2B2824]" aria-label="Close">
