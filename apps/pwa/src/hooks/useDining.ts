@@ -56,6 +56,23 @@ export function useSittingTimes() {
   });
 }
 
+/**
+ * Drop a dining request.
+ *
+ * The endpoint always allowed this — the app simply never called it, so a guest
+ * whose plans changed had to telephone the estate.
+ */
+export function useCancelDiningRequest() {
+  const bookingId = useBookingId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => diningApi.cancel(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['dining', bookingId] });
+    },
+  });
+}
+
 /** Secondary guests flag a late arrival to the primary's sitting. */
 export function useAddLateArrival() {
   const bookingId = useBookingId();

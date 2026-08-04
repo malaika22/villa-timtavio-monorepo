@@ -29,6 +29,7 @@ import {
   useCreateDiningRequest,
   useSittingTimes,
   useAddLateArrival,
+  useCancelDiningRequest,
 } from '@/hooks/useDining';
 import { useAuth } from '@/hooks/useAuth';
 import { CalenderPicker } from '../CalenderPicker';
@@ -180,7 +181,16 @@ export const DiningPage = () => {
           </p>
           <div className="flex flex-col gap-2">
             {(isPrimary ? allRequests : orders).map((r) => (
-              <RequestRow key={r.id} request={r} lateByMe={flaggedLate(r)} />
+              <RequestRow
+                key={r.id}
+                request={r}
+                lateByMe={flaggedLate(r)}
+                canCancel={
+                  isPrimary ||
+                  (!!email &&
+                    r.requestedByEmail.toLowerCase() === email.toLowerCase())
+                }
+              />
             ))}
           </div>
         </section>
@@ -339,14 +349,23 @@ function RequestRow({
   request: r,
   onLate,
   lateByMe,
+  canCancel,
 }: {
   request: DiningRequest;
   onLate?: () => void;
   lateByMe?: boolean;
+  /** The requester may drop their own; the primary may drop any in the party. */
+  canCancel?: boolean;
 }) {
+  const cancel = useCancelDiningRequest();
+  const [confirming, setConfirming] = useState(false);
+
   const isSitting = r.kind === 'SITTING';
   const items = (r.items ?? []) as DiningOrderItem[];
   const lateCount = (r.lateArrivals ?? []).length;
+  // Nothing to drop once it's already off. Dining carries no charge, so unlike
+  // an experience there's no fee to warn about either way.
+  const cancellable = canCancel && r.status !== 'CANCELLED';
   return (
     <div className="rounded-[12px] border border-[#E3E0DA] bg-white px-3.5 py-3">
       <div className="flex items-center justify-between gap-3">
@@ -402,6 +421,41 @@ function RequestRow({
                 <Clock className="size-3" /> I’ll be late
               </button>
             ))}
+        </div>
+      )}
+
+      {cancellable && (
+        <div className="mt-2.5 border-t border-[#F0EDE8] pt-2.5">
+          {confirming ? (
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[10px] text-[#797168]">
+                {isSitting ? 'Cancel this sitting?' : 'Cancel this order?'}
+              </span>
+              <span className="flex shrink-0 gap-1.5">
+                <button
+                  onClick={() => cancel.mutate(r.id)}
+                  disabled={cancel.isPending}
+                  className="rounded-full bg-[#9A4A38] px-2.5 py-1 text-[10px] font-medium text-white disabled:opacity-60"
+                >
+                  {cancel.isPending ? 'Cancelling…' : 'Yes, cancel'}
+                </button>
+                <button
+                  onClick={() => setConfirming(false)}
+                  disabled={cancel.isPending}
+                  className="rounded-full border border-[#D8D3C9] px-2.5 py-1 text-[10px] font-medium text-[#2B2824]"
+                >
+                  Keep it
+                </button>
+              </span>
+            </div>
+          ) : (
+            <button
+              onClick={() => setConfirming(true)}
+              className="text-[10px] font-medium text-[#9A4A38] underline underline-offset-2"
+            >
+              Cancel {isSitting ? 'sitting' : 'order'}
+            </button>
+          )}
         </div>
       )}
     </div>

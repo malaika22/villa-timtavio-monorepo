@@ -68,6 +68,26 @@ export interface DiningRequest {
   updatedAt: string;
 }
 
+/**
+ * A queue row for the estate manager — the request plus the stay it belongs to.
+ *
+ * Dining requests used to surface only on a booking's own detail page, so one
+ * nobody happened to open was one nobody answered. The worklist needs to name
+ * the party without the EM having to go and look it up.
+ */
+export interface EmDiningQueueItem extends DiningRequest {
+  booking?: {
+    id: string;
+    checkIn: string;
+    checkOut: string;
+    primaryGuest?: {
+      firstName: string;
+      lastName: string;
+      email: string;
+    } | null;
+  } | null;
+}
+
 export interface CreateDiningSittingDto {
   kind: 'SITTING';
   mealType: MealType;

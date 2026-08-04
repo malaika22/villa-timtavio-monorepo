@@ -171,6 +171,8 @@ export const API = {
     confirm: (id: string) => `/api/v1/dining/${id}/confirm`,
     cancel: (id: string) => `/api/v1/dining/${id}/cancel`,
     sittingTimes: '/api/v1/dining/sitting-times',
+    /** EM — everything awaiting confirmation, across every booking. */
+    queue: '/api/v1/dining/queue',
     lateArrival: (id: string) => `/api/v1/dining/${id}/late-arrival`,
   },
   notifications: {

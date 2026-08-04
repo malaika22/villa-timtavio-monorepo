@@ -15,6 +15,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { CatalogService } from './catalog.service';
 import { CreateCatalogItemDto } from './dto/create-catalog-item.dto';
 import { UpdateCatalogItemDto } from './dto/update-catalog-item.dto';
+import { CreateMenuItemDto } from './dto/create-menu-item.dto';
+import { UpdateMenuItemDto } from './dto/update-menu-item.dto';
 import { CatalogCategory } from '@prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -129,13 +131,19 @@ export class CatalogController {
 
   @Post('menus')
   @Roles('estate_manager')
-  createMenuItem(@Body() data: any, @CurrentUser() user: any) {
+  createMenuItem(
+    @Body() data: CreateMenuItemDto,
+    @CurrentUser() user: any,
+  ) {
     return this.catalogService.createMenuItem(data, user.auth0Id);
   }
 
   @Patch('menus/:id')
   @Roles('estate_manager')
-  updateMenuItem(@Param('id') id: string, @Body() data: any) {
+  updateMenuItem(
+    @Param('id') id: string,
+    @Body() data: UpdateMenuItemDto,
+  ) {
     return this.catalogService.updateMenuItem(id, data);
   }
 

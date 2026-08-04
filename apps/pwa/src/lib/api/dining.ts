@@ -14,4 +14,5 @@ export const diningApi = {
   sittingTimes: () => api.get<SittingTimes>(API.dining.sittingTimes),
   addLateArrival: (id: string, dto: AddLateArrivalDto) =>
     api.post<DiningRequest>(API.dining.lateArrival(id), dto),
+  cancel: (id: string) => api.patch<DiningRequest>(API.dining.cancel(id), {}),
 };
