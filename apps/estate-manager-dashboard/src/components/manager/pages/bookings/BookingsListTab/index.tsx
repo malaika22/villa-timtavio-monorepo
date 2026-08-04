@@ -53,9 +53,20 @@ export const BookingsListTab = ({
   if (rows.length === 0) {
     return (
       <p className="rounded-lg border border-[#ebe6df] bg-white p-8 text-center text-sm text-manager-text-muted">
-        {mode === 'manifest-review'
-          ? 'No manifests awaiting review.'
-          : 'No upcoming bookings.'}
+        {mode === 'manifest-review' ? (
+          <>
+            No manifests awaiting review.
+            {/* This tab only lists SUBMITTED manifests, so empty here doesn't
+                mean there is nothing to look at. Say where the rest are. */}
+            <br />
+            <span className="text-xs">
+              Stays whose guests are still filling theirs in are under
+              Upcoming.
+            </span>
+          </>
+        ) : (
+          'No upcoming bookings.'
+        )}
       </p>
     );
   }
@@ -66,6 +77,7 @@ export const BookingsListTab = ({
         <thead className="border-b border-[#ebe6df] bg-[#faf9f7] text-left text-xs uppercase tracking-wide text-manager-text-muted">
           <tr>
             <th className="px-4 py-3 font-medium">Guest</th>
+            <th className="px-4 py-3 font-medium">Profile</th>
             <th className="px-4 py-3 font-medium">Check-in</th>
             <th className="px-4 py-3 font-medium">Check-out</th>
             <th className="px-4 py-3 font-medium">Nights</th>
@@ -82,26 +94,29 @@ export const BookingsListTab = ({
               className="border-b border-[#f1ece4] last:border-0 hover:bg-[#faf9f7]"
             >
               <td className="px-4 py-3">
-                {/* This linked to the tab you were already on, so a submitted
-                    manifest could be seen and never opened — and approving it
-                    is what sends the secondaries their links. It now opens
-                    THAT booking. */}
-                {mode === 'manifest-review' ? (
-                  <button
-                    type="button"
-                    onClick={() => onOpenBooking?.(booking.id)}
-                    className="font-medium text-manager-text hover:underline"
-                  >
-                    {guest.firstName} {guest.lastName}
-                  </button>
-                ) : (
-                  <Link
-                    href={`/guests?guest=${guest.id}`}
-                    className="font-medium text-manager-text hover:underline"
-                  >
-                    {guest.firstName} {guest.lastName}
-                  </Link>
-                )}
+                {/* Both tabs open the booking.
+                    Manifest review used to link to the tab you were already on,
+                    so a submitted manifest could be seen and never opened — and
+                    approving it is what sends the secondaries their links.
+                    Upcoming went to the guest's profile, which meant a stay
+                    whose manifest wasn't submitted yet had no route to its
+                    details at all. A row about a booking should open that
+                    booking. */}
+                <button
+                  type="button"
+                  onClick={() => onOpenBooking?.(booking.id)}
+                  className="font-medium text-manager-text hover:underline"
+                >
+                  {guest.firstName} {guest.lastName}
+                </button>
+              </td>
+              <td className="px-4 py-3 text-manager-text-muted">
+                <Link
+                  href={`/guests?guest=${guest.id}`}
+                  className="text-xs underline underline-offset-2 hover:text-manager-text"
+                >
+                  Guest profile
+                </Link>
               </td>
               <td className="px-4 py-3 text-manager-text-muted">
                 {fmt(booking.checkIn)}

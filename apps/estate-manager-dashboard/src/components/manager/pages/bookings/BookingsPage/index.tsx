@@ -49,6 +49,10 @@ export const BookingsPage = () => {
           guests={upcoming.data ?? []}
           isLoading={upcoming.isLoading}
           mode="upcoming"
+          onOpenBooking={(id) => {
+            setSelectedBookingId(id);
+            setActiveTab('current');
+          }}
         />
       </div>
     );
