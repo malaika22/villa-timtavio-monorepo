@@ -1176,6 +1176,26 @@ export class RequestsService {
    * total — and nothing said why. The estate was told; the person paying
    * wasn't. Skipped when the primary did it themselves.
    */
+  /**
+   * Slots already committed for an experience, over the guest's stay.
+   *
+   * Lets the picker grey out what the estate cannot serve, instead of accepting
+   * it and declining later.
+   */
+  async getTakenSlots(catalogItemId: string, bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { checkIn: true, checkOut: true },
+    });
+    if (!booking) return [];
+
+    return this.conflictService.findCommittedWindows({
+      catalogItemId,
+      from: booking.checkIn,
+      to: booking.checkOut,
+    });
+  }
+
   private async notifyPrimaryOfGuestCancellation(
     primaryEmail: string,
     actorEmail: string,

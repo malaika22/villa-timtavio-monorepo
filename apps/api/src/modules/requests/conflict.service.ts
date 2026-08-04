@@ -36,6 +36,52 @@ export class ConflictService {
    * an overlapping time, plus a human-readable reason — or null if the slot is
    * free.
    */
+  /**
+   * Windows already committed for a resource, so the guest can be shown them.
+   *
+   * The engine only ever ran at confirm time, which meant a guest could pick a
+   * slot the app already knew was taken, wait, and be declined for something
+   * that was impossible when they tapped it. Same candidate query as the
+   * conflict check, so the two can't disagree about what "taken" means.
+   */
+  async findCommittedWindows(params: {
+    catalogItemId: string;
+    from: Date;
+    to: Date;
+  }): Promise<{ date: string; time: string | null }[]> {
+    const item = await this.prisma.catalogItem.findUnique({
+      where: { id: params.catalogItemId },
+      select: { id: true, vendorId: true },
+    });
+    if (!item) return [];
+
+    const committed = await this.prisma.experienceRequest.findMany({
+      where: {
+        status: { in: ['CONFIRMED', 'IN_PROGRESS', 'READY'] },
+        catalogItem: item.vendorId
+          ? { vendorId: item.vendorId }
+          : { id: item.id, vendorId: null },
+      },
+      select: {
+        confirmedDate: true,
+        preferredDate: true,
+        confirmedTime: true,
+        preferredTime: true,
+      },
+    });
+
+    return committed
+      .map((c) => ({
+        at: c.confirmedDate ?? c.preferredDate,
+        time: c.confirmedTime ?? c.preferredTime,
+      }))
+      .filter((c) => c.at >= params.from && c.at <= params.to)
+      .map((c) => ({
+        date: c.at.toISOString().slice(0, 10),
+        time: c.time,
+      }));
+  }
+
   async findResourceConflict(params: {
     requestId: string;
     catalogItemId: string;

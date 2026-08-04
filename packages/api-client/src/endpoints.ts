@@ -180,6 +180,8 @@ export const API = {
     approve: (id: string) => `/api/v1/dining/${id}/approve`,
     decline: (id: string) => `/api/v1/dining/${id}/decline`,
   },
+  takenSlots: (bookingId: string, catalogItemId: string) =>
+    `/api/v1/requests/bookings/${bookingId}/taken-slots/${catalogItemId}`,
   bookingsEm: {
     /** A specific booking in the EM stay-view shape. */
     byId: (id: string) => `/api/v1/bookings/em/${id}`,

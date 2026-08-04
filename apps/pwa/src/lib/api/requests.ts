@@ -31,4 +31,9 @@ export const requestsApi = {
       API.requests.cancel(id),
       { reason },
     ),
+  /** Windows the estate has already committed for this experience. */
+  takenSlots: (bookingId: string, catalogItemId: string) =>
+    api.get<{ date: string; time: string | null }[]>(
+      API.takenSlots(bookingId, catalogItemId),
+    ),
 };

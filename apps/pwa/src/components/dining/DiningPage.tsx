@@ -99,6 +99,7 @@ export const DiningPage = () => {
   const [lateFor, setLateFor] = useState<DiningRequest | null>(null);
   const [cart, setCart] = useState<Record<string, { item: MenuItem; qty: number }>>({});
   const [orderOpen, setOrderOpen] = useState(false);
+  const [libraryCategory, setLibraryCategory] = useState<MenuCategory>('BREAKFAST');
 
   const byCategory = useMemo(() => {
     const map: Record<string, MenuItem[]> = {};
@@ -251,21 +252,43 @@ export const DiningPage = () => {
           The menu is being prepared. Check back soon.
         </p>
       ) : (
-        <div className="flex flex-col gap-6">
-          <p className="-mb-3 text-[10px] leading-relaxed text-[#797168]">
+        <div className="flex flex-col gap-4">
+          <p className="text-[10px] leading-relaxed text-[#797168]">
             <span className="font-medium text-[#2B2824]">What we cook.</span>{' '}
             Dishes from the estate kitchen — snacks and drinks can be ordered at
             any hour.
           </p>
+
+          {/* A category at a time. Rendering all five in full meant scrolling
+              past everything to reach breakfast, and the page grew with every
+              dish the estate added. Same control the Experiences page uses. */}
+          <div className="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3">
+            {[...MEAL_CATEGORIES, ...ORDER_CATEGORIES]
+              .filter((cat) => (byCategory[cat.value] ?? []).length > 0)
+              .map((cat) => (
+                <button
+                  key={cat.value}
+                  type="button"
+                  onClick={() => setLibraryCategory(cat.value as MenuCategory)}
+                  aria-pressed={libraryCategory === cat.value}
+                  className={cn(
+                    'shrink-0 rounded-full border px-3 py-1.5 text-[11px] transition-colors',
+                    libraryCategory === cat.value
+                      ? 'border-[#0F1F2E] bg-[#0F1F2E] text-white'
+                      : 'border-[#E3E0DA] bg-white text-[#797168]',
+                  )}
+                >
+                  {cat.label}
+                </button>
+              ))}
+          </div>
+
           {[...MEAL_CATEGORIES, ...ORDER_CATEGORIES].map((cat) => {
             const items = byCategory[cat.value] ?? [];
-            if (items.length === 0) return null;
+            if (items.length === 0 || cat.value !== libraryCategory) return null;
             const orderable = ORDER_CATEGORIES.some((o) => o.value === cat.value);
             return (
               <section key={cat.value}>
-                <p className="mb-2.5 text-[8px] uppercase tracking-[2.5px] text-[#9A9288]">
-                  {cat.label}
-                </p>
                 <div className="flex flex-col gap-2">
                   {items.map((item) => (
                     <div
