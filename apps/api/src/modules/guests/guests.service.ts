@@ -101,17 +101,28 @@ export class GuestsService {
    * "which stays need attention?" rather than only "who is coming?".
    */
   async findUpcoming() {
-    const in7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    /**
+     * Every stay that hasn't started — not only the ones more than a week off.
+     *
+     * The seven-day floor left a hole: a second booking arriving in three days
+     * was too soon for this list, and only one booking at a time can be "the
+     * next arrival", so the other had no route to its details at all. "Upcoming"
+     * should mean upcoming.
+     *
+     * Overlapping with the current-stay list is fine — they answer different
+     * questions, and a booking can legitimately appear in both.
+     */
+    const now = new Date();
 
     const guests = await this.prisma.guest.findMany({
       where: {
         primaryBookings: {
-          some: { status: 'CONFIRMED', checkIn: { gt: in7Days } },
+          some: { status: 'CONFIRMED', checkIn: { gte: now } },
         },
       },
       include: {
         primaryBookings: {
-          where: { status: 'CONFIRMED', checkIn: { gt: in7Days } },
+          where: { status: 'CONFIRMED', checkIn: { gte: now } },
           take: 1,
           orderBy: { checkIn: 'asc' },
           include: {
