@@ -50,19 +50,33 @@ export const InstallPrompt = () => {
   return (
     <>
       {showDockHint && (
-        <div className="fixed inset-x-0 top-0 z-50 flex justify-end px-3 pt-[52px]">
+        <>
+          {/* Any tap anywhere dismisses it. Previously only the bubble itself
+              did, and the full-width wrapper sat above the header swallowing
+              every tap in that band — so the bell and phone were unreachable
+              until the hint was cleared. */}
           <button
             type="button"
+            aria-label="Dismiss"
             onClick={dismissDockHint}
-            className="relative max-w-[190px] rounded-[10px] bg-[#0F1F2E] px-3 py-2 text-left text-[11px] leading-snug text-[#F1E5CE] shadow-lg"
-          >
-            <span
-              className="absolute -top-1.5 right-5 size-3 rotate-45 bg-[#0F1F2E]"
-              aria-hidden
-            />
-            Moved here — add it whenever you like.
-          </button>
-        </div>
+            className="fixed inset-0 z-40 cursor-default"
+          />
+          <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-end px-3 pt-[52px]">
+            <button
+              type="button"
+              onClick={dismissDockHint}
+              className="pointer-events-auto relative max-w-[190px] rounded-[10px] bg-[#0F1F2E] px-3 py-2 text-left text-[11px] leading-snug text-[#F1E5CE] shadow-lg"
+            >
+              {/* The chip is mounted first of the three, i.e. leftmost — the
+                  tail was pinned to the right and pointed at the phone. */}
+              <span
+                className="absolute -top-1.5 left-[68px] size-3 rotate-45 bg-[#0F1F2E]"
+                aria-hidden
+              />
+              Moved here — add it whenever you like.
+            </button>
+          </div>
+        </>
       )}
 
       {showPill && !sheetOpen && (
@@ -104,10 +118,17 @@ export const InstallPrompt = () => {
 
             <div className="flex items-center gap-2.5">
               <span
-                className="flex size-9 shrink-0 items-center justify-center rounded-[9px] bg-[#0F1F2E] font-cormorant text-[14px] text-[#E4CFA4]"
+                className="flex size-9 shrink-0 items-center justify-center rounded-[9px] bg-[#0F1F2E]"
                 aria-hidden
               >
-                VT
+                {/* The icon the guest is about to put on their home screen —
+                    so it should be the one they'll actually see there. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/logo-white.png"
+                  alt=""
+                  className="h-4 w-auto max-w-[26px] object-contain"
+                />
               </span>
               <span>
                 <span className="block font-cormorant text-[16px] text-[#2B2824]">

@@ -36,13 +36,16 @@ export function RoomDetailSheet({ open, onClose, room }: RoomDetailSheetProps) {
 
   return (
     <Drawer open={open} onOpenChange={onClose}>
-      <DrawerContent className="flex max-h-[90vh] flex-col rounded-t-[20px] bg-white">
+      {/* overflow-hidden so the photograph is clipped by the rounded top
+          rather than leaving a white cap above it — the band read as a gap
+          rather than as a choice. */}
+      <DrawerContent className="flex max-h-[90vh] flex-col overflow-hidden rounded-t-[20px] bg-white">
         {/* Inner scroll region — keeps the sheet from clipping its last rows
             when opened as a nested drawer over the manifest. */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-10">
         {/* Hero image */}
         {room.imageUrl ? (
-          <div className="relative -mt-1 mb-5 h-44 w-full overflow-hidden">
+          <div className="relative mb-5 h-44 w-full overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={room.imageUrl}

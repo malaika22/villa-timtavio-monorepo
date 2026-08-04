@@ -8,6 +8,8 @@ type GuestManifestPromptProps = {
   guestsAdded?: number;
   maxGuests?: number;
   roomsUsed?: number;
+  /** False while the primary still owes their own room and details. */
+  primaryComplete?: boolean;
   loading?: boolean;
   onAddGuest?: () => void;
   /** @deprecated submission now happens on the manifest screen */
@@ -24,6 +26,7 @@ export const GuestManifestPrompt = ({
   roomsUsed,
   loading = false,
   onAddGuest,
+  primaryComplete = true,
 }: GuestManifestPromptProps) => {
   const pct =
     maxGuests > 0
@@ -34,12 +37,20 @@ export const GuestManifestPrompt = ({
     manifestStatus === 'SUBMITTED' || manifestStatus === 'APPROVED';
   const isFull = guestsAdded > 0 && guestsAdded >= maxGuests;
 
+  // A primary who hasn't done their own entry is never "complete", however
+  // many secondaries they've added. Showing a finished card to someone with
+  // work left is an instruction to stop — and they did, which is how manifests
+  // reached the estate with no room for the one guest certain to attend.
   const state: CardState =
-    isSubmitted || isFull
+    isSubmitted
       ? 'complete'
-      : guestsAdded > 0
+      : !primaryComplete
         ? 'in-progress'
-        : 'incomplete';
+        : isFull
+          ? 'complete'
+          : guestsAdded > 0
+            ? 'in-progress'
+            : 'incomplete';
 
   // ─── Loading: skeleton (prevents a flash of the wrong state) ──────────────
   if (loading) {
@@ -170,6 +181,13 @@ export const GuestManifestPrompt = ({
           <p className="mt-1 text-[12px] leading-snug text-[#5E5750]">
             {guestsAdded} of {maxGuests} guests added
           </p>
+          {/* Named explicitly, because the count alone can't say it: everyone
+              else may be done and the manifest still isn't. */}
+          {!primaryComplete && (
+            <p className="mt-1 text-[11.5px] leading-snug text-[#8A6D17]">
+              Your own room and details are still to come.
+            </p>
+          )}
           <div
             className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-[#EAE4D6]"
             role="progressbar"
@@ -190,7 +208,7 @@ export const GuestManifestPrompt = ({
         onClick={onAddGuest}
         className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#8A6D17] text-[12px] font-semibold uppercase tracking-[2px] text-white transition-colors hover:bg-[#9C7C1E]"
       >
-        Continue
+        {primaryComplete ? 'Continue' : 'Complete your details'}
         <ArrowRight className="size-3.5 shrink-0" aria-hidden />
       </button>
 

@@ -1,6 +1,9 @@
 'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 import { ExperienceCard } from '../Experience';
+import { ExperienceDetailSheet } from '@/components/ExperienceDetailSheet';
+import type { Experience } from '@/types/experience';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useBookingStore } from '@/store/useBookingStore';
 import { mapCatalogItemToExperience } from '@/lib/mappers/experience';
@@ -10,6 +13,10 @@ import type { BookingStatus } from '@repo/api-types';
 export const FeaturedExperiences = () => {
   const { data: catalog, isLoading } = useCatalog();
   const arrivalStatus = useBookingStore((s) => s.arrivalStatus);
+  // These cards used to carry no handler at all, so the whole card — Request
+  // button included — was inert. Home is where a pre-arrival guest lands, so
+  // the estate's own shop window did nothing when tapped.
+  const [selected, setSelected] = useState<Experience | null>(null);
 
   const bookingStatus: BookingStatus =
     arrivalStatus === ArrivalStatus.PRE_ARRIVAL ? 'CONFIRMED' : 'CHECKED_IN';
@@ -54,10 +61,17 @@ export const FeaturedExperiences = () => {
               experience={experience}
               density="compact"
               className="h-full"
+              onClick={() => setSelected(experience)}
             />
           ))}
         </div>
       )}
+
+      <ExperienceDetailSheet
+        open={selected !== null}
+        experience={selected}
+        onClose={() => setSelected(null)}
+      />
     </div>
   );
 };

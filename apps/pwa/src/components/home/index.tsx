@@ -126,6 +126,7 @@ export const Home = () => {
             loading={!manifest && !manifestError}
             manifestStatus={liveManifestStatus}
             guestsAdded={guestsAdded}
+            primaryComplete={manifest?.primaryComplete ?? true}
             maxGuests={maxGuests}
             roomsUsed={roomsUsed}
             onAddGuest={() => setIsAddOpen(true)}

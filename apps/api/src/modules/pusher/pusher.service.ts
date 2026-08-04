@@ -151,10 +151,16 @@ export class PusherService implements OnModuleInit {
   // ─── Convenience methods — fires correct channel + event combinations ─────
 
   // Folio updated — fires to guest booking channel (primary member only)
+  /**
+   * The folio changed — a charge arrived, or one came off.
+   *
+   * Removal used to have no way to say so, so a guest with the folio open
+   * watched a cancelled charge sit there until they reloaded.
+   */
   async folioUpdated(
     bookingId: string,
     data: {
-      newItem: {
+      newItem?: {
         id: string;
         description: string;
         amount: number;
@@ -162,6 +168,7 @@ export class PusherService implements OnModuleInit {
         total: number;
         type: string;
       };
+      removedItemId?: string;
     },
   ) {
     await this.trigger(

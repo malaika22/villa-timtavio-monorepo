@@ -102,6 +102,15 @@ export function mapRequestToStatusRequest(
     costIsEstimate: req.confirmedCost == null,
     requestedByName: req.requestedByName,
     requestedByEmail: req.requestedByEmail,
+    declineReason: req.declineReason ?? null,
+    // A guest-ended request carries who asked to cancel; an estate-declined one
+    // carries a reason instead. That's enough to tell them apart without a
+    // migration.
+    removedByName: req.cancellationRequestedBy
+      ? req.cancellationRequestedBy === req.requestedByEmail
+        ? req.requestedByName
+        : req.cancellationRequestedBy
+      : null,
   };
 }
 

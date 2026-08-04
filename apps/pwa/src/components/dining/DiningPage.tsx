@@ -350,6 +350,8 @@ export const DiningPage = () => {
         onClose={() => setSittingOpen(false)}
         sittingTimes={sittingTimes}
         menus={dailyMenus}
+        stayCheckIn={checkIn}
+        stayCheckOut={checkOut}
       />
       <LateArrivalSheet
         sitting={lateFor}
@@ -549,12 +551,16 @@ function SittingSheet({
   onClose,
   sittingTimes,
   menus,
+  stayCheckIn,
+  stayCheckOut,
 }: {
   open: boolean;
   onClose: () => void;
   sittingTimes?: SittingTimes;
   /** Published services, so the guest sees what they're reserving a seat at. */
   menus?: DailyMenu[];
+  stayCheckIn?: string | null;
+  stayCheckOut?: string | null;
 }) {
   const create = useCreateDiningRequest();
   const [meal, setMeal] = useState<MealType>('DINNER');
@@ -658,7 +664,12 @@ function SittingSheet({
               </Field>
 
               <Field label="Date">
-                <CalenderPicker selectedDate={date} onSelect={setDate} />
+                <CalenderPicker
+                  selectedDate={date}
+                  onSelect={setDate}
+                  checkIn={stayCheckIn}
+                  checkOut={stayCheckOut}
+                />
               </Field>
 
               {/* Picking a date used to tell the guest nothing about the meal

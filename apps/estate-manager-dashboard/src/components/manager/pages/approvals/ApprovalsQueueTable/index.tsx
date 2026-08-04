@@ -234,6 +234,33 @@ export const ApprovalsQueueTable = ({
       ),
     },
     {
+      key: 'cost',
+      header: 'Cost',
+      cell: (row) => {
+        const priced = row.confirmedCost != null;
+        return (
+          <div className="min-w-[92px]">
+            {priced ? (
+              <p className="text-sm font-medium tabular-nums text-manager-text">
+                {formatPrice(row.confirmedCost!)}
+              </p>
+            ) : (
+              <p className="text-sm text-manager-text-muted">Not yet priced</p>
+            )}
+            {/* The estimate is what the primary agreed to. Pricing without it
+                in view means crossing the re-approval threshold blind — the
+                dialog would warn, but only after the figure was typed. */}
+            {row.estimatedMin != null && (
+              <p className="mt-0.5 text-xs text-manager-text-muted">
+                {priced ? 'est. ' : ''}
+                {formatRateRange(row.estimatedMin, row.estimatedMax)}
+              </p>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: 'status',
       header: 'Status',
       cell: (row) => <ApprovalStatusPill status={row.status} />,
@@ -253,12 +280,16 @@ export const ApprovalsQueueTable = ({
                 variant="outline"
                 className={outlineBtn}
                 onClick={() => {
-                  setCostAmount('');
+                  // Prefill when revising — the EM is adjusting a number, not
+                  // recalling it from memory.
+                  setCostAmount(
+                    row.confirmedCost != null ? String(row.confirmedCost) : '',
+                  );
                   setCostNotes('');
                   setCostId(row.id);
                 }}
               >
-                Log cost
+                {row.confirmedCost != null ? 'Revise cost' : 'Log cost'}
               </Button>
             );
           }
