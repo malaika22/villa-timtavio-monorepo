@@ -53,4 +53,12 @@ export class CreateDiningRequestDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  /**
+   * The sitting an exclusive addition should arrive at, when the guest chose to
+   * attach it rather than have it brought up. Ignored for included orders.
+   */
+  @IsOptional()
+  @IsString()
+  linkedSittingId?: string;
 }

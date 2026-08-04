@@ -30,6 +30,7 @@ const CATEGORY_OPTIONS: { value: MenuCategory; label: string }[] = [
   { value: 'DINNER', label: 'Dinner' },
   { value: 'SNACKS', label: 'Snacks' },
   { value: 'BEVERAGES', label: 'Beverages' },
+  { value: 'EXCLUSIVE', label: 'Exclusive addition' },
 ];
 
 const DIET_FLAGS: { key: keyof MenuItemDto; label: string }[] = [
@@ -202,6 +203,33 @@ export const MenuFormDialog = ({
               </Select>
             </div>
           </div>
+
+          {/* The only category that carries money. Shown only when it applies,
+              so an included dish never gets a price by accident. */}
+          {form.category === 'EXCLUSIVE' && (
+            <div className="rounded-lg border border-manager-accent bg-[#faf6ee] p-3">
+              <label className="text-xs font-medium text-manager-text">
+                Price
+              </label>
+              <p className="mt-0.5 mb-1.5 text-xs text-manager-text-muted">
+                Charged to the guest&apos;s folio when the estate confirms the
+                order. Everything else on the dining page is included.
+              </p>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                value={form.price ?? ''}
+                onChange={(e) =>
+                  set(
+                    'price',
+                    e.target.value === '' ? undefined : Number(e.target.value),
+                  )
+                }
+                placeholder="480.00"
+              />
+            </div>
+          )}
 
           <div>
             <label className="text-xs font-medium text-manager-text-muted">

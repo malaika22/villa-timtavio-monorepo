@@ -174,6 +174,11 @@ export const API = {
     /** EM — everything awaiting confirmation, across every booking. */
     queue: '/api/v1/dining/queue',
     lateArrival: (id: string) => `/api/v1/dining/${id}/late-arrival`,
+    /** Primary — chargeable additions awaiting their decision. */
+    approvals: (bookingId: string) =>
+      `/api/v1/dining/bookings/${bookingId}/approvals`,
+    approve: (id: string) => `/api/v1/dining/${id}/approve`,
+    decline: (id: string) => `/api/v1/dining/${id}/decline`,
   },
   dailyMenus: {
     /** Guest — published services only, over a date range. */

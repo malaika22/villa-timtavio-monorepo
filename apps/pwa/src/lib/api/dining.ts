@@ -19,4 +19,9 @@ export const diningApi = {
   /** Published services only — drafts are excluded server-side. */
   dailyMenus: (from: string, to: string) =>
     api.get<DailyMenu[]>(API.dailyMenus.published(from, to)),
+  pendingApprovals: (bookingId: string) =>
+    api.get<DiningRequest[]>(API.dining.approvals(bookingId)),
+  approve: (id: string) => api.patch<DiningRequest>(API.dining.approve(id), {}),
+  decline: (id: string, reason?: string) =>
+    api.patch<DiningRequest>(API.dining.decline(id), { reason }),
 };

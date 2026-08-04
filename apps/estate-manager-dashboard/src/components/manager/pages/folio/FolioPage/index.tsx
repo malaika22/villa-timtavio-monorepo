@@ -34,6 +34,7 @@ type PartyOption = { email: string; name: string; isPrimary: boolean };
 
 const CHARGE_TYPES: { value: FolioItemType; label: string }[] = [
   { value: 'EXPERIENCE', label: 'Experience' },
+  { value: 'DINING', label: 'Dining' },
   { value: 'INCIDENTAL', label: 'Incidental' },
   { value: 'PRE_STOCKED', label: 'Pre-stocked' },
 ];

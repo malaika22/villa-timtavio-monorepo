@@ -2,7 +2,9 @@ export type FolioItemType =
   | 'ESTATE_BASE_RATE'
   | 'EXPERIENCE'
   | 'INCIDENTAL'
-  | 'PRE_STOCKED';
+  | 'PRE_STOCKED'
+  /** Exclusive additions — its own line, not filed beside the minibar. */
+  | 'DINING';
 
 export interface FolioItem {
   id: string;
@@ -35,6 +37,7 @@ export interface FolioByType {
   EXPERIENCE: FolioItem[];
   INCIDENTAL: FolioItem[];
   PRE_STOCKED: FolioItem[];
+  DINING: FolioItem[];
 }
 
 /** A single charge behind a guest's total, so the figure can be checked. */

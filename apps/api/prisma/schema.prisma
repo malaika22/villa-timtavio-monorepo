@@ -52,6 +52,9 @@ enum FolioItemType {
   EXPERIENCE
   INCIDENTAL
   PRE_STOCKED
+  // Exclusive additions — the cellar and reserve list. Its own category rather
+  // than an incidental: a $2,000 bottle reads oddly filed beside the minibar.
+  DINING
 }
 
 // What a price unit multiplies its rate by when estimating a cost. Adding a new
@@ -79,6 +82,9 @@ enum MenuCategory {
   DINNER
   SNACKS
   BEVERAGES
+  // The only chargeable category. Everything else on the dining page is
+  // all-inclusive, which is exactly why these are kept visibly apart.
+  EXCLUSIVE
 }
 
 enum VendorStatus {
@@ -423,6 +429,12 @@ model MenuItem {
   containsDairy     Boolean      @default(false)
   containsShellfish Boolean      @default(false)
   otherDietaryNotes String?
+  /**
+   * Set only on EXCLUSIVE items — everything else is included in the stay.
+   * Read server-side when an order is placed; a client-supplied price is never
+   * trusted.
+   */
+  price             Decimal?     @db.Decimal(10, 2)
   sortOrder         Int          @default(0)
   /**
    * Whether this belongs to the curated library.
@@ -530,6 +542,34 @@ model DiningRequest {
   // SITTING late-comers — secondary guests flag a late arrival to the primary's
   // sitting: [{ email, name, note?, allergies?, at }]
   lateArrivals Json?
+
+  // ── Exclusive additions ────────────────────────────────────────────────────
+  // The only chargeable part of dining, so the only part that needs a price, an
+  // approval and a folio line.
+
+  /**
+   * Total of the exclusive items, priced server-side when the order is made.
+   */
+  totalAmount Decimal? @db.Decimal(10, 2)
+
+  /**
+   * The sitting an exclusive should arrive at, when the guest attached it.
+   */
+  linkedSittingId String?
+
+  /**
+   * False only while a secondary's chargeable order waits on the primary, who
+   * carries the whole folio. Included dining never needs approval.
+   */
+  primaryApproved Boolean   @default(true)
+  approvedBy      String?
+  approvedAt      DateTime?
+  declineReason   String?
+
+  /**
+   * Set when confirmed and charged, so cancelling can take the charge off.
+   */
+  folioItemId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
