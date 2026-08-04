@@ -964,6 +964,14 @@ export class RequestsService {
         status: 'CANCELLED',
       });
 
+      await this.notifyPrimaryOfGuestCancellation(
+        booking.primaryGuest.email,
+        actorEmail,
+        bookingId,
+        request,
+        'withdrew',
+      );
+
       this.logger.log(`Request ${requestId} withdrawn by ${actorEmail}`);
       return { ...withdrawn, withdrawn: true };
     }
@@ -995,6 +1003,14 @@ export class RequestsService {
         entityId: requestId,
       },
     });
+
+    await this.notifyPrimaryOfGuestCancellation(
+      booking.primaryGuest.email,
+      actorEmail,
+      bookingId,
+      request,
+      'asked to cancel',
+    );
 
     this.logger.log(
       `Cancellation requested on ${requestId} by ${actorEmail} — awaiting the estate`,
@@ -1153,6 +1169,32 @@ export class RequestsService {
   }
 
   /** Folio item + realtime + primary notification, once a cost is agreed. */
+  /**
+   * Tell the primary when someone else in the party drops something.
+   *
+   * They carry the plan and its cost, so a request disappearing changes their
+   * total — and nothing said why. The estate was told; the person paying
+   * wasn't. Skipped when the primary did it themselves.
+   */
+  private async notifyPrimaryOfGuestCancellation(
+    primaryEmail: string,
+    actorEmail: string,
+    bookingId: string,
+    request: { id: string; requestedByName: string; catalogItem: { name: string } },
+    verb: 'withdrew' | 'asked to cancel',
+  ) {
+    if (primaryEmail.toLowerCase() === actorEmail.toLowerCase()) return;
+
+    await this.notificationsService.send({
+      bookingId,
+      recipientEmail: primaryEmail,
+      type: 'REQUEST_CANCELLED',
+      title: 'A guest changed their plan',
+      body: `${request.requestedByName} ${verb} ${request.catalogItem.name}.`,
+      deepLink: `/status/${request.id}`,
+    });
+  }
+
   private async postConfirmedCost(
     id: string,
     confirmedCost: number,

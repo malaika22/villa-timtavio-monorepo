@@ -18,7 +18,7 @@ import {
   type RequestDetail,
 } from './mockData';
 import { useRequestById } from '@/hooks/useRequests';
-import { CancelRequestAction } from './CancelRequestAction';
+import { RequestActionsMenu } from './RequestActionsMenu';
 import {
   mapRequestToStatusRequest,
   buildTimelineFromRequest,
@@ -91,9 +91,12 @@ export const RequestDetailView = ({
               <ArrowLeft size={14} className="text-[#2B2824]" />
             </Button>
           </DrawerClose>
-          <span className="text-[9px] font-semibold uppercase tracking-[2px] text-[#2B2824]">
+          <span className="flex-1 text-[9px] font-semibold uppercase tracking-[2px] text-[#2B2824]">
             Request Detail
           </span>
+          {/* Where people look for it, above the fold, without turning the page
+              into a warning. */}
+          {apiRequest && <RequestActionsMenu request={apiRequest} />}
         </div>
 
         {/* Scrollable body */}
@@ -192,8 +195,9 @@ export const RequestDetailView = ({
                 )}
               </section>
 
-              {/* Contact actions */}
-              <section>
+              {/* Contact actions — the menu's "change" and "message" items
+                  scroll here rather than duplicating the buttons. */}
+              <section id="contact" className="scroll-mt-16">
                 <p className="mb-3 text-[8px] font-semibold uppercase tracking-[2px] text-[#9A9288]">
                   Need to make a change?
                 </p>
@@ -231,13 +235,6 @@ export const RequestDetailView = ({
                 </div>
               </section>
 
-              {/* Last, and understated. Changing your mind is allowed, but it
-                  shouldn't compete with the experience itself for attention. */}
-              {apiRequest && (
-                <section className="flex flex-col pt-1">
-                  <CancelRequestAction request={apiRequest} />
-                </section>
-              )}
             </>
           )}
         </div>

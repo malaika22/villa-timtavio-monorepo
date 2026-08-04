@@ -17,7 +17,7 @@ import { Loader2, Plus, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
 import type { CreateFolioItemDto, FolioItemType } from '@repo/api-types';
 
-import { useCurrentGuests } from '@/hooks/useGuests';
+import { useCurrentGuests, useUpcomingGuestsAsList } from '@/hooks/useGuests';
 import { useManifest } from '@/hooks/useManifest';
 import {
   useFolioEM,
@@ -41,8 +41,31 @@ const CHARGE_TYPES: { value: FolioItemType; label: string }[] = [
 
 export const FolioPage = () => {
   const { data: allGuests = [], isLoading: guestsLoading } = useCurrentGuests();
-  const guests = useMemo(
-    () => allGuests.filter((g) => g.activeBookingId),
+  const { data: upcomingGuests = [] } = useUpcomingGuestsAsList();
+
+  /**
+   * Upcoming stays belong here too.
+   *
+   * This listed only the party in residence — a screen built when "current
+   * stay" meant "the people here now". Pre-arrival planning broke that: guests
+   * confirm and are charged for experiences weeks ahead, so a folio exists long
+   * before the guest does. And every charge has a 30-minute edit window from
+   * when it's logged, so a mistake made in August on a September booking was
+   * already past correcting by the time the folio became reachable.
+   */
+  const guests = useMemo(() => {
+    const seen = new Set<string>();
+    return [...allGuests, ...upcomingGuests]
+      .filter((g) => g.activeBookingId)
+      .filter((g) => {
+        if (seen.has(g.activeBookingId!)) return false;
+        seen.add(g.activeBookingId!);
+        return true;
+      });
+  }, [allGuests, upcomingGuests]);
+
+  const inResidenceIds = useMemo(
+    () => new Set(allGuests.map((g) => g.activeBookingId)),
     [allGuests],
   );
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
@@ -111,7 +134,7 @@ export const FolioPage = () => {
       {/* Guest list */}
       <aside className="rounded-xl border border-manager-border bg-manager-card">
         <p className="border-b border-manager-border px-4 py-3 text-sm font-semibold text-manager-text">
-          Current Guests
+          Guests &amp; upcoming stays
         </p>
         {guestsLoading ? (
           <div className="space-y-2 p-3">
@@ -124,7 +147,7 @@ export const FolioPage = () => {
           </div>
         ) : guests.length === 0 ? (
           <p className="p-4 text-sm text-manager-text-muted">
-            No current guests.
+            No stays with a folio yet.
           </p>
         ) : (
           <ul className="p-2">
@@ -147,6 +170,13 @@ export const FolioPage = () => {
                     <span className="block text-xs text-manager-text-muted">
                       Party of {g.partySize} · {g.dates}
                     </span>
+                    {/* Distinguish a bill being run up now from one accruing
+                        for a stay that hasn't started. */}
+                    {!inResidenceIds.has(g.activeBookingId) && (
+                      <span className="mt-0.5 inline-block rounded bg-[#f5ebe0] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#8b6914]">
+                        Upcoming
+                      </span>
+                    )}
                   </span>
                 </button>
               </li>

@@ -54,8 +54,26 @@ export class BookingsService {
   // we surface the most relevant booking: checked-in now, else the next arrival,
   // else the most recent.
 
-  async getCurrentActiveForEm() {
-    const include = {
+  /**
+   * One booking, in the shape the dashboard's stay view expects.
+   *
+   * Extracted so the EM can look at a booking they choose. Everything on that
+   * page — including manifest approval — used to run off whichever booking
+   * `getCurrentActiveForEm` picked, so a party planning months ahead could
+   * submit a manifest nobody could reach, and their secondaries never got
+   * their links.
+   */
+  async getForEm(bookingId: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      include: this.emStayInclude(),
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+    return this.withPrimaryLinkSent(booking);
+  }
+
+  private emStayInclude() {
+    return {
       primaryGuest: {
         select: {
           id: true,
@@ -96,6 +114,10 @@ export class BookingsService {
         orderBy: { preferredDate: 'asc' as const },
       },
     };
+  }
+
+  async getCurrentActiveForEm() {
+    const include = this.emStayInclude();
 
     // 1) Currently checked-in. With overlapping test bookings there can be more
     // than one, so prefer the booking the EM actually needs to act on: the one

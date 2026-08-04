@@ -20,10 +20,13 @@ export const BookingsListTab = ({
   guests,
   isLoading,
   mode,
+  onOpenBooking,
 }: {
   guests: GuestWithBookings[];
   isLoading: boolean;
   mode: Mode;
+  /** Manifest review only — open that booking's stay view. */
+  onOpenBooking?: (bookingId: string) => void;
 }) => {
   // Flatten to (guest, booking) rows; manifest-review keeps only SUBMITTED.
   const rows = guests.flatMap((g) =>
@@ -79,16 +82,26 @@ export const BookingsListTab = ({
               className="border-b border-[#f1ece4] last:border-0 hover:bg-[#faf9f7]"
             >
               <td className="px-4 py-3">
-                <Link
-                  href={
-                    mode === 'manifest-review'
-                      ? '/bookings#manifest'
-                      : `/guests?guest=${guest.id}`
-                  }
-                  className="font-medium text-manager-text hover:underline"
-                >
-                  {guest.firstName} {guest.lastName}
-                </Link>
+                {/* This linked to the tab you were already on, so a submitted
+                    manifest could be seen and never opened — and approving it
+                    is what sends the secondaries their links. It now opens
+                    THAT booking. */}
+                {mode === 'manifest-review' ? (
+                  <button
+                    type="button"
+                    onClick={() => onOpenBooking?.(booking.id)}
+                    className="font-medium text-manager-text hover:underline"
+                  >
+                    {guest.firstName} {guest.lastName}
+                  </button>
+                ) : (
+                  <Link
+                    href={`/guests?guest=${guest.id}`}
+                    className="font-medium text-manager-text hover:underline"
+                  >
+                    {guest.firstName} {guest.lastName}
+                  </Link>
+                )}
               </td>
               <td className="px-4 py-3 text-manager-text-muted">
                 {fmt(booking.checkIn)}
