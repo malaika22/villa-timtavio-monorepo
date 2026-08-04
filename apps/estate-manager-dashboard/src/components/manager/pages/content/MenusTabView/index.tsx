@@ -19,6 +19,7 @@ const CATEGORY_LABEL: Record<MenuCategory, string> = {
   DINNER: 'Dinner',
   SNACKS: 'Snacks',
   BEVERAGES: 'Beverages',
+  EXCLUSIVE: 'Exclusive additions',
 };
 
 const DIET_BADGES: { key: keyof MenuItem; label: string; tone: string }[] = [

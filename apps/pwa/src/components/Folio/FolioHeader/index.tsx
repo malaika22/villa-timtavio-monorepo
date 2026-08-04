@@ -26,8 +26,9 @@ export const FolioHeader = ({ data }: FolioHeaderProps) => {
         </h1>
         <p className="mt-2 text-[11px] font-light text-[#5C5A54]">
           Villa {fmt(breakdown.villa)} · Experiences{' '}
-          {fmt(breakdown.experiences)} · Incidentals{' '}
-          {fmt(breakdown.incidentals)}
+          {fmt(breakdown.experiences)}
+          {breakdown.dining > 0 ? ` · Dining ${fmt(breakdown.dining)}` : ''} ·
+          Incidentals {fmt(breakdown.incidentals)}
         </p>
       </div>
 
@@ -35,6 +36,11 @@ export const FolioHeader = ({ data }: FolioHeaderProps) => {
       <div className="grid grid-cols-3 gap-2">
         <StatCard label="Villa" value={fmt(breakdown.villa)} />
         <StatCard label="Experiences" value={fmt(breakdown.experiences)} />
+        {/* Only once something has been charged — a permanent $0 Dining card
+            would put a price in front of every guest who never orders one. */}
+        {breakdown.dining > 0 && (
+          <StatCard label="Dining" value={fmt(breakdown.dining)} />
+        )}
         <StatCard label="Incidentals" value={fmt(breakdown.incidentals)} />
       </div>
 

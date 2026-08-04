@@ -45,6 +45,12 @@ export class DiningController {
   }
 
   // Guest + EM — list dining requests for a booking
+  // Guest (primary) — additions still waiting on their decision.
+  @Get('bookings/:bookingId/approvals')
+  getPendingApprovals(@Param('bookingId') bookingId: string) {
+    return this.diningService.getPendingApprovals(bookingId);
+  }
+
   @Get('bookings/:bookingId')
   findByBooking(@Param('bookingId') bookingId: string) {
     return this.diningService.findByBooking(bookingId);
@@ -81,11 +87,36 @@ export class DiningController {
   }
 
   // EM — confirm a dining request
+  // Guest (primary) — decide on a secondary's chargeable addition. Separate
+  // from the estate's confirmation: two people, two different questions.
+  @Patch(':id/approve')
+  @HttpCode(HttpStatus.OK)
+  approveExclusive(
+    @Param('id') id: string,
+    @CurrentUser() user: { email?: string },
+  ) {
+    return this.diningService.approveExclusive(id, user?.email ?? 'primary');
+  }
+
+  @Patch(':id/decline')
+  @HttpCode(HttpStatus.OK)
+  declineExclusive(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+    @CurrentUser() user: { email?: string },
+  ) {
+    return this.diningService.declineExclusive(
+      id,
+      user?.email ?? 'primary',
+      body?.reason,
+    );
+  }
+
   @Patch(':id/confirm')
   @HttpCode(HttpStatus.OK)
   @Roles('estate_manager')
-  confirm(@Param('id') id: string) {
-    return this.diningService.confirm(id);
+  confirm(@Param('id') id: string, @CurrentUser() user: { email?: string }) {
+    return this.diningService.confirm(id, user?.email ?? 'estate_manager');
   }
 
   // Guest or EM — cancel a dining request. The actor is passed through so a

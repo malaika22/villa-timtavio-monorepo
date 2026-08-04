@@ -30,6 +30,7 @@ export const Folio = () => {
       breakdown: {
         villa: meta.villaTotal,
         experiences: meta.experiencesTotal,
+        dining: meta.diningTotal,
         incidentals: meta.incidentalsTotal,
       },
       paymentInfo: checkedOut ? 'Payment complete' : 'Auto-charged at checkout',

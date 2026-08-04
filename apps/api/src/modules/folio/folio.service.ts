@@ -66,6 +66,9 @@ export class FolioService {
       PRE_STOCKED: items.filter((i) => i.type === 'PRE_STOCKED'),
       EXPERIENCE: items.filter((i) => i.type === 'EXPERIENCE'),
       INCIDENTAL: items.filter((i) => i.type === 'INCIDENTAL'),
+      // Exclusive additions read as their own line on the bill rather than
+      // being buried among the incidentals.
+      DINING: items.filter((i) => i.type === 'DINING'),
     };
 
     return {

@@ -63,6 +63,36 @@ export function useDailyMenus(from?: string | null, to?: string | null) {
   });
 }
 
+/**
+ * Chargeable additions a secondary asked for, awaiting the primary.
+ *
+ * Only the primary is ever shown these — they carry the folio, so the decision
+ * is theirs and nobody else's to see.
+ */
+export function usePendingDiningApprovals() {
+  const bookingId = useBookingId();
+  const { isPrimary } = useAuth();
+  return useQuery({
+    queryKey: ['dining-approvals', bookingId],
+    queryFn: () => diningApi.pendingApprovals(bookingId!),
+    enabled: !!bookingId && isPrimary,
+    staleTime: 15_000,
+  });
+}
+
+export function useApproveDining() {
+  const bookingId = useBookingId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, approve, reason }: { id: string; approve: boolean; reason?: string }) =>
+      approve ? diningApi.approve(id) : diningApi.decline(id, reason),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['dining-approvals', bookingId] });
+      void queryClient.invalidateQueries({ queryKey: ['dining', bookingId] });
+    },
+  });
+}
+
 /** Estate-configured recommended sitting times per meal. */
 export function useSittingTimes() {
   return useQuery({

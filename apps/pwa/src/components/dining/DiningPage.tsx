@@ -38,6 +38,8 @@ import { useBookingStore } from '@/store/useBookingStore';
 import { CalenderPicker } from '../CalenderPicker';
 import { DishThumb } from './DishThumb';
 import { DailyMenus } from './DailyMenus';
+import { ExclusiveAdditions } from './ExclusiveAdditions';
+import { DiningApprovals } from './DiningApprovals';
 import { GuestStepper } from '../RequestExperienceSheet/GuestStepper';
 import {
   TimePicker,
@@ -105,6 +107,10 @@ export const DiningPage = () => {
     }
     return map;
   }, [menu]);
+
+  // Kept out of the included lists entirely — the one chargeable category must
+  // never be browsed alongside things that cost nothing.
+  const exclusives = byCategory.EXCLUSIVE ?? [];
 
   const cartCount = Object.values(cart).reduce((s, c) => s + c.qty, 0);
 
@@ -181,6 +187,10 @@ export const DiningPage = () => {
         </section>
       )}
 
+      {/* A secondary's chargeable order waits on the primary, who carries the
+          folio. Shown first: it's the only thing here blocking someone else. */}
+      <DiningApprovals />
+
       {/* Your dining — primary: sittings + orders; secondary: orders only */}
       {(isPrimary ? allRequests : orders).length > 0 && (
         <section className="mb-6">
@@ -228,6 +238,9 @@ export const DiningPage = () => {
           checkOut={checkOut}
         />
       )}
+
+      {/* The one chargeable block, kept out of the included lists entirely. */}
+      <ExclusiveAdditions items={exclusives} sittings={sittings} />
 
       {/* The dish library. Kept beneath the day view rather than replaced by
           it — on the day this shipped nothing was published yet, and a guest
