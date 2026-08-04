@@ -66,4 +66,13 @@ export class CreateMenuItemDto {
   @IsInt()
   @Min(0)
   sortOrder?: number;
+
+  /**
+   * False for a dish written for one service. It keeps its photo and dietary
+   * flags but stays out of the library, so planning a Thursday doesn't
+   * permanently enlarge the menu.
+   */
+  @IsOptional()
+  @IsBoolean()
+  isStanding?: boolean;
 }

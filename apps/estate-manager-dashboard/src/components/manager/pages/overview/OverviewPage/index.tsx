@@ -10,6 +10,7 @@ import {
   useIntelligenceAlerts,
 } from '@/hooks/useAnalytics';
 import { formatRevenueCompact } from '@/lib/mappers/dashboard';
+import { MenuGapsBanner } from '@/components/manager/pages/menu/MenuGapsBanner';
 
 const MONTH_LABELS = [
   'J',
@@ -69,6 +70,10 @@ export const OverviewPage = () => {
 
   return (
     <div className="space-y-5 font-inter">
+      {/* An unplanned week is otherwise silent — guests just see "still
+          planning" and nothing here says the kitchen fell behind. */}
+      <MenuGapsBanner />
+
       {/* Intelligence alerts */}
       {alerts && alerts.length > 0 && (
         <div className="space-y-2">

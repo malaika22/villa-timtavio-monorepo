@@ -80,6 +80,11 @@ export interface MenuItem {
   containsShellfish: boolean;
   otherDietaryNotes?: string | null;
   sortOrder: number;
+  /**
+   * Whether this belongs to the curated library. A one-off written for a single
+   * service keeps its photo and dietary flags but never joins the menu proper.
+   */
+  isStanding?: boolean;
 }
 
 export interface Recommendation {

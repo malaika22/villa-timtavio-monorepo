@@ -16,6 +16,7 @@ import {
 import { cn } from '@repo/ui/lib/utils';
 import { Drawer, DrawerContent, DrawerTitle } from '@repo/ui/components/drawer';
 import type {
+  DailyMenu,
   MealType,
   MenuCategory,
   MenuItem,
@@ -30,9 +31,13 @@ import {
   useSittingTimes,
   useAddLateArrival,
   useCancelDiningRequest,
+  useDailyMenus,
 } from '@/hooks/useDining';
 import { useAuth } from '@/hooks/useAuth';
+import { useBookingStore } from '@/store/useBookingStore';
 import { CalenderPicker } from '../CalenderPicker';
+import { DishThumb } from './DishThumb';
+import { DailyMenus } from './DailyMenus';
 import { GuestStepper } from '../RequestExperienceSheet/GuestStepper';
 import {
   TimePicker,
@@ -81,6 +86,9 @@ export const DiningPage = () => {
   const { data: menu, isLoading } = useMenu();
   const { data: requests } = useDiningRequests();
   const { data: sittingTimes } = useSittingTimes();
+  const checkIn = useBookingStore((b) => b.checkIn);
+  const checkOut = useBookingStore((b) => b.checkOut);
+  const { data: dailyMenus } = useDailyMenus(checkIn, checkOut);
   // Only the primary member sets the main sitting times; secondaries view them
   // read-only and can flag a late arrival instead.
   const { isPrimary, email } = useAuth();
@@ -212,7 +220,18 @@ export const DiningPage = () => {
       </button>
       )}
 
-      {/* Menu */}
+      {/* What the kitchen is cooking, day by day. */}
+      {checkIn && checkOut && (
+        <DailyMenus
+          menus={dailyMenus ?? []}
+          checkIn={checkIn}
+          checkOut={checkOut}
+        />
+      )}
+
+      {/* The dish library. Kept beneath the day view rather than replaced by
+          it — on the day this shipped nothing was published yet, and a guest
+          seeing an empty Dining page would read it as broken. */}
       {isLoading ? (
         <div className="flex flex-col gap-3">
           {[1, 2, 3].map((i) => (
@@ -225,6 +244,11 @@ export const DiningPage = () => {
         </p>
       ) : (
         <div className="flex flex-col gap-6">
+          <p className="-mb-3 text-[10px] leading-relaxed text-[#797168]">
+            <span className="font-medium text-[#2B2824]">What we cook.</span>{' '}
+            Dishes from the estate kitchen — snacks and drinks can be ordered at
+            any hour.
+          </p>
           {[...MEAL_CATEGORIES, ...ORDER_CATEGORIES].map((cat) => {
             const items = byCategory[cat.value] ?? [];
             if (items.length === 0) return null;
@@ -240,15 +264,7 @@ export const DiningPage = () => {
                       key={item.id}
                       className="flex items-start gap-3 rounded-[12px] border border-[#E3E0DA] bg-white px-3.5 py-3"
                     >
-                      {item.photoUrl && (
-                        // External CDN image — deliberately a plain <img>.
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={item.photoUrl}
-                          alt={item.name}
-                          className="size-14 shrink-0 rounded-[10px] object-cover"
-                        />
-                      )}
+                      <DishThumb photoUrl={item.photoUrl} name={item.name} />
                       <div className="min-w-0 flex-1">
                         <p className="text-[13px] font-medium text-[#2B2824]">{item.name}</p>
                         {item.description && (
@@ -320,6 +336,7 @@ export const DiningPage = () => {
         open={sittingOpen}
         onClose={() => setSittingOpen(false)}
         sittingTimes={sittingTimes}
+        menus={dailyMenus}
       />
       <LateArrivalSheet
         sitting={lateFor}
@@ -518,16 +535,30 @@ function SittingSheet({
   open,
   onClose,
   sittingTimes,
+  menus,
 }: {
   open: boolean;
   onClose: () => void;
   sittingTimes?: SittingTimes;
+  /** Published services, so the guest sees what they're reserving a seat at. */
+  menus?: DailyMenu[];
 }) {
   const create = useCreateDiningRequest();
   const [meal, setMeal] = useState<MealType>('DINNER');
   const [date, setDate] = useState<Date | null>(null);
   const [time, setTime] = useState('19:30');
   const [party, setParty] = useState(2);
+
+  const chosenMenu = date
+    ? menus?.find(
+        (m) =>
+          m.mealType === meal &&
+          m.date.slice(0, 10) ===
+            new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+              .toISOString()
+              .slice(0, 10),
+      )
+    : undefined;
   const [allergies, setAllergies] = useState('');
   const [special, setSpecial] = useState('');
   const [done, setDone] = useState(false);
@@ -616,6 +647,39 @@ function SittingSheet({
               <Field label="Date">
                 <CalenderPicker selectedDate={date} onSelect={setDate} />
               </Field>
+
+              {/* Picking a date used to tell the guest nothing about the meal
+                  itself. If that service is published, show it here — it is the
+                  whole reason they're choosing one evening over another. */}
+              {chosenMenu && (
+                <div className="overflow-hidden rounded-[12px] border border-[#E3E0DA]">
+                  <p className="border-b border-[#E3E0DA] bg-[#F7F5F2] px-3.5 py-2 font-cormorant text-[13px] text-[#2B2824]">
+                    That {meal === 'BREAKFAST' ? 'morning' : meal === 'LUNCH' ? 'afternoon' : 'evening'}
+                  </p>
+                  {chosenMenu.note && (
+                    <p className="border-b border-[#F0EDE6] bg-[#FBF3DF] px-3.5 py-2 text-[10px] italic leading-snug text-[#8A6D3B]">
+                      {chosenMenu.note}
+                    </p>
+                  )}
+                  <ul>
+                    {chosenMenu.items.map((item) => (
+                      <li
+                        key={item.id}
+                        className="flex items-center gap-2.5 border-b border-[#F0EDE6] px-3.5 py-2 last:border-b-0"
+                      >
+                        <DishThumb
+                          photoUrl={item.menuItem.photoUrl}
+                          name={item.menuItem.name}
+                          className="!size-9 !rounded-[7px]"
+                        />
+                        <span className="text-[11.5px] text-[#2B2824]">
+                          {item.menuItem.name}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <Field label="Preferred time">
                 <TimePicker value={time} groups={groups} onChange={setTime} />

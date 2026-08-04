@@ -1,6 +1,7 @@
 import { api, API } from '@/lib/api';
 import type {
   CreateDiningRequestDto,
+  DailyMenu,
   DiningRequest,
   SittingTimes,
   AddLateArrivalDto,
@@ -15,4 +16,7 @@ export const diningApi = {
   addLateArrival: (id: string, dto: AddLateArrivalDto) =>
     api.post<DiningRequest>(API.dining.lateArrival(id), dto),
   cancel: (id: string) => api.patch<DiningRequest>(API.dining.cancel(id), {}),
+  /** Published services only — drafts are excluded server-side. */
+  dailyMenus: (from: string, to: string) =>
+    api.get<DailyMenu[]>(API.dailyMenus.published(from, to)),
 };

@@ -424,9 +424,68 @@ model MenuItem {
   containsShellfish Boolean      @default(false)
   otherDietaryNotes String?
   sortOrder         Int          @default(0)
+  /**
+   * Whether this belongs to the curated library.
+   * Standing dishes are what the estate publishes on the Menu page — and for
+   * snacks and beverages, what a guest can order at any hour. A one-off is
+   * created while planning a single service: a real dish with the same photo
+   * and dietary flags, but it never clutters the library. Promoting one is a
+   * single flag, so a favourite can earn its place later.
+   */
+  isStanding        Boolean      @default(true)
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
   createdBy         String?
+
+  dailyMenuItems DailyMenuItem[]
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DAILY MENU — what the chef is actually cooking, on a given day, for a given
+// meal. MenuItem alone has no notion of "today": every active dish was shown to
+// every guest on every day, including ones the kitchen stopped making months
+// ago. Snacks and beverages are genuinely always-available and stay out of this.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model DailyMenu {
+  id       String       @id @default(cuid())
+  /**
+   * Date only — a service belongs to a day, not an instant.
+   */
+  date     DateTime     @db.Date
+  mealType MenuCategory
+  /**
+   * Optional line to guests, e.g. "Chef's table — the whole menu off the coast".
+   */
+  note     String?
+
+  /**
+   * Null until the estate publishes. A half-decided Thursday must never reach a
+   * guest, so drafts are invisible outside the dashboard.
+   */
+  publishedAt DateTime?
+  publishedBy String?
+
+  items DailyMenuItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+
+  @@unique([date, mealType])
+  @@index([date])
+}
+
+model DailyMenuItem {
+  id          String    @id @default(cuid())
+  dailyMenuId String
+  dailyMenu   DailyMenu @relation(fields: [dailyMenuId], references: [id], onDelete: Cascade)
+  menuItemId  String
+  menuItem    MenuItem  @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  sortOrder   Int       @default(0)
+
+  @@unique([dailyMenuId, menuItemId])
+  @@index([dailyMenuId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -605,7 +664,9 @@ model ExperienceRequest {
   cancellationRequestedAt DateTime?
   cancellationRequestedBy String?
   cancellationReason      String?
-  /** Charged when a vendor bills the estate for cancelling late. */
+  /**
+   * Charged when a vendor bills the estate for cancelling late.
+   */
   cancellationFee         Decimal?  @db.Decimal(10, 2)
 
   @@index([bookingId])

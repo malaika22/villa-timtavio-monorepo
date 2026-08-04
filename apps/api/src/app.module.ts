@@ -28,6 +28,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DiningModule } from './modules/dining/dining.module';
+import { DailyMenuModule } from './modules/daily-menu/daily-menu.module';
 import { ExperienceCategoriesModule } from './modules/experience-categories/experience-categories.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { HealthController } from './health.controller';
@@ -71,6 +72,7 @@ import { HealthController } from './health.controller';
     DashboardModule,
     UploadsModule,
     DiningModule,
+    DailyMenuModule,
     ExperienceCategoriesModule,
   ],
 })

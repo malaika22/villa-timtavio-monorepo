@@ -228,6 +228,9 @@ export class CatalogService {
     return this.prisma.menuItem.findMany({
       where: {
         isActive: true,
+        // The library only. One-off dishes belong to the day they were written
+        // for and reach guests through that day's menu, not this list.
+        isStanding: true,
         ...(category && { category: category as any }),
       },
       orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }],
