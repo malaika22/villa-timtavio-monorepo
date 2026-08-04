@@ -12,7 +12,7 @@ import { DiningSittingsCard } from '@/components/manager/pages/bookings/DiningSi
 import { BookingsListTab } from '@/components/manager/pages/bookings/BookingsListTab';
 import { mapToCurrentBooking } from '@/lib/mappers/booking';
 import type { BookingTab } from '@/types';
-import { useCurrentActiveBooking } from '@/hooks/useBookings';
+import { useBookingForEm } from '@/hooks/useBookings';
 import {
   useUpcomingGuests,
   useCurrentGuestsRaw,
@@ -28,8 +28,14 @@ const EmptyState = ({ message }: { message: string }) => (
 
 export const BookingsPage = () => {
   const [activeTab, setActiveTab] = useState<BookingTab>('current');
+  // Null means "whatever the estate should be looking at" — the next arrival.
+  // Set when the EM opens a specific booking from the manifest list, which is
+  // the only way a stay planned months ahead can be reached at all.
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(
+    null,
+  );
 
-  const { data: detail, isLoading } = useCurrentActiveBooking();
+  const { data: detail, isLoading } = useBookingForEm(selectedBookingId);
   const { data: manifest } = useManifest(detail?.id ?? null);
   const upcoming = useUpcomingGuests();
   const currentRaw = useCurrentGuestsRaw();
@@ -56,6 +62,10 @@ export const BookingsPage = () => {
           guests={currentRaw.data ?? []}
           isLoading={currentRaw.isLoading}
           mode="manifest-review"
+          onOpenBooking={(id) => {
+            setSelectedBookingId(id);
+            setActiveTab('current');
+          }}
         />
       </div>
     );
@@ -131,6 +141,23 @@ export const BookingsPage = () => {
         <EmptyState message="No active booking right now. The current stay will appear here once a booking is checked in or upcoming." />
       ) : (
         <>
+          {/* Say plainly when this isn't the next arrival, and offer the way
+              back — otherwise the EM can't tell whose stay they're looking at. */}
+          {selectedBookingId && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-manager-accent bg-[#faf6ee] px-3 py-2">
+              <p className="text-sm text-manager-text">
+                Viewing a booking you opened from the manifest list.
+              </p>
+              <button
+                type="button"
+                onClick={() => setSelectedBookingId(null)}
+                className="text-sm font-medium text-manager-accent underline underline-offset-2"
+              >
+                Back to the next arrival
+              </button>
+            </div>
+          )}
+
           <CurrentBookingHero booking={booking} />
 
           <div id="manifest" className="grid scroll-mt-6 gap-6 lg:grid-cols-2">

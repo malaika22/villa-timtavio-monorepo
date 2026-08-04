@@ -18,11 +18,18 @@ function deriveListStatus(
       return 'Departing';
     case 'CONFIRMED':
       return 'Arriving';
+    case 'CHECKED_IN':
+      return 'Checked in';
+    case 'SETTLED':
+      return 'Settled';
     case 'CHECKED_OUT':
     case 'CANCELLED':
       return 'Departed';
     default:
-      return 'Settled';
+      // Deliberately not 'Settled'. That asserts a guest has arrived and paid,
+      // which is the last thing an unknown status should claim — and it is
+      // exactly what a missing booking used to make this say.
+      return 'Arriving';
   }
 }
 

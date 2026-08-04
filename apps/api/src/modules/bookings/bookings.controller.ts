@@ -19,6 +19,14 @@ export class BookingsController {
     return this.bookingsService.getCurrentActiveForEm();
   }
 
+  // EM — a specific booking in the same shape as current-active, so the stay
+  // view can show one the estate chose rather than one it picked for them.
+  @Get('em/:id')
+  @Roles('estate_manager', 'owner')
+  getBookingForEm(@Param('id') id: string) {
+    return this.bookingsService.getForEm(id);
+  }
+
   @Patch(':id/status')
   @Roles('estate_manager')
   updateStatus(

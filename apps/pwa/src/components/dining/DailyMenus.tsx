@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import type { DailyMenu, MenuCategory } from '@repo/api-types';
+import { Check, Clock } from 'lucide-react';
+import type { DailyMenu, DiningRequest, MenuCategory } from '@repo/api-types';
 import { cn } from '@repo/ui/lib/utils';
 
 import { DishThumb } from './DishThumb';
@@ -46,12 +47,28 @@ export const DailyMenus = ({
   menus,
   checkIn,
   checkOut,
+  sittings = [],
+  onFlagLate,
+  flaggedLate,
 }: {
   menus: DailyMenu[];
   checkIn: string;
   checkOut: string;
+  /**
+   * The party's sittings. They live inside the day they belong to rather than
+   * in a list of their own: a week's stay is twenty-one sittings, and a
+   * separate list duplicated the day strip that already sits right here.
+   * Beside the meal it also answers the question a guest actually has —
+   * what time, and what's for dinner.
+   */
+  sittings?: DiningRequest[];
+  onFlagLate?: (sitting: DiningRequest) => void;
+  flaggedLate?: (sitting: DiningRequest) => boolean;
 }) => {
-  const days = useMemo(() => daysBetween(checkIn, checkOut), [checkIn, checkOut]);
+  const days = useMemo(
+    () => daysBetween(checkIn, checkOut),
+    [checkIn, checkOut],
+  );
 
   const byDay = useMemo(() => {
     const map = new Map<string, DailyMenu[]>();
@@ -67,16 +84,21 @@ export const DailyMenus = ({
   const [selected, setSelected] = useState<string>(() => {
     const today = dayKey(new Date());
     const inStay = days.some((d) => dayKey(d) === today);
-    return inStay ? today : (days[0] ? dayKey(days[0]) : today);
+    return inStay ? today : days[0] ? dayKey(days[0]) : today;
   });
 
   if (days.length === 0) return null;
 
+  const sittingFor = (mealType: MenuCategory) =>
+    sittings.find(
+      (r) =>
+        r.mealType === mealType && (r.date ?? '').slice(0, 10) === selected,
+    );
+
   const forDay = (byDay.get(selected) ?? [])
     .slice()
     .sort(
-      (a, b) =>
-        MEAL_ORDER.indexOf(a.mealType) - MEAL_ORDER.indexOf(b.mealType),
+      (a, b) => MEAL_ORDER.indexOf(a.mealType) - MEAL_ORDER.indexOf(b.mealType),
     );
 
   return (
@@ -153,11 +175,47 @@ export const DailyMenus = ({
               key={menu.id}
               className="overflow-hidden rounded-[12px] border border-[#E3E0DA] bg-white"
             >
-              <div className="border-b border-[#E3E0DA] bg-[#F7F5F2] px-3.5 py-2">
+              <div className="flex items-baseline justify-between gap-2 border-b border-[#E3E0DA] bg-[#F7F5F2] px-3.5 py-2">
                 <p className="font-cormorant text-[14px] text-[#2B2824]">
                   {MEAL_LABEL[menu.mealType] ?? menu.mealType}
                 </p>
+                {sittingFor(menu.mealType)?.time && (
+                  <p className="text-[10px] tabular-nums text-[#2B2824]">
+                    {sittingFor(menu.mealType)!.time}
+                  </p>
+                )}
               </div>
+
+              {(() => {
+                const sitting = sittingFor(menu.mealType);
+                if (!sitting) return null;
+                const isLate = flaggedLate?.(sitting) ?? false;
+                return (
+                  <div className="flex items-center justify-between gap-2 border-b border-[#F0EDE6] bg-[#FBF3DF] px-3.5 py-2">
+                    <span className="text-[9.5px] text-[#8A6D3B]">
+                      {isLate
+                        ? 'You’ll be arriving late'
+                        : `Your table is set for ${sitting.time ?? 'this service'}`}
+                    </span>
+                    {onFlagLate && !isLate && (
+                      <button
+                        type="button"
+                        onClick={() => onFlagLate(sitting)}
+                        className="flex shrink-0 items-center gap-1 rounded-full border border-[#8A6D3B] px-2 py-0.5 text-[9px] text-[#8A6D3B]"
+                      >
+                        <Clock className="size-2.5" aria-hidden />
+                        I’ll be late
+                      </button>
+                    )}
+                    {isLate && (
+                      <Check
+                        className="size-3 shrink-0 text-[#3A5E48]"
+                        aria-hidden
+                      />
+                    )}
+                  </div>
+                );
+              })()}
 
               {menu.note && (
                 <p className="border-b border-[#F0EDE6] bg-[#FBF3DF] px-3.5 py-2 text-[10px] italic leading-snug text-[#8A6D3B]">

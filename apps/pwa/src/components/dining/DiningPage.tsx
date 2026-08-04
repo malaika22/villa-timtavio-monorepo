@@ -99,6 +99,7 @@ export const DiningPage = () => {
   const [lateFor, setLateFor] = useState<DiningRequest | null>(null);
   const [cart, setCart] = useState<Record<string, { item: MenuItem; qty: number }>>({});
   const [orderOpen, setOrderOpen] = useState(false);
+  const [libraryCategory, setLibraryCategory] = useState<MenuCategory>('BREAKFAST');
 
   const byCategory = useMemo(() => {
     const map: Record<string, MenuItem[]> = {};
@@ -130,7 +131,17 @@ export const DiningPage = () => {
     });
 
   const allRequests = requests ?? [];
-  const sittings = allRequests.filter((r) => r.kind === 'SITTING');
+  const allSittings = allRequests.filter((r) => r.kind === 'SITTING');
+  // Past sittings stayed in the list offering "I'll be late", which nobody can
+  // be for a meal that has happened — and by the end of a stay most of the
+  // list is behind you, which is half of why it grew so long.
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const sittings = allSittings.filter((r) => {
+    if (!r.date) return true;
+    const when = new Date(r.date);
+    return Number.isNaN(when.getTime()) || when >= startOfToday;
+  });
   const orders = allRequests.filter((r) => r.kind === 'ORDER');
   const flaggedLate = (r: DiningRequest) =>
     !!email && (r.lateArrivals ?? []).some((l) => l.email === email);
@@ -157,33 +168,15 @@ export const DiningPage = () => {
           : 'Sitting times are set by the primary member — order snacks & beverages any time.'}
       </p>
 
-      {/* Secondary: the primary's meal sittings, shown prominently */}
-      {!isPrimary && (
+      {!isPrimary && sittings.length === 0 && (
         <section className="mb-6">
           <p className="mb-2 text-[8px] uppercase tracking-[2.5px] text-[#9A9288]">
             Meal sittings
           </p>
-          {sittings.length === 0 ? (
-            <div className="rounded-[12px] border border-[#E3E0DA] bg-[#F7F5F2] px-4 py-4 text-[11px] leading-relaxed text-[#797168]">
-              The primary member hasn’t arranged meal times yet — you’ll see them
-              here once they do.
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {sittings.map((r) => (
-                <SecondarySittingCard
-                  key={r.id}
-                  request={r}
-                  flaggedByMe={flaggedLate(r)}
-                  onLate={() => setLateFor(r)}
-                />
-              ))}
-              <p className="px-1 pt-0.5 text-[10px] leading-relaxed text-[#9A9288]">
-                Set by the primary member. Running late? Tap “I’ll be late” —
-                we’ll always accommodate you.
-              </p>
-            </div>
-          )}
+          <div className="rounded-[12px] border border-[#E3E0DA] bg-[#F7F5F2] px-4 py-4 text-[11px] leading-relaxed text-[#797168]">
+            The primary member hasn’t arranged meal times yet — you’ll see them
+            here once they do.
+          </div>
         </section>
       )}
 
@@ -236,6 +229,9 @@ export const DiningPage = () => {
           menus={dailyMenus ?? []}
           checkIn={checkIn}
           checkOut={checkOut}
+          sittings={sittings}
+          onFlagLate={isPrimary ? undefined : (r) => setLateFor(r)}
+          flaggedLate={flaggedLate}
         />
       )}
 
@@ -256,21 +252,43 @@ export const DiningPage = () => {
           The menu is being prepared. Check back soon.
         </p>
       ) : (
-        <div className="flex flex-col gap-6">
-          <p className="-mb-3 text-[10px] leading-relaxed text-[#797168]">
+        <div className="flex flex-col gap-4">
+          <p className="text-[10px] leading-relaxed text-[#797168]">
             <span className="font-medium text-[#2B2824]">What we cook.</span>{' '}
             Dishes from the estate kitchen — snacks and drinks can be ordered at
             any hour.
           </p>
+
+          {/* A category at a time. Rendering all five in full meant scrolling
+              past everything to reach breakfast, and the page grew with every
+              dish the estate added. Same control the Experiences page uses. */}
+          <div className="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3">
+            {[...MEAL_CATEGORIES, ...ORDER_CATEGORIES]
+              .filter((cat) => (byCategory[cat.value] ?? []).length > 0)
+              .map((cat) => (
+                <button
+                  key={cat.value}
+                  type="button"
+                  onClick={() => setLibraryCategory(cat.value as MenuCategory)}
+                  aria-pressed={libraryCategory === cat.value}
+                  className={cn(
+                    'shrink-0 rounded-full border px-3 py-1.5 text-[11px] transition-colors',
+                    libraryCategory === cat.value
+                      ? 'border-[#0F1F2E] bg-[#0F1F2E] text-white'
+                      : 'border-[#E3E0DA] bg-white text-[#797168]',
+                  )}
+                >
+                  {cat.label}
+                </button>
+              ))}
+          </div>
+
           {[...MEAL_CATEGORIES, ...ORDER_CATEGORIES].map((cat) => {
             const items = byCategory[cat.value] ?? [];
-            if (items.length === 0) return null;
+            if (items.length === 0 || cat.value !== libraryCategory) return null;
             const orderable = ORDER_CATEGORIES.some((o) => o.value === cat.value);
             return (
               <section key={cat.value}>
-                <p className="mb-2.5 text-[8px] uppercase tracking-[2.5px] text-[#9A9288]">
-                  {cat.label}
-                </p>
                 <div className="flex flex-col gap-2">
                   {items.map((item) => (
                     <div
@@ -489,56 +507,6 @@ function RequestRow({
             </button>
           )}
         </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Secondary guest's prominent view of a primary-set sitting ─────────────
-
-function SecondarySittingCard({
-  request: r,
-  flaggedByMe,
-  onLate,
-}: {
-  request: DiningRequest;
-  flaggedByMe: boolean;
-  onLate: () => void;
-}) {
-  const mealLabel = r.mealType
-    ? `${r.mealType[0]}${r.mealType.slice(1).toLowerCase()}`
-    : 'Sitting';
-  const lateCount = (r.lateArrivals ?? []).length;
-  return (
-    <div className="rounded-[14px] border border-[#0F1F2E]/15 bg-white px-4 py-3.5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="flex items-center gap-1.5 text-[9px] font-medium uppercase tracking-[2px] text-[#9A9288]">
-            <UtensilsCrossed className="size-3 text-[#5C534A]" />
-            {mealLabel}
-            {r.date ? ` · ${format(new Date(r.date), 'EEE, MMM d')}` : ''}
-          </p>
-          <p className="mt-1 font-cormorant text-[24px] leading-none text-[#2B2824]">
-            {r.time ? formatTimeLabel(r.time) : 'Time to be confirmed'}
-          </p>
-        </div>
-        {flaggedByMe ? (
-          <span className="flex shrink-0 items-center gap-1 text-[10px] font-medium text-[#3A5E48]">
-            <Check className="size-3.5" /> You’ll be late
-          </span>
-        ) : (
-          <button
-            onClick={onLate}
-            className="flex shrink-0 items-center gap-1.5 rounded-full border border-[#0F1F2E] px-3 py-1.5 text-[10px] font-medium text-[#0F1F2E]"
-          >
-            <Clock className="size-3.5" /> I’ll be late
-          </button>
-        )}
-      </div>
-      {lateCount > 0 && (
-        <p className="mt-2 border-t border-[#F0EDE8] pt-2 text-[10px] text-[#9A9288]">
-          {lateCount} guest{lateCount === 1 ? '' : 's'} arriving late
-        </p>
       )}
     </div>
   );

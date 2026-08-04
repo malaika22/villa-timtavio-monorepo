@@ -30,6 +30,22 @@ export function useUpcomingGuests() {
   });
 }
 
+/**
+ * Upcoming stays in the same shape as the current-guest list.
+ *
+ * The raw hook returns the planning-pipeline shape, which is right for the
+ * bookings table but not for anywhere that treats current and upcoming stays
+ * alike — such as the folio, where a booking accrues charges weeks before
+ * anyone arrives.
+ */
+export function useUpcomingGuestsAsList() {
+  return useQuery({
+    queryKey: ['guests', 'upcoming'],
+    queryFn: guestsApi.getUpcoming,
+    select: (data) => data.map((g) => mapGuestSummaryToListItem(g)),
+  });
+}
+
 export function usePastGuests(search?: string) {
   return useQuery({
     queryKey: ['guests', 'past', search],

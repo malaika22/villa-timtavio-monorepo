@@ -61,6 +61,16 @@ export class RequestsController {
     });
   }
 
+  // Guest — slots already taken for an experience, so the picker can grey them
+  // out rather than accepting a date the estate will have to decline.
+  @Get('bookings/:bookingId/taken-slots/:catalogItemId')
+  getTakenSlots(
+    @Param('bookingId') bookingId: string,
+    @Param('catalogItemId') catalogItemId: string,
+  ) {
+    return this.requestsService.getTakenSlots(catalogItemId, bookingId);
+  }
+
   // Guest — get requests for booking
   @Get('bookings/:bookingId')
   async findByBooking(

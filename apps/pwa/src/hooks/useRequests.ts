@@ -183,3 +183,20 @@ export function usePrimaryDecline() {
     onSuccess: invalidate,
   });
 }
+
+/**
+ * Slots the estate has already committed for this experience.
+ *
+ * The conflict engine only ran at confirm time, so a guest could pick a taken
+ * slot, wait, and be declined for something the app already knew was
+ * impossible.
+ */
+export function useTakenSlots(catalogItemId?: string | null) {
+  const bookingId = useBookingId();
+  return useQuery({
+    queryKey: ['taken-slots', bookingId, catalogItemId],
+    queryFn: () => requestsApi.takenSlots(bookingId!, catalogItemId!),
+    enabled: !!bookingId && !!catalogItemId,
+    staleTime: 30_000,
+  });
+}

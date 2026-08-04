@@ -464,6 +464,7 @@ export class DiningService {
 
   async updateSittingTimes(dto: SittingTimes): Promise<SittingTimes> {
     const value = this.normalizeSittingTimes(dto);
+    this.assertPlausibleSittingTimes(value);
     await this.prisma.estateSettings.upsert({
       where: { id: SETTINGS_SINGLETON },
       create: {
@@ -473,6 +474,38 @@ export class DiningService {
       update: { sittingTimes: value as unknown as Prisma.InputJsonValue },
     });
     return value;
+  }
+
+  /**
+   * Refuse a meal time that can't be that meal.
+   *
+   * Nothing stopped a dinner slot being saved as 08:15, and the guest app duly
+   * displayed "Dinner · 8:15 AM" — the formatter was right, the data wasn't.
+   * The windows are deliberately generous: the point is to catch a typo or an
+   * AM/PM slip, not to tell an estate when to serve.
+   */
+  private assertPlausibleSittingTimes(times: SittingTimes) {
+    const windows: Record<keyof SittingTimes, [number, number]> = {
+      BREAKFAST: [5, 12],
+      LUNCH: [11, 17],
+      DINNER: [16, 23],
+    };
+
+    for (const [meal, slots] of Object.entries(times) as [
+      keyof SittingTimes,
+      string[],
+    ][]) {
+      const [from, to] = windows[meal];
+      for (const slot of slots) {
+        const hour = Number(slot.split(':')[0]);
+        if (Number.isNaN(hour)) continue;
+        if (hour < from || hour > to) {
+          throw new BadRequestException(
+            `${slot} isn't a plausible ${meal.toLowerCase()} time — expected between ${String(from).padStart(2, '0')}:00 and ${to}:00.`,
+          );
+        }
+      }
+    }
   }
 
   /** Coerce arbitrary JSON into a well-formed SittingTimes (sorted, deduped). */

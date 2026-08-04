@@ -16,7 +16,11 @@ import { CalenderPicker } from '../CalenderPicker';
 import { useBookingStore } from '@/store/useBookingStore';
 import { SubmitRequestButton } from './SubmitRequestButton';
 import { TimePicker, buildGroups, firstRecommended } from '../TimePicker';
-import { useCreateRequest, isQueuedResult } from '@/hooks/useRequests';
+import {
+  useCreateRequest,
+  useTakenSlots,
+  isQueuedResult,
+} from '@/hooks/useRequests';
 import { useCurrentBooking } from '@/hooks/useBooking';
 import {
   computeEstimate,

@@ -3,9 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateGuestDnaDto } from './dto/update-guest-dna.dto';
 import {
   ACTIVE_BOOKING_STATUSES,
-  CURRENT_STAY_STATUSES,
 } from '../bookings/booking-status.constants';
-import { BookingStatus } from '@prisma/client';
 
 import { derivePrimaryRoomNumber } from '../../common/booking-room.util';
 
@@ -36,35 +34,30 @@ export class GuestsService {
   // ─── Guest list for EM dashboard ─────────────────────────────────────────────
 
   async findCurrent() {
-    const now = new Date();
-    const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    /**
+     * One predicate, used for both which guests appear AND which of their
+     * bookings come back.
+     *
+     * These were two different filters. The outer one admitted any CONFIRMED
+     * booking with no date bound; the inner one required check-in within seven
+     * days. So a guest booked a month out was listed — and then had their
+     * booking filtered out from under them, arriving with no dates and no
+     * status. The list rendered "Dates TBD" and, because the status fell
+     * through to a default, claimed they were "Settled".
+     *
+     * Sharing the predicate is the fix: whatever gets a guest into this list
+     * is the booking that comes back with them, and the two cannot drift apart
+     * again.
+     */
+    const relevantBooking = {
+      status: { in: ACTIVE_BOOKING_STATUSES },
+    };
 
     return this.prisma.guest.findMany({
-      where: {
-        primaryBookings: {
-          some: {
-            OR: [
-              {
-                status: {
-                  in: ACTIVE_BOOKING_STATUSES,
-                },
-              },
-              {
-                status: BookingStatus.CONFIRMED,
-                checkIn: { lte: in7Days },
-              },
-            ],
-          },
-        },
-      },
+      where: { primaryBookings: { some: relevantBooking } },
       include: {
         primaryBookings: {
-          where: {
-            OR: [
-              { status: { in: CURRENT_STAY_STATUSES } },
-              { status: BookingStatus.CONFIRMED, checkIn: { lte: in7Days } },
-            ],
-          },
+          where: relevantBooking,
           include: {
             manifestGuests: {
               select: { email: true, roomNumber: true },
@@ -79,7 +72,7 @@ export class GuestsService {
             },
           },
           take: 1,
-          orderBy: { checkIn: 'desc' },
+          orderBy: { checkIn: 'asc' },
         },
       },
     }).then((guests) =>
