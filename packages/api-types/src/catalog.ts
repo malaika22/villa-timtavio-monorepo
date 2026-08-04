@@ -14,7 +14,9 @@ export type MenuCategory =
   | 'LUNCH'
   | 'DINNER'
   | 'SNACKS'
-  | 'BEVERAGES';
+  | 'BEVERAGES'
+  /** The only chargeable category — the cellar and the reserve list. */
+  | 'EXCLUSIVE';
 
 export interface ExperienceCategorySummary {
   id: string;
@@ -85,6 +87,11 @@ export interface MenuItem {
    * service keeps its photo and dietary flags but never joins the menu proper.
    */
   isStanding?: boolean;
+  /**
+   * Set only on EXCLUSIVE items — everything else is included in the stay.
+   * A Decimal column, so coerce before doing arithmetic with it.
+   */
+  price?: number | null;
 }
 
 export interface Recommendation {

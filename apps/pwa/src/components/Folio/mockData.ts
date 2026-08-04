@@ -1,4 +1,9 @@
-export type FolioItemCategory = 'villa' | 'experience' | 'incidental';
+export type FolioItemCategory =
+  | 'villa'
+  | 'experience'
+  /** Exclusive additions — the only chargeable part of dining. */
+  | 'dining'
+  | 'incidental';
 
 export type FolioTabId = 'all' | 'by-type' | 'by-day' | 'by-guest';
 
@@ -28,7 +33,12 @@ export interface FolioTotals {
 }
 
 export interface FolioMeta {
-  breakdown: { villa: number; experiences: number; incidentals: number };
+  breakdown: {
+    villa: number;
+    experiences: number;
+    dining: number;
+    incidentals: number;
+  };
   paymentInfo: string;
   totals: FolioTotals;
   items: FolioItem[];
@@ -40,6 +50,7 @@ export const FOLIO_MOCK: FolioMeta = {
   breakdown: {
     villa: 12450,
     experiences: 750,
+    dining: 0,
     incidentals: 440,
   },
   paymentInfo: '···· 4242 Visa',
@@ -100,6 +111,11 @@ export const FOLIO_CATEGORY_CONFIG: Record<
     label: 'EXPERIENCE',
     chip: 'border-[#3A5E4847] bg-[#3A5E4818] text-[#3A5E48]',
     dot: 'bg-[#3A5E48]',
+  },
+  dining: {
+    label: 'DINING',
+    chip: 'border-[#B08D5747] bg-[#B08D5718] text-[#8A6D3B]',
+    dot: 'bg-[#B08D57]',
   },
   incidental: {
     label: 'INCIDENTAL',

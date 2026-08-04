@@ -64,6 +64,18 @@ export interface DiningRequest {
   // SITTING — late arrivals flagged by secondary guests
   lateArrivals?: DiningLateArrival[] | null;
 
+  // ── Exclusive additions — the only chargeable part of dining ──────────────
+  /** Priced server-side when the order was placed, so later edits can't move it. */
+  totalAmount?: number | null;
+  /** The sitting this should arrive at, when the guest attached it. */
+  linkedSittingId?: string | null;
+  /** False only while a secondary's chargeable order waits on the primary. */
+  primaryApproved: boolean;
+  approvedBy?: string | null;
+  approvedAt?: string | null;
+  declineReason?: string | null;
+  folioItemId?: string | null;
+
   createdAt: string;
   updatedAt: string;
 }
@@ -87,6 +99,9 @@ export interface EmDiningQueueItem extends DiningRequest {
     } | null;
   } | null;
 }
+
+/** The exclusive category is the only one that carries a price. */
+export const EXCLUSIVE_CATEGORY = 'EXCLUSIVE' as const;
 
 export interface CreateDiningSittingDto {
   kind: 'SITTING';
@@ -124,6 +139,9 @@ export interface MenuItemDto {
   containsShellfish?: boolean;
   otherDietaryNotes?: string;
   sortOrder?: number;
+  /** Required for EXCLUSIVE items, meaningless for everything else. */
+  price?: number | null;
+  isStanding?: boolean;
 }
 
 // ─── Daily menus ─────────────────────────────────────────────────────────────

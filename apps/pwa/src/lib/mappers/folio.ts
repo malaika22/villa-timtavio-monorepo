@@ -6,6 +6,7 @@ const TYPE_TO_CATEGORY: Record<string, UIFolioItem['category']> = {
   EXPERIENCE: 'experience',
   INCIDENTAL: 'incidental',
   PRE_STOCKED: 'incidental',
+  DINING: 'dining',
 };
 
 export function mapFolioItemToUI(item: ApiFolioItem): UIFolioItem {
@@ -37,6 +38,8 @@ export interface FolioMeta {
   villaTotal: number;
   experiencesTotal: number;
   incidentalsTotal: number;
+  /** Exclusive additions — its own line, not folded into incidentals. */
+  diningTotal: number;
 }
 
 export function mapFolioResponseToMeta(folio: FolioResponse): FolioMeta {
@@ -51,6 +54,9 @@ export function mapFolioResponseToMeta(folio: FolioResponse): FolioMeta {
   const villaTotal = sum(byType.ESTATE_BASE_RATE);
   const experiencesTotal = sum(byType.EXPERIENCE);
   const incidentalsTotal = sum([...byType.INCIDENTAL, ...byType.PRE_STOCKED]);
+  // Its own figure. Folding it into incidentals would make the four categories
+  // stop reconciling with the subtotal the moment an exclusive is charged.
+  const diningTotal = sum(byType.DINING ?? []);
 
   return {
     subtotal: summary.subtotal,
@@ -62,5 +68,6 @@ export function mapFolioResponseToMeta(folio: FolioResponse): FolioMeta {
     villaTotal,
     experiencesTotal,
     incidentalsTotal,
+    diningTotal,
   };
 }

@@ -37,6 +37,39 @@ export class DiningService {
     });
   }
 
+  /**
+   * What the exclusive items on an order actually cost.
+   *
+   * Priced from the catalogue at the moment the order is placed, never from
+   * anything the client sent — and snapshotted onto the request, so a later
+   * change to the cellar list can't rewrite what a guest agreed to.
+   *
+   * Included items simply have no price and contribute nothing.
+   */
+  private async priceItems(
+    items: { menuItemId: string; quantity?: number }[],
+  ): Promise<{ total: number; hasExclusives: boolean }> {
+    if (items.length === 0) return { total: 0, hasExclusives: false };
+
+    const dishes = await this.prisma.menuItem.findMany({
+      where: { id: { in: items.map((i) => i.menuItemId) } },
+      select: { id: true, category: true, price: true },
+    });
+
+    let total = 0;
+    let hasExclusives = false;
+    for (const item of items) {
+      const dish = dishes.find((d) => d.id === item.menuItemId);
+      if (!dish || dish.category !== 'EXCLUSIVE') continue;
+      hasExclusives = true;
+      // Decimal columns serialise as strings; Number() once, here, so nothing
+      // downstream ends up concatenating prices instead of adding them.
+      total += Number(dish.price ?? 0) * (item.quantity ?? 1);
+    }
+
+    return { total: Math.round(total * 100) / 100, hasExclusives };
+  }
+
   async create(
     bookingId: string,
     dto: CreateDiningRequestDto,
@@ -65,6 +98,12 @@ export class DiningService {
       throw new BadRequestException('An order requires at least one item.');
     }
 
+    const { total, hasExclusives } = await this.priceItems(dto.items ?? []);
+
+    // The primary carries the whole folio, so a secondary spending against it
+    // waits for them. Included dining never needs approving — only money does.
+    const needsApproval = hasExclusives && requestedBy.tier === 'secondary';
+
     const created = await this.prisma.diningRequest.create({
       data: {
         bookingId,
@@ -80,8 +119,27 @@ export class DiningService {
         items: (dto.items as unknown as Prisma.InputJsonValue) ?? undefined,
         requestedFor: dto.requestedFor,
         notes: dto.notes,
+        totalAmount: hasExclusives ? total : null,
+        linkedSittingId: dto.linkedSittingId,
+        primaryApproved: !needsApproval,
       },
     });
+
+    if (needsApproval) {
+      await this.notifications.send({
+        bookingId,
+        recipientEmail: booking.primaryGuest.email,
+        type: 'REQUEST_CONFIRMED',
+        title: `${requestedBy.name} asked for an addition`,
+        body: `${this.describe(created)} — $${total.toFixed(2)}, chargeable to your folio.`,
+        deepLink: '/approvals',
+      });
+      await this.pusher.trigger(
+        PUSHER_CHANNELS.guestBooking(bookingId),
+        'dining.approval',
+        { id: created.id },
+      );
+    }
 
     // Notify the estate manager dashboard in real time.
     await this.pusher.trigger(PUSHER_CHANNELS.emDashboard, 'dining.requested', {
@@ -95,13 +153,26 @@ export class DiningService {
     return created;
   }
 
-  async confirm(id: string) {
+  async confirm(id: string, confirmedBy = 'estate_manager') {
     const request = await this.ensureExists(id);
+
+    // Approving a secondary's spend is the primary's decision, not the estate's.
+    if (!request.primaryApproved) {
+      throw new BadRequestException(
+        'The primary member hasn’t approved this addition yet.',
+      );
+    }
 
     const updated = await this.prisma.diningRequest.update({
       where: { id },
       data: { status: 'CONFIRMED' },
     });
+
+    // Only exclusives cost anything; included dining confirms without money
+    // changing hands anywhere.
+    if (Number(updated.totalAmount ?? 0) > 0 && !updated.folioItemId) {
+      await this.chargeToFolio(updated, confirmedBy);
+    }
 
     // The guest asked for a table and heard nothing back — dining used to
     // change status silently while every experience step notified. From the
@@ -127,6 +198,18 @@ export class DiningService {
       data: { status: 'CANCELLED' },
     });
 
+    // A cancelled addition must not stay on the bill. Removed rather than
+    // zeroed, so it doesn't sit on the folio as a $0 line nobody can explain.
+    if (updated.folioItemId) {
+      await this.prisma.folioItem
+        .delete({ where: { id: updated.folioItemId } })
+        .catch(() => undefined);
+      await this.prisma.diningRequest.update({
+        where: { id },
+        data: { folioItemId: null },
+      });
+    }
+
     const cancelledThemselves =
       !!cancelledBy &&
       cancelledBy.toLowerCase() === request.requestedByEmail.toLowerCase();
@@ -146,6 +229,143 @@ export class DiningService {
     });
 
     return updated;
+  }
+
+  /**
+   * Put an exclusive addition on the bill.
+   *
+   * Attributed to whoever ordered it rather than to the primary, which is what
+   * lets the folio's by-guest tab show the party who owes what — the primary
+   * pays it all, but they can see it broken down and settle up.
+   */
+  private async chargeToFolio(
+    request: {
+      id: string;
+      bookingId: string;
+      requestedByEmail: string;
+      requestedByName: string;
+      totalAmount: unknown;
+      items: unknown;
+    },
+    loggedBy: string,
+  ) {
+    const items = Array.isArray(request.items)
+      ? (request.items as { name?: string; quantity?: number }[])
+      : [];
+    const description =
+      items.length === 1 && items[0]?.name
+        ? items[0].name
+        : `Exclusive additions · ${items.length} items`;
+
+    const amount = Number(request.totalAmount ?? 0);
+
+    const folio = await this.prisma.folioItem.create({
+      data: {
+        bookingId: request.bookingId,
+        type: 'DINING',
+        description,
+        amount,
+        quantity: 1,
+        attributedToEmail: request.requestedByEmail,
+        attributedToName: request.requestedByName,
+        loggedBy,
+        loggedAt: new Date(),
+        editableUntil: new Date(Date.now() + 30 * 60 * 1000),
+      },
+    });
+
+    await this.prisma.diningRequest.update({
+      where: { id: request.id },
+      data: { folioItemId: folio.id },
+    });
+
+    await this.pusher.folioUpdated(request.bookingId, {
+      newItem: {
+        id: folio.id,
+        description,
+        amount,
+        quantity: 1,
+        total: amount,
+        type: 'DINING',
+      },
+    });
+
+    return folio;
+  }
+
+  /**
+   * The primary's decision on a secondary's chargeable order.
+   *
+   * Deliberately separate from the estate's confirmation: two different people
+   * are answering two different questions — "will I pay for this?" and "can we
+   * supply it?" — and collapsing them would let either one imply the other.
+   */
+  async approveExclusive(id: string, approvedBy: string) {
+    const request = await this.ensureExists(id);
+    if (request.primaryApproved) return request;
+
+    const updated = await this.prisma.diningRequest.update({
+      where: { id },
+      data: { primaryApproved: true, approvedBy, approvedAt: new Date() },
+    });
+
+    await this.notifications.send({
+      bookingId: request.bookingId,
+      recipientEmail: request.requestedByEmail,
+      type: 'REQUEST_CONFIRMED',
+      title: 'Your addition was approved',
+      body: `${this.describe(updated)} — the estate will confirm shortly.`,
+      deepLink: '/dining',
+    });
+
+    // The estate can only act on it now, so surface it on their queue.
+    await this.pusher.trigger(PUSHER_CHANNELS.emDashboard, 'dining.requested', {
+      id: updated.id,
+      bookingId: updated.bookingId,
+      kind: updated.kind,
+      guestName: updated.requestedByName,
+    });
+
+    return updated;
+  }
+
+  async declineExclusive(id: string, declinedBy: string, reason?: string) {
+    const request = await this.ensureExists(id);
+
+    const updated = await this.prisma.diningRequest.update({
+      where: { id },
+      data: {
+        status: 'CANCELLED',
+        declineReason: reason ?? null,
+        approvedBy: declinedBy,
+        approvedAt: new Date(),
+      },
+    });
+
+    await this.notifications.send({
+      bookingId: request.bookingId,
+      recipientEmail: request.requestedByEmail,
+      type: 'REQUEST_CANCELLED',
+      title: 'Your addition wasn’t approved',
+      body: reason
+        ? `${this.describe(updated)} — “${reason}”`
+        : `${this.describe(updated)} — speak to the primary member if you’d like to revisit it.`,
+      deepLink: '/dining',
+    });
+
+    return updated;
+  }
+
+  /** Chargeable orders a primary still has to decide on. */
+  async getPendingApprovals(bookingId: string) {
+    return this.prisma.diningRequest.findMany({
+      where: {
+        bookingId,
+        status: 'REQUESTED',
+        primaryApproved: false,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
   }
 
   private isSitting(request: { kind: string }) {

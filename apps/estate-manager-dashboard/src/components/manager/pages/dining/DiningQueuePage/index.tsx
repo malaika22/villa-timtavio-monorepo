@@ -1,10 +1,11 @@
 'use client';
 
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
-import { Coffee, Loader2, UtensilsCrossed } from 'lucide-react';
+import { Coffee, Gem, Loader2, UtensilsCrossed } from 'lucide-react';
 import { Button } from '@repo/ui';
 import { cn } from '@repo/ui/lib/utils';
 import { toast } from 'sonner';
+import { formatPrice } from '@repo/api-types';
 import type { DiningOrderItem, EmDiningQueueItem } from '@repo/api-types';
 
 import {
@@ -96,21 +97,29 @@ export const DiningQueuePage = () => {
     <div className="space-y-3">
       <p className="text-sm text-manager-text-muted">
         {requests.length} request{requests.length === 1 ? '' : 's'} awaiting
-        confirmation, soonest first. Confirming or cancelling notifies the guest.
+        confirmation, soonest first. Confirming or cancelling notifies the guest;
+        an exclusive addition also goes on their folio.
       </p>
 
       <ul className="flex flex-col gap-2">
         {requests.map((r) => {
           const isSitting = r.kind === 'SITTING';
           const items = (r.items ?? []) as DiningOrderItem[];
+          const amount = Number(r.totalAmount ?? 0);
+          const chargeable = amount > 0;
+          // The primary's decision, not the estate's — two people answering
+          // two different questions. Shown, but not actionable, until they do.
+          const awaitingPrimary = !r.primaryApproved;
           const when = r.date ? parseISO(r.date) : null;
           const daysAway = when
             ? differenceInCalendarDays(when, new Date())
             : null;
           const urgent = daysAway != null && daysAway <= URGENT_WITHIN_DAYS;
-          const label = isSitting
-            ? (MEAL_LABEL[r.mealType ?? ''] ?? 'Sitting')
-            : 'Order';
+          const label = chargeable
+            ? (items[0]?.name ?? 'Exclusive addition')
+            : isSitting
+              ? (MEAL_LABEL[r.mealType ?? ''] ?? 'Sitting')
+              : 'Order';
           const busy =
             (confirm.isPending && confirm.variables === r.id) ||
             (cancel.isPending && cancel.variables === r.id);
@@ -123,11 +132,17 @@ export const DiningQueuePage = () => {
               <span
                 className={cn(
                   'flex size-9 shrink-0 items-center justify-center rounded-full',
-                  isSitting ? 'bg-[#f5ebe0]' : 'bg-[#eef2f6]',
+                  chargeable
+                    ? 'bg-[#faf0dc]'
+                    : isSitting
+                      ? 'bg-[#f5ebe0]'
+                      : 'bg-[#eef2f6]',
                 )}
                 aria-hidden
               >
-                {isSitting ? (
+                {chargeable ? (
+                  <Gem className="size-4 text-[#8a6d3b]" />
+                ) : isSitting ? (
                   <UtensilsCrossed className="size-4 text-[#8b6914]" />
                 ) : (
                   <Coffee className="size-4 text-[#3d6382]" />
@@ -150,7 +165,14 @@ export const DiningQueuePage = () => {
                   {when ? ` · ${format(when, 'MMM d')}` : ''}
                   {r.time ? ` · ${r.time}` : ''}
                   {r.requestedFor ? ` · for ${r.requestedFor}` : ''}
+                  {r.linkedSittingId ? ' · with their sitting' : ''}
                 </p>
+
+                {awaitingPrimary && (
+                  <p className="mt-1 text-xs font-medium text-[#8a6d3b]">
+                    Waiting on the primary member to approve the charge
+                  </p>
+                )}
 
                 {!isSitting && items.length > 0 ? (
                   <p className="mt-1 text-xs text-manager-text-muted">
@@ -178,6 +200,11 @@ export const DiningQueuePage = () => {
               </div>
 
               <div className="flex shrink-0 items-center gap-2">
+                {chargeable && (
+                  <span className="text-sm font-medium tabular-nums text-manager-text">
+                    {formatPrice(amount)}
+                  </span>
+                )}
                 {urgent && (
                   <span className="rounded-full bg-[#fdecea] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#b42318]">
                     {daysAway! <= 0 ? 'Today' : 'Tomorrow'}
@@ -195,11 +222,16 @@ export const DiningQueuePage = () => {
                 <Button
                   type="button"
                   onClick={() => act('confirm', r, label)}
-                  disabled={busy}
+                  disabled={busy || awaitingPrimary}
+                  title={
+                    awaitingPrimary
+                      ? 'The primary member hasn’t approved this charge yet'
+                      : undefined
+                  }
                   className="bg-manager-accent text-white hover:opacity-90"
                 >
                   {busy ? <Loader2 className="mr-1.5 size-4 animate-spin" /> : null}
-                  Confirm
+                  {chargeable ? 'Confirm & charge' : 'Confirm'}
                 </Button>
               </div>
             </li>

@@ -112,7 +112,12 @@ function FlatList({ items }: { items: FolioItem[] }) {
 
 /* ─── Grouped by category (BY TYPE tab) ─── */
 function ByTypeList({ items }: { items: FolioItem[] }) {
-  const order: FolioItem['category'][] = ['villa', 'experience', 'incidental'];
+  const order: FolioItem['category'][] = [
+    'villa',
+    'experience',
+    'dining',
+    'incidental',
+  ];
   return (
     <>
       {order.map((cat) => {
