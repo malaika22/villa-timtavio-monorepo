@@ -1,11 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { CalendarRange, Pencil, Plus, Trash2, UtensilsCrossed } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
 import { useMenu, useDeleteMenuItem } from '@/hooks/useMenu';
 import { MenuFormDialog } from '@/components/manager/pages/menu/MenuFormDialog';
 import { SittingTimesCard } from '@/components/manager/pages/menu/SittingTimesCard';
+import { MenuWeekGrid } from '@/components/manager/pages/menu/MenuWeekGrid';
 import type { MenuCategory, MenuItem } from '@repo/api-types';
 
 const TABS: { value: MenuCategory; label: string }[] = [
@@ -30,6 +31,10 @@ const DIET_BADGES: { key: keyof MenuItem; label: string; tone: string }[] = [
 ];
 
 export const MenuPage = () => {
+  // Two jobs on one page: what the kitchen is cooking this week, and the
+  // library of dishes it draws from. The week leads, because it's the one that
+  // changes daily and the one guests actually read.
+  const [view, setView] = useState<'week' | 'library'>('week');
   const [activeTab, setActiveTab] = useState<MenuCategory>('BREAKFAST');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<MenuItem | null>(null);
@@ -53,8 +58,41 @@ export const MenuPage = () => {
 
   return (
     <div className="font-inter space-y-5">
-      <SittingTimesCard />
+      <div className="inline-flex rounded-lg border border-manager-border bg-white p-0.5">
+        <button
+          type="button"
+          onClick={() => setView('week')}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-medium',
+            view === 'week'
+              ? 'bg-manager-accent text-white'
+              : 'text-manager-text-muted',
+          )}
+        >
+          <CalendarRange className="size-4" />
+          This week&rsquo;s menus
+        </button>
+        <button
+          type="button"
+          onClick={() => setView('library')}
+          className={cn(
+            'rounded-md px-3.5 py-1.5 text-sm font-medium',
+            view === 'library'
+              ? 'bg-manager-accent text-white'
+              : 'text-manager-text-muted',
+          )}
+        >
+          Dish library
+        </button>
+      </div>
 
+      {view === 'week' ? (
+        <>
+          <SittingTimesCard />
+          <MenuWeekGrid />
+        </>
+      ) : (
+      <>
       {/* Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
@@ -111,7 +149,7 @@ export const MenuPage = () => {
               key={item.id}
               className="flex flex-col overflow-hidden rounded-xl border border-manager-border bg-white shadow-[0_1px_3px_rgba(26,22,20,0.04)]"
             >
-              {item.photoUrl && (
+              {item.photoUrl ? (
                 <div className="h-28 w-full overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -119,6 +157,22 @@ export const MenuPage = () => {
                     alt={item.name}
                     className="size-full object-cover"
                   />
+                </div>
+              ) : (
+                // A missing photo used to render nothing, so a half-photographed
+                // menu came out as a ragged mix of tall and short cards. This
+                // holds the space and says the photo is coming, which is true.
+                <div
+                  className="flex h-28 w-full flex-col items-center justify-center gap-1 bg-gradient-to-br from-[#fbf3df] to-[#f0ede6]"
+                  aria-hidden
+                >
+                  <UtensilsCrossed
+                    className="size-6 text-[#b08d57]"
+                    strokeWidth={1.25}
+                  />
+                  <span className="text-[9px] font-medium uppercase tracking-[1px] text-[#9a8a6b]">
+                    Photo coming soon
+                  </span>
                 </div>
               )}
               <div className="flex flex-1 flex-col p-4">
@@ -169,6 +223,8 @@ export const MenuPage = () => {
             </div>
           ))}
         </div>
+      )}
+      </>
       )}
 
       <MenuFormDialog

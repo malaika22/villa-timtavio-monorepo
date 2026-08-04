@@ -175,6 +175,21 @@ export const API = {
     queue: '/api/v1/dining/queue',
     lateArrival: (id: string) => `/api/v1/dining/${id}/late-arrival`,
   },
+  dailyMenus: {
+    /** Guest — published services only, over a date range. */
+    published: (from: string, to: string) =>
+      `/api/v1/daily-menus/published?from=${from}&to=${to}`,
+    /** EM — the planning grid, drafts included. */
+    range: (from: string, to: string) =>
+      `/api/v1/daily-menus?from=${from}&to=${to}`,
+    gaps: (withinDays: number) =>
+      `/api/v1/daily-menus/gaps?withinDays=${withinDays}`,
+    upsert: '/api/v1/daily-menus',
+    copy: '/api/v1/daily-menus/copy',
+    publish: (id: string) => `/api/v1/daily-menus/${id}/publish`,
+    unpublish: (id: string) => `/api/v1/daily-menus/${id}/unpublish`,
+    remove: (id: string) => `/api/v1/daily-menus/${id}`,
+  },
   notifications: {
     list: (bookingId: string) => `/api/v1/notifications/bookings/${bookingId}`,
     unreadCount: (bookingId: string) =>

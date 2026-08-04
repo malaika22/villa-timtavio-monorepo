@@ -47,6 +47,22 @@ export function useCreateDiningRequest() {
   });
 }
 
+/**
+ * The published menus across the guest's stay.
+ *
+ * Fetched for the whole stay rather than a day at a time: guests have the app
+ * weeks before arrival and browse the days ahead, and a stay is at most a
+ * couple of dozen services.
+ */
+export function useDailyMenus(from?: string | null, to?: string | null) {
+  return useQuery({
+    queryKey: ['daily-menus', from, to],
+    queryFn: () => diningApi.dailyMenus(from!, to!),
+    enabled: !!from && !!to,
+    staleTime: 60_000,
+  });
+}
+
 /** Estate-configured recommended sitting times per meal. */
 export function useSittingTimes() {
   return useQuery({

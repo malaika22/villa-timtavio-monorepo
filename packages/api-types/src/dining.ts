@@ -1,4 +1,4 @@
-import type { MenuCategory } from './catalog';
+import type { MenuCategory, MenuItem } from './catalog';
 
 export type DiningRequestKind = 'SITTING' | 'ORDER';
 export type DiningRequestStatus = 'REQUESTED' | 'CONFIRMED' | 'CANCELLED';
@@ -124,4 +124,65 @@ export interface MenuItemDto {
   containsShellfish?: boolean;
   otherDietaryNotes?: string;
   sortOrder?: number;
+}
+
+// ─── Daily menus ─────────────────────────────────────────────────────────────
+
+/** The three services planned per day. Snacks and drinks are always available. */
+export type PlannedMeal = 'BREAKFAST' | 'LUNCH' | 'DINNER';
+
+export const PLANNED_MEALS: PlannedMeal[] = ['BREAKFAST', 'LUNCH', 'DINNER'];
+
+export interface DailyMenuItem {
+  id: string;
+  menuItemId: string;
+  sortOrder: number;
+  menuItem: MenuItem;
+}
+
+/**
+ * What the chef is actually cooking, for one meal on one day.
+ *
+ * `MenuItem` alone has no notion of "today", so every active dish was shown to
+ * every guest on every day. A service is drawn from the dish library and stays
+ * invisible until `publishedAt` is set — a half-decided Thursday should never
+ * reach a guest.
+ */
+export interface DailyMenu {
+  id: string;
+  /** ISO date only, e.g. "2026-08-06". */
+  date: string;
+  mealType: MenuCategory;
+  note?: string | null;
+  publishedAt?: string | null;
+  publishedBy?: string | null;
+  items: DailyMenuItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertDailyMenuDto {
+  date: string;
+  mealType: MenuCategory;
+  note?: string;
+  /** The whole line-up, in reading order. Authoritative. */
+  menuItemIds?: string[];
+}
+
+export interface CopyDailyMenuDto {
+  fromStart: string;
+  toStart: string;
+  days?: number;
+}
+
+export interface CopyDailyMenuResult {
+  copied: number;
+  /** Services skipped because the target was already published. */
+  skipped: number;
+}
+
+/** Days in the near future with nothing published — a silent failure otherwise. */
+export interface DailyMenuGaps {
+  withinDays: number;
+  gaps: { date: string; missing: MenuCategory[] }[];
 }
