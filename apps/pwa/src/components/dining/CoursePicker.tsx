@@ -12,11 +12,14 @@ import { DishThumb } from './DishThumb';
 /**
  * The filters worth offering, and when.
  *
- * `relevant` is the point: a "No shellfish" chip on a course with no shellfish
- * in it is a control that can only ever do nothing, and a "Vegetarian" chip is
- * a dead end until the estate has actually flagged some dishes. Both were
- * showing regardless, which is how you end up tapping Vegetarian and being
- * shown a fish ceviche.
+ * The same six flags the estate sets on a dish, so a guest is filtering by
+ * exactly what the kitchen recorded — nothing here is a separate vocabulary
+ * that could drift from it.
+ *
+ * `relevant` is the other half: a "No shellfish" chip on a course with no
+ * shellfish in it is a control that can only ever do nothing, and "Vegetarian"
+ * is a dead end until the estate has actually flagged some dishes. Both were
+ * showing regardless, which is how you tap Vegetarian and are shown a ceviche.
  */
 const FILTERS = [
   {
@@ -26,11 +29,19 @@ const FILTERS = [
     relevant: (all: MenuItem[]) => all.some((d) => d.isVegetarian),
   },
   {
-    key: 'NO_SHELLFISH',
-    label: 'No shellfish',
-    test: (d: MenuItem) => !d.containsShellfish,
-    relevant: (all: MenuItem[]) => all.some((d) => d.containsShellfish),
+    key: 'VEGAN',
+    label: 'Vegan',
+    test: (d: MenuItem) => !!d.isVegan,
+    relevant: (all: MenuItem[]) => all.some((d) => d.isVegan),
   },
+  {
+    key: 'GLUTEN_FREE',
+    label: 'Gluten-free',
+    test: (d: MenuItem) => !!d.isGlutenFree,
+    relevant: (all: MenuItem[]) => all.some((d) => d.isGlutenFree),
+  },
+  // The estate marks a dish as *containing* something; a guest filters to
+  // avoid it. Same three flags, read from the other side.
   {
     key: 'NO_NUTS',
     label: 'No nuts',
@@ -42,6 +53,12 @@ const FILTERS = [
     label: 'No dairy',
     test: (d: MenuItem) => !d.containsDairy,
     relevant: (all: MenuItem[]) => all.some((d) => d.containsDairy),
+  },
+  {
+    key: 'NO_SHELLFISH',
+    label: 'No shellfish',
+    test: (d: MenuItem) => !d.containsShellfish,
+    relevant: (all: MenuItem[]) => all.some((d) => d.containsShellfish),
   },
 ] as const;
 
@@ -135,7 +152,7 @@ export const CoursePicker = ({
             </span>
           </div>
 
-          {chips.length > 0 && dishes.length > 6 && (
+          {chips.length > 0 && (
             <div className="no-scrollbar flex shrink-0 gap-1.5 overflow-x-auto border-b border-[#F0EDE6] px-4 py-2">
               {[{ key: 'ALL' as const, label: 'Everything' }, ...chips].map(
                 (f) => (

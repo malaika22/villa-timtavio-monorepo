@@ -9,7 +9,7 @@ export type * from './inquiries';
 export type * from './requests';
 export * from './rooms';
 export type * from './vendors';
-export type * from './manifest';
+export * from './manifest';
 export type * from './system';
 export type * from './dashboard';
 export type * from './audit';

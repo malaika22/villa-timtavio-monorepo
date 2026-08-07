@@ -26,7 +26,17 @@ import type {
   MenuCourse,
   MenuItem,
 } from '@repo/api-types';
-import { COURSE_LABELS, COURSES_BY_MEAL } from '@repo/api-types';
+import { COURSE_LABELS, COURSES_BY_MEAL, dietaryLabel } from '@repo/api-types';
+
+/** One person's restrictions, in the words the manifest form used. */
+const dietaryLine = (row: {
+  allergies?: string | null;
+  restrictions: string[];
+  other?: string | null;
+}) =>
+  [row.allergies, row.restrictions.map(dietaryLabel).join(', '), row.other]
+    .filter(Boolean)
+    .join(' · ');
 
 import {
   useKitchenSheet,
@@ -279,9 +289,7 @@ export const KitchenSheet = () => {
                         {party.dietary.map((row) => (
                           <span key={row.name} className="text-xs text-[#8f2b21]">
                             <span className="font-medium">{row.name}:</span>{' '}
-                            {[row.allergies, row.restrictions.join(', '), row.other]
-                              .filter(Boolean)
-                              .join(' · ')}
+                            {dietaryLine(row)}
                           </span>
                         ))}
                       </div>
@@ -353,14 +361,6 @@ function Ticket({
     course,
     items: chosen.filter((i) => i.course === course),
   }));
-
-  const allergies = service.dietary
-    .map((r) =>
-      `${r.name}: ${[r.allergies, r.restrictions.join(', '), r.other]
-        .filter(Boolean)
-        .join(' · ')}`,
-    )
-    .join(' · ');
 
   return (
     <div
@@ -440,11 +440,11 @@ function Ticket({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-dashed border-manager-border px-3 py-1.5 text-[10.5px] text-manager-text-muted">
-        {allergies && (
-          <span className="font-medium text-[#b42318]">⚠ {allergies}</span>
-        )}
-
+      {/* No allergy line here. It sits once under the day, directly above and
+          always in view — repeating it on every ticket made a wall of red
+          longer than the food, which is how a warning turns into wallpaper.
+          The amend dialog still carries it: that screen has no day above it. */}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-dashed border-manager-border px-3 py-1.5 text-[10.5px] text-manager-text-muted empty:hidden">
         {service.addedByEstate && (
           <span className="inline-flex items-center gap-1">
             Added by the estate
@@ -621,9 +621,7 @@ function AmendDialog({
               {service.dietary.map((row) => (
                 <span key={row.name} className="text-xs text-[#8f2b21]">
                   <span className="font-medium">{row.name}:</span>{' '}
-                  {[row.allergies, row.restrictions.join(', '), row.other]
-                    .filter(Boolean)
-                    .join(' · ')}
+                  {dietaryLine(row)}
                 </span>
               ))}
             </div>
