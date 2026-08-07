@@ -1,10 +1,14 @@
 import {
   Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
+  Post,
   Put,
   Query,
 } from '@nestjs/common';
@@ -74,9 +78,43 @@ export class MenuController {
     }
 
     return this.selections.upsert(bookingId, dto, {
-      email: user?.email ?? 'unknown',
+      // An Auth0 access token doesn't always carry an email claim, and the run
+      // sheet was duly reporting "Amended by unknown" — which reads like a
+      // fault rather than a colleague. Fall through to something real.
+      email: user?.email || user?.auth0Id || (estate ? 'the estate' : 'a guest'),
       name: user?.firstName || user?.email || 'The party',
       isEstate: estate,
     });
+  }
+
+  /**
+   * Stop serving a meal, or clear one.
+   *
+   * The estate's side of the arrival-day override: a meal it added exists only
+   * as its selection row, so removing the row un-adds it. For a meal served by
+   * default the same call just clears the choices.
+   */
+  @Delete('bookings/:bookingId/selections')
+  @Roles('estate_manager', 'owner')
+  remove(
+    @Param('bookingId') bookingId: string,
+    @Query('date') date: string,
+    @Query('mealType') mealType: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.selections.remove(bookingId, date, mealType, {
+      email: user?.email || user?.auth0Id || 'the estate',
+    });
+  }
+
+  /** Ask the party to finish a day before it closes. */
+  @Post('bookings/:bookingId/nudge')
+  @HttpCode(HttpStatus.OK)
+  @Roles('estate_manager', 'owner')
+  nudge(
+    @Param('bookingId') bookingId: string,
+    @Body() body: { date: string },
+  ) {
+    return this.selections.nudge(bookingId, body?.date);
   }
 }

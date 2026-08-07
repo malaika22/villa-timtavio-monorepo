@@ -415,6 +415,17 @@ export class ManifestService {
       throw new BadRequestException('Add at least one guest before submitting');
     }
 
+    // The primary isn't a manifestGuest row, so nothing in the loop above ever
+    // checked them — a primary could add their party, submit, and leave the
+    // estate to discover at check-in that the person paying had no room. The
+    // progress card already knew this (`primaryComplete`); it simply had no
+    // way to stop the submission.
+    if (booking.primaryRoomNumber == null) {
+      throw new BadRequestException(
+        'Choose your own room before submitting. The estate can work around most things, but not who is sleeping where.',
+      );
+    }
+
     if (booking.manifestStatus === 'APPROVED') {
       throw new BadRequestException(
         'Manifest has already been approved. Contact the estate to make changes.',

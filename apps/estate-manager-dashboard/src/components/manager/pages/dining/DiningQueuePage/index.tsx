@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
-import { Coffee, Gem, Loader2 } from 'lucide-react';
+import { CalendarDays, Coffee, Gem, Inbox, Loader2 } from 'lucide-react';
 import { Button } from '@repo/ui';
 import { cn } from '@repo/ui/lib/utils';
 import { toast } from 'sonner';
@@ -41,12 +42,57 @@ function partyOf(r: EmDiningQueueItem): string {
  * works from. Snacks, drinks and chargeable additions keep their
  * acknowledgement below — those genuinely arrive unannounced.
  */
-export const DiningQueuePage = () => (
-  <div className="space-y-8">
-    <KitchenSheet />
-    <OrdersWaiting />
-  </div>
-);
+export const DiningQueuePage = () => {
+  const [tab, setTab] = useState<'kitchen' | 'waiting'>('kitchen');
+  const { data: waiting = [] } = useDiningQueue();
+
+  return (
+    <div className="space-y-5">
+      <div className="inline-flex rounded-lg border border-manager-border bg-white p-0.5">
+        <button
+          type="button"
+          onClick={() => setTab('kitchen')}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-medium',
+            tab === 'kitchen'
+              ? 'bg-manager-accent text-white'
+              : 'text-manager-text-muted',
+          )}
+        >
+          <CalendarDays className="size-4" />
+          The kitchen&rsquo;s week
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab('waiting')}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-medium',
+            tab === 'waiting'
+              ? 'bg-manager-accent text-white'
+              : 'text-manager-text-muted',
+          )}
+        >
+          <Inbox className="size-4" />
+          Waiting on you
+          {waiting.length > 0 && (
+            <span
+              className={cn(
+                'ml-0.5 rounded-full px-1.5 text-[11px] font-semibold tabular-nums',
+                tab === 'waiting'
+                  ? 'bg-white/20 text-white'
+                  : 'bg-[#fdecea] text-[#b42318]',
+              )}
+            >
+              {waiting.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {tab === 'kitchen' ? <KitchenSheet /> : <OrdersWaiting />}
+    </div>
+  );
+};
 
 const OrdersWaiting = () => {
   const { data: requests = [], isLoading } = useDiningQueue();
@@ -63,9 +109,23 @@ const OrdersWaiting = () => {
     );
   }
 
-  // Nothing waiting is the normal state now that sittings confirm themselves,
-  // so an empty panel says nothing worth the space it would take.
-  if (requests.length === 0) return null;
+  if (requests.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-manager-border bg-manager-card p-12 text-center">
+        <Inbox
+          className="mx-auto mb-3 size-6 text-manager-text-muted"
+          aria-hidden
+        />
+        <p className="text-sm font-medium text-manager-text">
+          Nothing waiting on you
+        </p>
+        <p className="mx-auto mt-1 max-w-sm text-sm text-manager-text-muted">
+          Tables confirm themselves. Snacks, drinks and chargeable additions
+          land here the moment a guest asks for one.
+        </p>
+      </div>
+    );
+  }
 
   const act = (
     kind: 'confirm' | 'cancel',

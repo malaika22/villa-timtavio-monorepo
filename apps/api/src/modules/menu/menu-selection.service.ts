@@ -7,10 +7,12 @@ import {
 import { MenuCourse, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PusherService, PUSHER_CHANNELS } from '../pusher/pusher.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { ACTIVE_BOOKING_STATUSES } from '../bookings/booking-status.constants';
 import { MenuRulesService } from './menu-rules.service';
 import { UpsertMenuSelectionDto } from './dto/upsert-menu-selection.dto';
 import {
+  COMPOSED_MEALS,
   COURSES_BY_MEAL,
   ComposedMeal,
   DiningRules,
@@ -32,12 +34,16 @@ function toDateOnly(input: string | Date): Date {
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 /**
- * Which meals a party is actually present for on a given day of their stay.
+ * Which meals a party is normally present for on a given day of their stay.
  *
- * Arrival day has no breakfast and departure day has no lunch or dinner. It
- * matters more than it looks: an unchosen meal falls to the chef, and a chef
- * cooking breakfast for a party still on a plane is the kind of waste that
- * makes an estate stop trusting the system.
+ * Arrival day has no breakfast and departure day has no lunch or dinner,
+ * because check-in is mid-afternoon and check-out is late morning. It matters
+ * more than it looks: an unchosen meal falls to the chef, and a chef cooking
+ * breakfast for a party still on a plane is the kind of waste that makes an
+ * estate stop trusting the system.
+ *
+ * It's a default, not a law — see {@link servedOnDay}. A dawn flight is a real
+ * thing and the concierge is the one who knows about it.
  */
 export function mealsOnDay(
   date: Date,
@@ -53,6 +59,33 @@ export function mealsOnDay(
   return ['BREAKFAST', 'LUNCH', 'DINNER'];
 }
 
+/**
+ * What the estate is actually serving that day: the default, plus anything it
+ * has added.
+ *
+ * A selection row *is* the override. The estate adding breakfast to an arrival
+ * day creates an empty one, which is enough for the meal to appear on the run
+ * sheet and in the party's plan — no second table needed to record a decision
+ * the first one already implies.
+ */
+export function servedOnDay(
+  date: Date,
+  checkIn: Date,
+  checkOut: Date,
+  selections: { date: Date; mealType: string }[],
+): ComposedMeal[] {
+  const base = mealsOnDay(date, checkIn, checkOut);
+  const day = iso(date);
+  const added = selections
+    .filter((s) => iso(s.date) === day)
+    .map((s) => s.mealType as ComposedMeal)
+    .filter((m) => COMPOSED_MEALS.includes(m) && !base.includes(m));
+
+  return [...new Set([...base, ...added])].sort(
+    (a, b) => COMPOSED_MEALS.indexOf(a) - COMPOSED_MEALS.indexOf(b),
+  );
+}
+
 const selectionInclude = {
   items: {
     include: { menuItem: true },
@@ -66,6 +99,7 @@ export class MenuSelectionService {
     private prisma: PrismaService,
     private rules: MenuRulesService,
     private pusher: PusherService,
+    private notifications: NotificationsService,
   ) {}
 
   /**
@@ -103,7 +137,7 @@ export class MenuSelectionService {
       d <= checkOut && days.length < 60;
       d = new Date(d.getTime() + DAY_MS)
     ) {
-      const meals = mealsOnDay(d, checkIn, checkOut);
+      const meals = servedOnDay(d, checkIn, checkOut, selections);
       if (meals.length === 0) continue;
 
       const closesAt = this.rules.closesAt(d, rules.menu);
@@ -157,9 +191,20 @@ export class MenuSelectionService {
     }
 
     const meal = dto.mealType as ComposedMeal;
-    if (!mealsOnDay(date, checkIn, checkOut).includes(meal)) {
+    if (!COMPOSED_MEALS.includes(meal)) {
       throw new BadRequestException(
-        `The estate doesn't serve ${meal.toLowerCase()} to your party on ${iso(date)}.`,
+        'Only breakfast, lunch and dinner are composed.',
+      );
+    }
+
+    // The default pattern skips breakfast on arrival day and lunch and dinner
+    // on departure day. The estate can serve one anyway — a dawn flight is a
+    // real thing and the concierge is the one who knows about it — but a guest
+    // can only compose a meal that's already on the plan.
+    const served = await this.servedMealsFor(bookingId, date, checkIn, checkOut);
+    if (!served.includes(meal) && !actor.isEstate) {
+      throw new BadRequestException(
+        `${meal.charAt(0)}${meal.slice(1).toLowerCase()} isn't served on ${iso(date)} — ask your concierge if you'd like it.`,
       );
     }
 
@@ -253,6 +298,139 @@ export class MenuSelectionService {
     );
 
     return this.byId(selection.id);
+  }
+
+  private async servedMealsFor(
+    bookingId: string,
+    date: Date,
+    checkIn: Date,
+    checkOut: Date,
+  ): Promise<ComposedMeal[]> {
+    const rows = await this.prisma.menuSelection.findMany({
+      where: { bookingId, date },
+      select: { date: true, mealType: true },
+    });
+    return servedOnDay(date, checkIn, checkOut, rows);
+  }
+
+  /**
+   * Stop serving a meal, or clear one.
+   *
+   * The same call does both, because at the data level they are the same thing:
+   * a meal the estate added exists only as its selection row, so removing the
+   * row un-adds it — while for a meal that's served by default, removing the
+   * row simply means nothing is chosen and the chef decides.
+   */
+  async remove(
+    bookingId: string,
+    dateStr: string,
+    mealType: string,
+    actor: { email: string },
+  ) {
+    const date = toDateOnly(dateStr);
+    const existing = await this.prisma.menuSelection.findUnique({
+      where: {
+        bookingId_date_mealType: {
+          bookingId,
+          date,
+          mealType: mealType as ComposedMeal,
+        },
+      },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException('Nothing to remove');
+
+    await this.prisma.menuSelection.delete({ where: { id: existing.id } });
+
+    await this.pusher.trigger(PUSHER_CHANNELS.emDashboard, 'menu.composed', {
+      bookingId,
+      date: iso(date),
+      mealType,
+      byEstate: true,
+      removedBy: actor.email,
+    });
+    await this.pusher.trigger(
+      PUSHER_CHANNELS.guestBooking(bookingId),
+      'menu.composed',
+      { date: iso(date), mealType, byEstate: true },
+    );
+
+    return { bookingId, date: iso(date), mealType };
+  }
+
+  /**
+   * Ask the party to finish a day before it closes.
+   *
+   * The run sheet already knows which meals are open; without this the only
+   * thing an estate can do about it is nothing, and the day quietly falls to
+   * the chef. Chef's choice should be a decision somebody made.
+   */
+  async nudge(bookingId: string, dateStr: string) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        id: true,
+        checkIn: true,
+        checkOut: true,
+        primaryGuest: { select: { email: true, firstName: true } },
+      },
+    });
+    if (!booking) throw new NotFoundException('Booking not found');
+
+    const rules = await this.rules.get();
+    const date = toDateOnly(dateStr);
+    const closesAt = this.rules.closesAt(date, rules.menu);
+
+    const selections = await this.prisma.menuSelection.findMany({
+      where: { bookingId, date },
+      include: { _count: { select: { items: true } } },
+    });
+    const served = servedOnDay(
+      date,
+      toDateOnly(booking.checkIn),
+      toDateOnly(booking.checkOut),
+      selections,
+    );
+    const open = served.filter(
+      (meal) =>
+        (selections.find((s) => s.mealType === meal)?._count.items ?? 0) === 0,
+    );
+
+    if (open.length === 0) {
+      throw new BadRequestException(
+        'Every meal on that day has been chosen — there is nothing to chase.',
+      );
+    }
+
+    const when = date.toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      timeZone: 'UTC',
+    });
+    const meals = open
+      .map((m) => m.charAt(0) + m.slice(1).toLowerCase())
+      .join(' and ');
+
+    await this.notifications.send({
+      bookingId,
+      recipientEmail: booking.primaryGuest.email,
+      type: 'EXPERIENCE_READY',
+      title: `${when} is still to choose`,
+      body: `${meals} on ${when} hasn't been decided yet. Choices close ${closesAt.toLocaleDateString(
+        'en-GB',
+        { weekday: 'short', timeZone: 'UTC' },
+      )} — after that the chef will choose for you.`,
+      deepLink: '/dining',
+    });
+
+    await this.pusher.trigger(
+      PUSHER_CHANNELS.guestBooking(bookingId),
+      'menu.nudge',
+      { date: iso(date), meals: open },
+    );
+
+    return { bookingId, date: iso(date), meals: open };
   }
 
   /**
@@ -361,10 +539,16 @@ export class MenuSelectionService {
         const checkOut = toDateOnly(booking.checkOut);
         if (d < checkIn || d > checkOut) continue;
 
-        const meals = mealsOnDay(d, checkIn, checkOut);
+        const meals = servedOnDay(
+          d,
+          checkIn,
+          checkOut,
+          booking.menuSelections,
+        );
         if (meals.length === 0) continue;
 
         const dietary = this.dietaryBrief(booking);
+        const defaults = mealsOnDay(d, checkIn, checkOut);
 
         for (const mealType of meals) {
           const selection = booking.menuSelections.find(
@@ -388,6 +572,13 @@ export class MenuSelectionService {
             chosen: selection ? this.shape(selection) : null,
             amendedAt: selection?.amendedAt?.toISOString() ?? null,
             amendedByEmail: selection?.amendedByEmail ?? null,
+            /**
+             * The estate added this one — breakfast on an arrival day for a
+             * party off a dawn flight. Flagged so the sheet can say so, and so
+             * removing it reads as "we're not serving it" rather than
+             * "somebody deleted the choices".
+             */
+            addedByEstate: !defaults.includes(mealType),
           });
         }
       }

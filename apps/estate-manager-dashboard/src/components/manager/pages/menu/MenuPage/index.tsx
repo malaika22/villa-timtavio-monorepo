@@ -6,6 +6,7 @@ import { cn } from '@repo/ui/lib/utils';
 import { COURSE_LABELS, COURSES_BY_MEAL } from '@repo/api-types';
 import { useMenu, useDeleteMenuItem } from '@/hooks/useMenu';
 import { MenuFormDialog } from '@/components/manager/pages/menu/MenuFormDialog';
+import { ConfirmDialog } from '@/components/manager/ui/ConfirmDialog';
 import { DiningRulesCard } from '@/components/manager/pages/menu/DiningRulesCard';
 import type { MealType, MenuCategory, MenuItem } from '@repo/api-types';
 
@@ -38,6 +39,7 @@ export const MenuPage = () => {
   const [activeTab, setActiveTab] = useState<MenuCategory>('BREAKFAST');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<MenuItem | null>(null);
+  const [removing, setRemoving] = useState<MenuItem | null>(null);
 
   const { data: items, isLoading } = useMenu();
   const deleteItem = useDeleteMenuItem();
@@ -222,11 +224,7 @@ export const MenuPage = () => {
                       <Pencil className="size-3.5" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(`Remove "${item.name}" from the menu?`)) {
-                          deleteItem.mutate(item.id);
-                        }
-                      }}
+                      onClick={() => setRemoving(item)}
                       className="flex size-7 items-center justify-center rounded-md text-manager-text-muted hover:bg-[#fef6f4] hover:text-[#9a3a30]"
                       aria-label="Remove"
                     >
@@ -261,6 +259,19 @@ export const MenuPage = () => {
       )}
       </>
       )}
+
+      <ConfirmDialog
+        open={!!removing}
+        onOpenChange={(v) => !v && setRemoving(null)}
+        title={`Remove “${removing?.name ?? ''}”?`}
+        description="It comes off the menu straight away, so no party can choose it again. Days already composed keep it."
+        confirmLabel="Remove dish"
+        busy={deleteItem.isPending}
+        onConfirm={() =>
+          removing &&
+          deleteItem.mutate(removing.id, { onSuccess: () => setRemoving(null) })
+        }
+      />
 
       <MenuFormDialog
         open={dialogOpen}

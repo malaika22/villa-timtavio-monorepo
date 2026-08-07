@@ -514,6 +514,32 @@ export class DiningService {
       guestName: by.name,
     });
 
+    // And tell the primary. They booked the table and they're the one sitting
+    // at it wondering where somebody is — the estate knowing on a dashboard
+    // does nothing for the person holding a chair.
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: sitting.bookingId },
+      select: { primaryGuest: { select: { email: true } } },
+    });
+    const primaryEmail = booking?.primaryGuest.email;
+    if (primaryEmail && primaryEmail.toLowerCase() !== by.email.toLowerCase()) {
+      await this.notifications.send({
+        bookingId: sitting.bookingId,
+        recipientEmail: primaryEmail,
+        type: 'REQUEST_CONFIRMED',
+        title: `${by.name} will be late`,
+        body: dto.note?.trim()
+          ? `${this.describe(sitting)} — “${dto.note.trim()}”`
+          : `${this.describe(sitting)} — they'll join you once they arrive.`,
+        deepLink: '/dining',
+      });
+      await this.pusher.trigger(
+        PUSHER_CHANNELS.guestBooking(sitting.bookingId),
+        'dining.late',
+        { id, guestName: by.name },
+      );
+    }
+
     return updated;
   }
 
