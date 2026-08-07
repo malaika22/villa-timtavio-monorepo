@@ -59,3 +59,44 @@ export function useAmendMeal() {
     onError: (e) => toast.error((e as Error).message),
   });
 }
+
+/**
+ * Serve a meal the day doesn't normally carry, or stop serving one.
+ *
+ * Adding is just composing it — an empty selection is enough to put the meal on
+ * the plan — so this is only the other direction.
+ */
+export function useRemoveMeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      bookingId,
+      date,
+      mealType,
+    }: {
+      bookingId: string;
+      date: string;
+      mealType: string;
+    }) => emDiningApi.removeMeal(bookingId, date, mealType),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['kitchen-sheet'] });
+      toast.success('Taken off the sheet');
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+}
+
+/** Ask the party to finish a day before it closes. */
+export function useNudgeParty() {
+  return useMutation({
+    mutationFn: ({ bookingId, date }: { bookingId: string; date: string }) =>
+      emDiningApi.nudge(bookingId, date),
+    onSuccess: (res) =>
+      toast.success(
+        `Asked the party about ${res.meals
+          .map((m) => m.toLowerCase())
+          .join(' and ')}`,
+      ),
+    onError: (e) => toast.error((e as Error).message),
+  });
+}

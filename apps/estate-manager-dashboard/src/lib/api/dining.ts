@@ -26,4 +26,12 @@ export const emDiningApi = {
   /** The concierge amending a day the kitchen has already been told about. */
   amendMeal: (bookingId: string, dto: UpsertMenuSelectionDto) =>
     api.put<MenuSelection>(API.menu.selections(bookingId), dto),
+  /** Stop serving a meal the estate added, or clear a default one. */
+  removeMeal: (bookingId: string, date: string, mealType: string) =>
+    api.delete<{ bookingId: string }>(
+      API.menu.removeSelection(bookingId, date, mealType),
+    ),
+  /** Ask the party to finish a day before it closes. */
+  nudge: (bookingId: string, date: string) =>
+    api.post<{ meals: string[] }>(API.menu.nudge(bookingId), { date }),
 };

@@ -275,6 +275,12 @@ export interface KitchenService {
   chosen?: MenuSelection | null;
   amendedAt?: string | null;
   amendedByEmail?: string | null;
+  /**
+   * The estate added this meal outside the usual pattern — breakfast on an
+   * arrival day for a party off a dawn flight. Flagged so removing it reads as
+   * "we're not serving it" rather than "somebody deleted the choices".
+   */
+  addedByEstate?: boolean;
 }
 
 export interface KitchenDay {

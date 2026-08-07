@@ -193,6 +193,11 @@ export const API = {
     /** Primary (or the estate, after the cutoff) — compose one meal. */
     selections: (bookingId: string) =>
       `/api/v1/menu/bookings/${bookingId}/selections`,
+    /** EM — stop serving a meal, or clear one. */
+    removeSelection: (bookingId: string, date: string, mealType: string) =>
+      `/api/v1/menu/bookings/${bookingId}/selections?date=${date}&mealType=${mealType}`,
+    /** EM — ask the party to finish a day before it closes. */
+    nudge: (bookingId: string) => `/api/v1/menu/bookings/${bookingId}/nudge`,
     /** EM — every meal the estate is cooking over a stretch of days. */
     kitchen: (from: string, to: string) =>
       `/api/v1/menu/kitchen?from=${from}&to=${to}`,

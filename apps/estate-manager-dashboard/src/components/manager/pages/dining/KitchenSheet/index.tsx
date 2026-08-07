@@ -3,14 +3,17 @@
 import { useMemo, useState } from 'react';
 import { addDays, format, parseISO } from 'date-fns';
 import {
+  BellRing,
   Check,
   ChevronLeft,
   ChevronRight,
   Clock,
   Lock,
   Pencil,
+  Plus,
   Search,
   TriangleAlert,
+  Trash2,
   Users,
   UtensilsCrossed,
   X,
@@ -25,7 +28,12 @@ import type {
 } from '@repo/api-types';
 import { COURSE_LABELS, COURSES_BY_MEAL } from '@repo/api-types';
 
-import { useKitchenSheet, useAmendMeal } from '@/hooks/useDiningRules';
+import {
+  useKitchenSheet,
+  useAmendMeal,
+  useNudgeParty,
+  useRemoveMeal,
+} from '@/hooks/useDiningRules';
 import { useMenu } from '@/hooks/useMenu';
 
 const MEAL_LABEL: Record<string, string> = {
@@ -35,6 +43,34 @@ const MEAL_LABEL: Record<string, string> = {
 };
 
 const iso = (d: Date) => format(d, 'yyyy-MM-dd');
+
+/** "09:30" → 570, for sorting. Falls back to the window when no table is booked. */
+const atMinute = (s: KitchenService) => {
+  const t = s.sittingTime ?? s.window.start;
+  const m = t.match(/^(\d{1,2}):(\d{2})$/);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : 0;
+};
+
+/**
+ * Day → party → services, each party's meals in the order they're cooked.
+ *
+ * Booking order put breakfast, lunch and dinner side by side across two
+ * columns, so the day had no shape at all. A chef reads a service sheet
+ * forwards.
+ */
+function groupByParty(services: KitchenService[]) {
+  const map = new Map<string, KitchenService[]>();
+  for (const s of services) {
+    map.set(s.bookingId, [...(map.get(s.bookingId) ?? []), s]);
+  }
+  return [...map.entries()].map(([bookingId, list]) => ({
+    bookingId,
+    partyName: list[0]!.partyName,
+    covers: list[0]!.covers,
+    dietary: list[0]!.dietary,
+    services: [...list].sort((a, b) => atMinute(a) - atMinute(b)),
+  }));
+}
 
 /**
  * What the kitchen is cooking, day by day, for whoever is in the villa.
@@ -52,6 +88,9 @@ export const KitchenSheet = () => {
 
   const { data, isLoading } = useKitchenSheet(from, to);
   const { data: dishes = [] } = useMenu();
+  const addMeal = useAmendMeal();
+  const removeMeal = useRemoveMeal();
+  const nudge = useNudgeParty();
   const [amending, setAmending] = useState<KitchenService | null>(null);
   const [amendingDate, setAmendingDate] = useState<string>('');
 
@@ -129,48 +168,151 @@ export const KitchenSheet = () => {
           </p>
         </div>
       ) : (
-        days.map((day) => (
-          <section key={day.date} className="space-y-2">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <h3 className="text-sm font-semibold text-manager-text">
-                {format(parseISO(day.date), 'EEEE d MMMM')}
-              </h3>
-              <span
-                className={cn(
-                  'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
-                  day.isLocked
-                    ? 'bg-[#eef0f5] text-[#3a4a6b]'
-                    : 'bg-[#faf0dc] text-[#8a6d3b]',
-                )}
-              >
-                {day.isLocked ? (
-                  <>
-                    <Lock className="size-2.5" /> Settled
-                  </>
-                ) : (
-                  <>
-                    <Clock className="size-2.5" /> Closes{' '}
-                    {format(new Date(day.closesAt), 'EEE HH:mm')}
-                  </>
-                )}
-              </span>
-            </div>
+        days.map((day) => {
+          // Grouped by party. A villa cooks for one at a time, so repeating
+          // the name on every card was six copies of the same fact — and when
+          // there really are two stays, this is the only way to tell whose
+          // allergy is whose.
+          const parties = groupByParty(day.services);
 
-            <div className="grid gap-3 xl:grid-cols-2">
-              {day.services.map((service) => (
-                <ServiceCard
-                  key={`${service.bookingId}:${service.mealType}`}
-                  service={service}
-                  locked={day.isLocked}
-                  onAmend={() => {
-                    setAmendingDate(day.date);
-                    setAmending(service);
-                  }}
-                />
-              ))}
-            </div>
-          </section>
-        ))
+          return (
+            <section key={day.date} className="space-y-3">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-manager-border pb-1.5">
+                <h3 className="text-sm font-semibold text-manager-text">
+                  {format(parseISO(day.date), 'EEEE d MMMM')}
+                </h3>
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                    day.isLocked
+                      ? 'bg-[#eef0f5] text-[#3a4a6b]'
+                      : 'bg-[#faf0dc] text-[#8a6d3b]',
+                  )}
+                >
+                  {day.isLocked ? (
+                    <>
+                      <Lock className="size-2.5" /> Settled
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="size-2.5" /> Closes{' '}
+                      {format(new Date(day.closesAt), 'EEE HH:mm')}
+                    </>
+                  )}
+                </span>
+              </div>
+
+              {parties.map((party) => {
+                const open = party.services.filter(
+                  (s) => !s.chosen?.items.length,
+                ).length;
+                const missing = (
+                  ['BREAKFAST', 'LUNCH', 'DINNER'] as MealType[]
+                ).filter(
+                  (m) => !party.services.some((s) => s.mealType === m),
+                );
+
+                return (
+                  <div key={party.bookingId} className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                      <p className="text-xs font-medium text-manager-text">
+                        {party.partyName}
+                        <span className="ml-2 font-normal text-manager-text-muted">
+                          party of {party.covers}
+                          {open > 0
+                            ? ` · ${open} meal${open === 1 ? '' : 's'} still open`
+                            : ''}
+                        </span>
+                      </p>
+
+                      {open > 0 && !day.isLocked && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            nudge.mutate({
+                              bookingId: party.bookingId,
+                              date: day.date,
+                            })
+                          }
+                          disabled={nudge.isPending}
+                          className="inline-flex items-center gap-1 rounded-full border border-manager-border bg-white px-2.5 py-0.5 text-[11px] font-medium text-manager-text hover:bg-[#faf9f7]"
+                        >
+                          <BellRing className="size-3" />
+                          Nudge the party
+                        </button>
+                      )}
+
+                      {/* A dawn flight is a real thing, and the concierge is
+                          the one who knows about it. */}
+                      {missing.map((meal) => (
+                        <button
+                          key={meal}
+                          type="button"
+                          onClick={() =>
+                            addMeal.mutate({
+                              bookingId: party.bookingId,
+                              dto: {
+                                date: day.date,
+                                mealType: meal,
+                                menuItemIds: [],
+                              },
+                            })
+                          }
+                          disabled={addMeal.isPending}
+                          className="inline-flex items-center gap-1 rounded-full border border-dashed border-manager-border px-2.5 py-0.5 text-[11px] text-manager-text-muted hover:border-manager-accent hover:text-manager-text"
+                        >
+                          <Plus className="size-3" />
+                          Serve {MEAL_LABEL[meal].toLowerCase()}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Once, loudly, under the day — and again quietly on each
+                        ticket below. Six identical red boxes stopped being a
+                        warning and became wallpaper. */}
+                    {party.dietary.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-[#f4c8c1] bg-[#fdf3f1] px-2.5 py-1.5">
+                        <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[#b42318]">
+                          <TriangleAlert className="size-3" />
+                          Allergies
+                        </span>
+                        {party.dietary.map((row) => (
+                          <span key={row.name} className="text-xs text-[#8f2b21]">
+                            <span className="font-medium">{row.name}:</span>{' '}
+                            {[row.allergies, row.restrictions.join(', '), row.other]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="grid gap-2.5 lg:grid-cols-2 2xl:grid-cols-3">
+                      {party.services.map((service) => (
+                        <Ticket
+                          key={`${service.bookingId}:${service.mealType}`}
+                          service={service}
+                          locked={day.isLocked}
+                          onAmend={() => {
+                            setAmendingDate(day.date);
+                            setAmending(service);
+                          }}
+                          onRemove={() =>
+                            removeMeal.mutate({
+                              bookingId: service.bookingId,
+                              date: day.date,
+                              mealType: service.mealType,
+                            })
+                          }
+                        />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </section>
+          );
+        })
       )}
 
       {amending && (
@@ -186,132 +328,166 @@ export const KitchenSheet = () => {
   );
 };
 
-function ServiceCard({
+/**
+ * One service, as a docket.
+ *
+ * The dish is the biggest thing on it. Before, the party name, the meal and
+ * the covers were all set above the only thing the chef was actually reading,
+ * and the allergy box outweighed the food entirely — repeated at that weight
+ * six times over it stopped being a warning and became wallpaper.
+ */
+function Ticket({
   service,
   locked,
   onAmend,
+  onRemove,
 }: {
   service: KitchenService;
   locked: boolean;
   onAmend: () => void;
+  onRemove: () => void;
 }) {
   const chosen = service.chosen?.items ?? [];
+  const composed = chosen.length > 0;
   const byCourse = COURSES_BY_MEAL[service.mealType].map((course) => ({
     course,
     items: chosen.filter((i) => i.course === course),
   }));
 
+  const allergies = service.dietary
+    .map((r) =>
+      `${r.name}: ${[r.allergies, r.restrictions.join(', '), r.other]
+        .filter(Boolean)
+        .join(' · ')}`,
+    )
+    .join(' · ');
+
   return (
-    <div className="rounded-lg border border-manager-border bg-manager-card p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <p className="text-sm font-medium text-manager-text">
-            {MEAL_LABEL[service.mealType] ?? service.mealType} ·{' '}
-            {service.partyName}
-          </p>
-          <p className="mt-0.5 flex flex-wrap items-center gap-x-3 text-xs text-manager-text-muted">
-            <span className="inline-flex items-center gap-1 font-medium text-manager-text">
-              <Clock className="size-3" />
-              {service.sittingTime ??
-                `no table booked · served ${service.window.start}–${service.window.end}`}
+    <div
+      className={cn(
+        'flex flex-col overflow-hidden rounded-lg border bg-manager-card',
+        composed
+          ? 'border-manager-border'
+          : 'border-dashed border-manager-border opacity-80',
+      )}
+    >
+      <div className="flex items-center gap-2 border-b border-manager-border bg-[#f7f5f2] px-3 py-1.5">
+        <span className="font-mono text-sm font-bold tabular-nums text-manager-text">
+          {service.sittingTime ?? '—'}
+        </span>
+        <span className="text-xs font-semibold text-manager-text">
+          {MEAL_LABEL[service.mealType] ?? service.mealType}
+        </span>
+        {!service.sittingTime && (
+          <span className="text-[10.5px] text-manager-text-muted">
+            served {service.window.start}–{service.window.end}
+          </span>
+        )}
+        <span className="ml-auto inline-flex items-center gap-1 text-[11px] text-manager-text-muted">
+          <Users className="size-3" />
+          {service.covers}
+          {(service.lateArrivals ?? []).length > 0 && (
+            <span className="ml-1 text-[#8a6d3b]">
+              +{service.lateArrivals!.length} late
             </span>
-            <span className="inline-flex items-center gap-1">
-              <Users className="size-3" />
-              {service.covers} covers
-            </span>
-            {(service.lateArrivals ?? []).length > 0 && (
-              <span>{service.lateArrivals!.length} arriving late</span>
-            )}
-          </p>
-        </div>
-        <Button
+          )}
+        </span>
+        <button
           type="button"
-          variant="outline"
           onClick={onAmend}
-          className="h-8 border-manager-border bg-white px-2.5 text-xs text-manager-text"
+          className="flex size-6 shrink-0 items-center justify-center rounded text-manager-text-muted hover:bg-white hover:text-manager-text"
+          aria-label={composed ? 'Swap a dish' : 'Choose for them'}
+          title={composed ? 'Swap a dish' : 'Choose for them'}
         >
-          <Pencil className="mr-1 size-3" />
-          {chosen.length > 0 ? 'Swap a dish' : 'Choose for them'}
-        </Button>
+          <Pencil className="size-3.5" />
+        </button>
       </div>
 
-      {/* Repeated on every single service, deliberately. It is the one thing on
-          this page that can hurt somebody, and a chef working from a run sheet
-          should never have to remember to go and check the manifest. */}
-      {service.dietary.length > 0 && (
-        <div className="mt-3 rounded-md border border-[#f4c8c1] bg-[#fdf3f1] p-2.5">
-          <p className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-[#b42318]">
-            <TriangleAlert className="size-3" />
-            Allergies &amp; diets
-          </p>
-          <ul className="mt-1 space-y-0.5">
-            {service.dietary.map((row) => (
-              <li key={row.name} className="text-xs text-[#8f2b21]">
-                <span className="font-medium">{row.name}:</span>{' '}
-                {[row.allergies, row.restrictions.join(', '), row.other]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      <div className="mt-3 space-y-2">
-        {chosen.length === 0 ? (
-          <p className="text-xs text-manager-text-muted">
+      <div className="flex-1 px-3 py-2">
+        {composed ? (
+          <div className="space-y-1">
+            {byCourse.map(
+              ({ course, items }) =>
+                items.length > 0 && (
+                  <div
+                    key={course}
+                    className="grid grid-cols-[4.4rem_1fr] items-baseline gap-2"
+                  >
+                    <span className="text-[9px] font-semibold uppercase tracking-[1px] text-manager-text-muted">
+                      {COURSE_LABELS[course]}
+                    </span>
+                    <span className="text-xs leading-relaxed text-manager-text">
+                      {items.map((i) => i.menuItem.name).join(' · ')}
+                    </span>
+                  </div>
+                ),
+            )}
+          </div>
+        ) : (
+          <p className="text-xs italic text-manager-text-muted">
             {locked
               ? 'Nothing was chosen — chef’s choice.'
-              : 'Not composed yet. The party can still choose.'}
+              : 'Not composed. The party can still choose.'}
           </p>
-        ) : (
-          byCourse.map(
-            ({ course, items }) =>
-              items.length > 0 && (
-                <div key={course}>
-                  <p className="text-[10px] font-semibold uppercase tracking-[1.2px] text-manager-text-muted">
-                    {COURSE_LABELS[course]}
-                  </p>
-                  <ul className="mt-0.5 space-y-0.5">
-                    {items.map((item) => (
-                      <li key={item.id} className="text-xs text-manager-text">
-                        {item.menuItem.name}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ),
-          )
+        )}
+
+        {/* Verbatim. "We're out on the boat until one" changes how lunch is
+            cooked, and a paraphrase would lose that. */}
+        {service.note && (
+          <p className="mt-2 border-l-2 border-manager-accent bg-[#faf6ee] px-2 py-1 text-[11px] italic text-manager-text">
+            “{service.note}”
+          </p>
         )}
       </div>
 
-      {/* Verbatim. "We're out on the boat until one" changes how lunch is
-          cooked, and a paraphrase would lose that. */}
-      {service.note && (
-        <p className="mt-3 border-l-2 border-manager-accent bg-[#faf6ee] px-2.5 py-1.5 text-xs italic text-manager-text">
-          “{service.note}”
-        </p>
-      )}
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-dashed border-manager-border px-3 py-1.5 text-[10.5px] text-manager-text-muted">
+        {allergies && (
+          <span className="font-medium text-[#b42318]">⚠ {allergies}</span>
+        )}
 
-      {service.amendedAt && (
-        <p className="mt-2 text-[11px] text-manager-text-muted">
-          {/* An auth0| subject or a missing claim is not a name. Say "the
-              estate" rather than showing the chef an opaque id. */}
-          Amended by{' '}
-          {service.amendedByEmail?.includes('@')
-            ? service.amendedByEmail
-            : 'the estate'}{' '}
-          on {format(new Date(service.amendedAt), 'd MMM HH:mm')}
-          {service.chosen?.amendedFrom?.length ? (
-            <>
-              {' — was '}
-              <span className="line-through">
-                {service.chosen.amendedFrom.join(', ')}
-              </span>
-            </>
-          ) : null}
-        </p>
-      )}
+        {service.addedByEstate && (
+          <span className="inline-flex items-center gap-1">
+            Added by the estate
+            <button
+              type="button"
+              onClick={onRemove}
+              className="inline-flex items-center gap-0.5 text-manager-text-muted hover:text-[#b42318]"
+            >
+              <Trash2 className="size-3" />
+              remove
+            </button>
+          </span>
+        )}
+
+        {service.amendedAt && (
+          <span>
+            {/* An auth0| subject or a missing claim is not a name. */}
+            Amended by{' '}
+            {service.amendedByEmail?.includes('@')
+              ? service.amendedByEmail
+              : 'the estate'}{' '}
+            {format(new Date(service.amendedAt), 'd MMM HH:mm')}
+            {service.chosen?.amendedFrom?.length ? (
+              <>
+                {' — was '}
+                <span className="line-through">
+                  {service.chosen.amendedFrom.join(', ')}
+                </span>
+              </>
+            ) : null}
+          </span>
+        )}
+
+        {!composed && !locked && (
+          <button
+            type="button"
+            onClick={onAmend}
+            className="ml-auto font-medium text-manager-accent hover:underline"
+          >
+            Choose for them
+          </button>
+        )}
+      </div>
     </div>
   );
 }
