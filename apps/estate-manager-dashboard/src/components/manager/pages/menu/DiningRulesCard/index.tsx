@@ -100,6 +100,59 @@ function TimeField({
 }
 
 /**
+ * A number you can clear.
+ *
+ * Bound straight to a number, these fields were impossible to edit: backspace
+ * emptied the box, the change handler read '' as 0, the clamp turned that back
+ * into the minimum, and the old value reappeared under the cursor. Worse, a
+ * field showing 0 that you typed 48 into read "048". So the text is held as
+ * text while you type, and only becomes a number when you leave.
+ */
+function NumberField({
+  value,
+  min,
+  max,
+  onCommit,
+  ariaLabel,
+}: {
+  value: number;
+  min: number;
+  max: number;
+  onCommit: (n: number) => void;
+  ariaLabel: string;
+}) {
+  const [text, setText] = useState(String(value));
+
+  // Follow the server when it answers, but never while the box is being typed
+  // into — that is what made it snap back mid-keystroke.
+  useEffect(() => {
+    setText(String(value));
+  }, [value]);
+
+  const clamp = (n: number) => Math.max(min, Math.min(max, n));
+
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      aria-label={ariaLabel}
+      value={text}
+      onChange={(e) => {
+        const raw = e.target.value.replace(/[^0-9]/g, '').replace(/^0+(?=\d)/, '');
+        setText(raw);
+        if (raw !== '') onCommit(clamp(Number(raw)));
+      }}
+      onBlur={() => {
+        const next = text === '' ? min : clamp(Number(text));
+        setText(String(next));
+        onCommit(next);
+      }}
+      className="w-20 rounded-lg border border-manager-border bg-white px-2.5 py-1.5 text-xs font-medium tabular-nums text-manager-text outline-none focus:border-manager-accent"
+    />
+  );
+}
+
+/**
  * The three rules the estate sets once: when each meal is served, how much a
  * party may choose, and how long before service a day closes.
  *
@@ -243,18 +296,12 @@ export const DiningRulesCard = () => {
                     <span className="min-w-[7.5rem]">
                       {COURSE_LABELS[course]}
                     </span>
-                    <input
-                      type="number"
+                    <NumberField
+                      value={state.menu.courseLimits[course]}
                       min={1}
                       max={30}
-                      value={state.menu.courseLimits[course]}
-                      onChange={(e) =>
-                        setLimit(
-                          course,
-                          Math.max(1, Math.min(30, Number(e.target.value) || 1)),
-                        )
-                      }
-                      className="w-16 rounded-lg border border-manager-border bg-white px-2 py-1.5 text-xs font-medium text-manager-text outline-none focus:border-manager-accent"
+                      ariaLabel={`${COURSE_LABELS[course]} allowance`}
+                      onCommit={(n) => setLimit(course, n)}
                     />
                     <span className="text-manager-text-muted">dishes</span>
                   </label>
@@ -277,28 +324,16 @@ export const DiningRulesCard = () => {
         </p>
 
         <label className="mt-4 flex flex-wrap items-center gap-2 text-xs text-manager-text">
-          <input
-            type="number"
+          <NumberField
+            value={state.menu.cutoffHours}
             min={0}
             max={168}
-            value={state.menu.cutoffHours}
-            onChange={(e) =>
+            ariaLabel="Hours before the day begins"
+            onCommit={(n) =>
               setState((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      menu: {
-                        ...prev.menu,
-                        cutoffHours: Math.max(
-                          0,
-                          Math.min(168, Number(e.target.value) || 0),
-                        ),
-                      },
-                    }
-                  : prev,
+                prev ? { ...prev, menu: { ...prev.menu, cutoffHours: n } } : prev,
               )
             }
-            className="w-20 rounded-lg border border-manager-border bg-white px-2 py-1.5 text-xs font-medium outline-none focus:border-manager-accent"
           />
           hours before the day begins
           <span className="text-manager-text-muted">

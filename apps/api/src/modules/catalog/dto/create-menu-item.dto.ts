@@ -2,6 +2,7 @@ import {
   IsBoolean,
   IsEnum,
   IsInt,
+  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
@@ -75,6 +76,18 @@ export class CreateMenuItemDto {
   @IsInt()
   @Min(0)
   sortOrder?: number;
+
+  /**
+   * Set only on EXCLUSIVE items — everything else is included in the stay.
+   *
+   * Missing from this DTO until now, so with whitelisting on, every attempt to
+   * create a priced item came back as "property price should not exist" — the
+   * one category that carries money was the one that couldn't be saved.
+   */
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  price?: number | null;
 
   /**
    * False for a dish written for one service. It keeps its photo and dietary

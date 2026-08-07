@@ -292,8 +292,13 @@ function ServiceCard({
 
       {service.amendedAt && (
         <p className="mt-2 text-[11px] text-manager-text-muted">
-          Amended by {service.amendedByEmail ?? 'the estate'} on{' '}
-          {format(new Date(service.amendedAt), 'd MMM HH:mm')}
+          {/* An auth0| subject or a missing claim is not a name. Say "the
+              estate" rather than showing the chef an opaque id. */}
+          Amended by{' '}
+          {service.amendedByEmail?.includes('@')
+            ? service.amendedByEmail
+            : 'the estate'}{' '}
+          on {format(new Date(service.amendedAt), 'd MMM HH:mm')}
           {service.chosen?.amendedFrom?.length ? (
             <>
               {' — was '}

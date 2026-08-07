@@ -74,7 +74,10 @@ export class MenuController {
     }
 
     return this.selections.upsert(bookingId, dto, {
-      email: user?.email ?? 'unknown',
+      // An Auth0 access token doesn't always carry an email claim, and the run
+      // sheet was duly reporting "Amended by unknown" — which reads like a
+      // fault rather than a colleague. Fall through to something real.
+      email: user?.email || user?.auth0Id || (estate ? 'the estate' : 'a guest'),
       name: user?.firstName || user?.email || 'The party',
       isEstate: estate,
     });

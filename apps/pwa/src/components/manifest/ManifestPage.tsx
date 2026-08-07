@@ -148,7 +148,15 @@ export const ManifestPage = () => {
 
   // Only the primary member can manage the manifest (add/edit/submit); the
   // backend enforces this too, so we hide the controls for secondary guests.
-  const canSubmit = isPrimary && addedGuests > 0 && !isLocked;
+  //
+  // Their own room is part of it. The primary isn't a row in this list, so
+  // nothing here was ever checking them — they could add the party, submit,
+  // and leave the estate to find out at check-in that the person paying had
+  // nowhere to sleep. The API refuses it now; this stops them reaching that
+  // refusal in the first place.
+  const primaryComplete = manifest?.primaryComplete ?? true;
+  const canSubmit =
+    isPrimary && addedGuests > 0 && !isLocked && primaryComplete;
   // The party counter includes the primary (+1), so it's full once the added
   // count reaches the reservation headcount — stop offering "Add guest" then.
   const secondaryCount = manifest?.guests?.length ?? 0;
@@ -442,6 +450,13 @@ export const ManifestPage = () => {
               {submitError}
             </p>
           )}
+          {isPrimary && !isLocked && !primaryComplete && addedGuests > 0 && (
+            <p className="mb-2 rounded-[10px] border border-[#D9C79A] bg-[#FBF3DF] px-3 py-2 text-[11px] leading-snug text-[#8A6D3B]">
+              <span className="font-medium">Your own details are still to come.</span>{' '}
+              Choose your room above, then you can send the list to the estate.
+            </p>
+          )}
+
           <AnimatePresence>
             {canSubmit && (
               <motion.div

@@ -177,7 +177,11 @@ export const MenuFormDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      {/* overflow-x-hidden and the min-w-0 below are load-bearing: DialogContent
+          is a grid, and a grid child defaults to min-width:auto — so a long
+          unbroken Cloudinary URL pushed the whole dialog wider than the screen
+          instead of being truncated by the row that was already asking for it. */}
+      <DialogContent className="max-h-[90vh] overflow-y-auto overflow-x-hidden sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? 'Edit menu item' : 'Add menu item'}
@@ -187,9 +191,9 @@ export const MenuFormDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
+        <div className="min-w-0 space-y-4">
+          <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+            <div className="min-w-0">
               <label className="text-xs font-medium text-manager-text-muted">
                 Name
               </label>

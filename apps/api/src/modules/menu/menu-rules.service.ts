@@ -64,8 +64,12 @@ export class MenuRulesService {
   async update(dto: Partial<DiningRules>): Promise<DiningRules> {
     const current = await this.get();
 
+    // Validated, not coerced. Coercion belongs on the read path, where it
+    // rescues old or malformed stored data; on the write path it meant an
+    // estate could set breakfast to end at 12:00 AM, be told "saved", and find
+    // its own times back to ours on the next reload with nothing said.
     const windows = dto.windows
-      ? this.normalizeWindows(dto.windows, null)
+      ? this.assertWindows(dto.windows)
       : current.windows;
     const menu = dto.menu
       ? this.normalizeMenuRules(dto.menu)
@@ -162,6 +166,52 @@ export class MenuRulesService {
         this.fromSlots(legacySrc[meal]) ??
         DEFAULT_WINDOWS[meal];
     }
+    return out;
+  }
+
+  /**
+   * The write path: say what's wrong rather than quietly substituting.
+   *
+   * The case this exists for is 12:00 AM. An estate meaning noon picks AM, the
+   * window inverts, and every silent fallback in the world then hands their
+   * breakfast back to them at 9–11 with a green "saved" toast on screen.
+   */
+  private assertWindows(raw: unknown): SittingWindows {
+    const src = (raw ?? {}) as Record<string, unknown>;
+    const out = {} as SittingWindows;
+
+    for (const meal of COMPOSED_MEALS) {
+      const w = (src[meal] ?? {}) as Record<string, unknown>;
+      const label = meal.charAt(0) + meal.slice(1).toLowerCase();
+      const start = toMinutes(w.start as string);
+      const end = toMinutes(w.end as string);
+
+      if (start == null || end == null) {
+        throw new BadRequestException(
+          `${label} needs a start and an end time.`,
+        );
+      }
+      if (end <= start) {
+        throw new BadRequestException(
+          `${label} can't finish at ${w.end as string} when it starts at ${w.start as string}. If you meant midday, that's 12:00 PM — 12:00 AM is midnight.`,
+        );
+      }
+
+      // The last seating is nudged rather than refused: it's a derived
+      // convenience, and an estate that leaves it alone still gets a sane one.
+      const asked = toMinutes(w.lastSeating as string);
+      const last =
+        asked == null || asked > end || asked < start
+          ? Math.max(start, end - 30)
+          : asked;
+
+      out[meal] = {
+        start: toClock(start),
+        end: toClock(end),
+        lastSeating: toClock(last),
+      };
+    }
+
     return out;
   }
 
