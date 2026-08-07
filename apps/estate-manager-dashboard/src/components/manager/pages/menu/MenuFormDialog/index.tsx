@@ -18,10 +18,9 @@ import {
   Textarea,
 } from '@repo/ui';
 import { cn } from '@repo/ui/lib/utils';
-import { ImagePlus, Loader2, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { X } from 'lucide-react';
 import { useCreateMenuItem, useUpdateMenuItem } from '@/hooks/useMenu';
-import { uploadImage } from '@/lib/upload';
+import { ImageUpload } from '@/components/manager/ui/ImageUpload';
 import type {
   MealType,
   MenuCategory,
@@ -134,29 +133,6 @@ export const MenuFormDialog = ({
 
   const set = <K extends keyof MenuItemDto>(key: K, value: MenuItemDto[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
-
-  const [uploading, setUploading] = useState(false);
-
-  // Same signed direct-to-Cloudinary upload the experience form uses, so a
-  // dish photo doesn't have to be hosted somewhere else first and pasted in.
-  const handleImageChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const url = await uploadImage(file, 'menu');
-      set('photoUrl', url);
-      toast.success('Photo uploaded');
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setUploading(false);
-      // Let the same file be re-picked if the upload failed.
-      event.target.value = '';
-    }
-  };
 
   const isPending = createItem.isPending || updateItem.isPending;
 
@@ -300,60 +276,50 @@ export const MenuFormDialog = ({
             />
           </div>
 
+          {/* The URL and the upload lead; the photo sits under them at full
+              width. A 64px thumbnail beside a Cloudinary URL told you the
+              upload had happened and nothing about what you'd uploaded — which
+              is the only thing you're checking. Same shape as the room form. */}
           <div>
             <label className="text-xs font-medium text-manager-text-muted">
               Photo (optional)
             </label>
+            <div className="mt-1.5 flex gap-2">
+              <Input
+                type="url"
+                value={form.photoUrl ?? ''}
+                onChange={(e) => set('photoUrl', e.target.value)}
+                placeholder="Upload a photo or paste a URL…"
+              />
+              <ImageUpload
+                folder="menu"
+                label="Upload"
+                className="shrink-0"
+                onUploaded={(url) => set('photoUrl', url)}
+              />
+            </div>
 
-            {form.photoUrl ? (
-              <div className="mt-1.5 flex items-center gap-3 rounded-lg border border-manager-border bg-manager-card p-2">
+            {form.photoUrl && (
+              <div className="relative mt-2 overflow-hidden rounded-lg border border-manager-border">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={form.photoUrl}
-                  alt=""
-                  className="size-16 shrink-0 rounded-md object-cover"
+                  alt="Dish preview"
+                  className="h-40 w-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  }}
                 />
-                <span className="min-w-0 flex-1 truncate text-xs text-manager-text-muted">
-                  {form.photoUrl}
-                </span>
                 <button
                   type="button"
                   onClick={() => set('photoUrl', '')}
-                  className="shrink-0 rounded-md p-1.5 text-manager-text-muted hover:bg-manager-main hover:text-manager-text"
+                  className="absolute right-2 top-2 flex size-7 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
                   aria-label="Remove photo"
                 >
-                  <X className="size-4" />
+                  <X className="size-3.5" />
                 </button>
               </div>
-            ) : (
-              <label
-                className={cn(
-                  'mt-1.5 flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-manager-border bg-manager-card px-3 py-5 text-sm text-manager-text-muted transition-colors hover:border-manager-accent hover:text-manager-text',
-                  uploading && 'pointer-events-none opacity-60',
-                )}
-              >
-                {uploading ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <ImagePlus className="size-4" />
-                )}
-                {uploading ? 'Uploading…' : 'Upload a photo'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageChange}
-                />
-              </label>
             )}
-
-            <Input
-              type="url"
-              value={form.photoUrl ?? ''}
-              onChange={(e) => set('photoUrl', e.target.value)}
-              placeholder="…or paste an image URL"
-              className="mt-2"
-            />
           </div>
 
           <div>

@@ -3,19 +3,23 @@
 import { useMemo, useState } from 'react';
 import { Pencil, Plus, SlidersHorizontal, Trash2, UtensilsCrossed } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
-import { COURSE_LABELS, COURSES_BY_MEAL } from '@repo/api-types';
+import { COURSE_LABELS, COURSES_BY_MEAL, formatPrice } from '@repo/api-types';
 import { useMenu, useDeleteMenuItem } from '@/hooks/useMenu';
 import { MenuFormDialog } from '@/components/manager/pages/menu/MenuFormDialog';
 import { ConfirmDialog } from '@/components/manager/ui/ConfirmDialog';
 import { DiningRulesCard } from '@/components/manager/pages/menu/DiningRulesCard';
 import type { MealType, MenuCategory, MenuItem } from '@repo/api-types';
 
+// Exclusive was missing, so the one category that carries money could be
+// created from the form and then never seen again — it reached the guest app
+// and vanished from the estate's own library.
 const TABS: { value: MenuCategory; label: string }[] = [
   { value: 'BREAKFAST', label: 'Breakfast' },
   { value: 'LUNCH', label: 'Lunch' },
   { value: 'DINNER', label: 'Dinner' },
   { value: 'SNACKS', label: 'Snacks' },
   { value: 'BEVERAGES', label: 'Beverages' },
+  { value: 'EXCLUSIVE', label: 'Exclusive' },
 ];
 
 const DIET_BADGES: { key: keyof MenuItem; label: string; tone: string }[] = [
@@ -214,6 +218,11 @@ export const MenuPage = () => {
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="text-sm font-semibold text-manager-text">
                     {item.name}
+                    {item.category === 'EXCLUSIVE' && item.price != null && (
+                      <span className="ml-2 font-normal tabular-nums text-manager-accent">
+                        {formatPrice(Number(item.price))}
+                      </span>
+                    )}
                   </h3>
                   <div className="flex shrink-0 gap-1">
                     <button
