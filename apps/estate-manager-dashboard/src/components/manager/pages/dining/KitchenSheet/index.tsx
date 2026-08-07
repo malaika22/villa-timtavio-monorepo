@@ -3,11 +3,13 @@
 import { useMemo, useState } from 'react';
 import { addDays, format, parseISO } from 'date-fns';
 import {
+  Check,
   ChevronLeft,
   ChevronRight,
   Clock,
   Lock,
   Pencil,
+  Search,
   TriangleAlert,
   Users,
   UtensilsCrossed,
@@ -176,6 +178,7 @@ export const KitchenSheet = () => {
           service={amending}
           date={amendingDate}
           dishes={dishes}
+          limits={data?.rules.menu.courseLimits}
           onClose={() => setAmending(null)}
         />
       )}
@@ -324,18 +327,26 @@ function AmendDialog({
   service,
   date,
   dishes,
+  limits,
   onClose,
 }: {
   service: KitchenService;
   date: string;
   dishes: MenuItem[];
+  /** The same allowances the party composes within. */
+  limits?: Record<MenuCourse, number>;
   onClose: () => void;
 }) {
   const amend = useAmendMeal();
-  const [picked, setPicked] = useState<string[]>(
-    (service.chosen?.items ?? []).map((i) => i.menuItemId),
+  const was = useMemo(
+    () => (service.chosen?.items ?? []).map((i) => i.menuItemId),
+    [service.chosen],
   );
+  const [picked, setPicked] = useState<string[]>(was);
   const [note, setNote] = useState(service.note ?? '');
+  const [query, setQuery] = useState('');
+
+  const courses = COURSES_BY_MEAL[service.mealType];
 
   const byCourse = useMemo(() => {
     const map = new Map<MenuCourse, MenuItem[]>();
@@ -345,6 +356,42 @@ function AmendDialog({
     }
     return map;
   }, [dishes]);
+
+  const dishById = useMemo(
+    () => new Map(dishes.map((d) => [d.id, d])),
+    [dishes],
+  );
+
+  const limitFor = (course: MenuCourse) => limits?.[course] ?? 1;
+  const countFor = (course: MenuCourse) =>
+    picked.filter((id) => dishById.get(id)?.course === course).length;
+
+  /**
+   * Same rule the guest app uses. At an allowance of one the obvious gesture
+   * is "give them that one instead", so a second tap swaps; above one, a full
+   * course refuses, because silently reshuffling someone else's dinner is not
+   * a thing to do on their behalf.
+   */
+  const toggle = (dish: MenuItem, course: MenuCourse) =>
+    setPicked((prev) => {
+      if (prev.includes(dish.id)) return prev.filter((id) => id !== dish.id);
+      const current = prev.filter((id) => dishById.get(id)?.course === course);
+      if (current.length >= limitFor(course)) {
+        if (limitFor(course) !== 1) return prev;
+        return [...prev.filter((id) => id !== current[0]), dish.id];
+      }
+      return [...prev, dish.id];
+    });
+
+  const changed =
+    picked.length !== was.length ||
+    picked.some((id) => !was.includes(id)) ||
+    (note.trim() || '') !== (service.note ?? '');
+
+  const matches = (dish: MenuItem) =>
+    !query.trim() ||
+    dish.name.toLowerCase().includes(query.trim().toLowerCase()) ||
+    (dish.description ?? '').toLowerCase().includes(query.trim().toLowerCase());
 
   const save = () =>
     amend.mutate(
@@ -362,97 +409,237 @@ function AmendDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-6">
-      <div className="flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-xl bg-white sm:rounded-xl">
-        <div className="flex items-start justify-between gap-3 border-b border-manager-border px-5 py-4">
-          <div>
-            <h3 className="text-sm font-semibold text-manager-text">
-              {MEAL_LABEL[service.mealType]} · {service.partyName}
-            </h3>
-            <p className="mt-0.5 text-xs text-manager-text-muted">
-              {format(parseISO(date), 'EEEE d MMMM')} · the party will see the
-              change, and the sheet will show what it replaced.
-            </p>
+      <div className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-t-xl bg-white sm:rounded-xl">
+        {/* ── Who, when, and what they can't eat ──────────────────────── */}
+        <div className="border-b border-manager-border px-5 py-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-manager-text">
+                {MEAL_LABEL[service.mealType]} · {service.partyName}
+              </h3>
+              <p className="mt-0.5 text-xs text-manager-text-muted">
+                {format(parseISO(date), 'EEEE d MMMM')} ·{' '}
+                {service.sittingTime ?? `served ${service.window.start}–${service.window.end}`}{' '}
+                · {service.covers} covers
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex size-8 shrink-0 items-center justify-center rounded-lg text-manager-text-muted hover:bg-[#faf9f7]"
+              aria-label="Close"
+            >
+              <X className="size-4" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex size-8 items-center justify-center rounded-lg text-manager-text-muted hover:bg-[#faf9f7]"
-            aria-label="Close"
-          >
-            <X className="size-4" />
-          </button>
+
+          {/* You are choosing food for someone who can't eat some of it, and
+              the dialog used to be the one screen in the flow that didn't say
+              so. */}
+          {service.dietary.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-[#f4c8c1] bg-[#fdf3f1] px-2.5 py-1.5">
+              <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[#b42318]">
+                <TriangleAlert className="size-3" />
+                Allergies
+              </span>
+              {service.dietary.map((row) => (
+                <span key={row.name} className="text-xs text-[#8f2b21]">
+                  <span className="font-medium">{row.name}:</span>{' '}
+                  {[row.allergies, row.restrictions.join(', '), row.other]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
-          {COURSES_BY_MEAL[service.mealType].map((course) => {
-            const options = byCourse.get(course) ?? [];
-            if (options.length === 0) return null;
-            return (
-              <div key={course}>
-                <p className="text-[10px] font-semibold uppercase tracking-[1.2px] text-manager-text-muted">
-                  {COURSE_LABELS[course]}
-                </p>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {options.map((dish) => {
-                    const on = picked.includes(dish.id);
+        {/* ── What's on the ticket right now ──────────────────────────── */}
+        <div className="border-b border-manager-border bg-[#faf9f7] px-5 py-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[1.2px] text-manager-text-muted">
+            On the ticket
+          </p>
+          {picked.length === 0 ? (
+            <p className="mt-1 text-xs italic text-manager-text-muted">
+              Nothing chosen — the chef would cook their own.
+            </p>
+          ) : (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {courses.flatMap((course) =>
+                picked
+                  .filter((id) => dishById.get(id)?.course === course)
+                  .map((id) => {
+                    const dish = dishById.get(id);
+                    if (!dish) return null;
                     return (
                       <button
-                        key={dish.id}
+                        key={id}
                         type="button"
-                        onClick={() =>
-                          setPicked((prev) =>
-                            on
-                              ? prev.filter((id) => id !== dish.id)
-                              : [...prev, dish.id],
-                          )
-                        }
-                        className={cn(
-                          'rounded-full border px-2.5 py-1 text-xs transition-colors',
-                          on
-                            ? 'border-manager-accent bg-manager-accent text-white'
-                            : 'border-manager-border bg-white text-manager-text hover:bg-[#faf9f7]',
-                        )}
+                        onClick={() => toggle(dish, course)}
+                        className="group inline-flex items-center gap-1.5 rounded-full border border-manager-accent bg-white px-2.5 py-1 text-xs text-manager-text"
                       >
+                        <span className="text-[9px] font-semibold uppercase tracking-wide text-manager-text-muted">
+                          {COURSE_LABELS[course]}
+                        </span>
                         {dish.name}
+                        <X className="size-3 text-manager-text-muted group-hover:text-[#b42318]" />
                       </button>
                     );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+                  }),
+              )}
+            </div>
+          )}
+        </div>
 
-          <div>
-            <label className="text-[10px] font-semibold uppercase tracking-[1.2px] text-manager-text-muted">
-              Note to the kitchen
-            </label>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={2}
-              maxLength={500}
-              className="mt-1.5 w-full resize-none rounded-lg border border-manager-border px-3 py-2 text-xs outline-none focus:border-manager-accent"
+        {/* ── The menu to choose from ─────────────────────────────────── */}
+        <div className="border-b border-manager-border px-5 py-2.5">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-manager-text-muted" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={`Search the ${MEAL_LABEL[service.mealType].toLowerCase()} menu…`}
+              className="w-full rounded-lg border border-manager-border bg-white py-1.5 pl-8 pr-3 text-xs outline-none focus:border-manager-accent"
             />
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-manager-border px-5 py-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            className="border-manager-border bg-white text-manager-text"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            onClick={save}
-            disabled={amend.isPending}
-            className="bg-manager-accent text-white hover:opacity-90"
-          >
-            {amend.isPending ? 'Saving…' : 'Save for the party'}
-          </Button>
+        <div className="flex-1 overflow-y-auto px-5 py-3">
+          {courses.map((course) => {
+            const options = (byCourse.get(course) ?? []).filter(matches);
+            const limit = limitFor(course);
+            const count = countFor(course);
+            const full = count >= limit;
+
+            return (
+              <div key={course} className="mb-4 last:mb-0">
+                <div className="sticky top-0 z-[1] -mx-1 flex items-baseline justify-between gap-2 bg-white px-1 py-1.5">
+                  <p className="text-[10px] font-semibold uppercase tracking-[1.2px] text-manager-text-muted">
+                    {COURSE_LABELS[course]}
+                  </p>
+                  <p
+                    className={cn(
+                      'text-[11px] tabular-nums',
+                      full
+                        ? 'font-semibold text-[#3a6448]'
+                        : 'text-manager-text-muted',
+                    )}
+                  >
+                    {count} of {limit}
+                    {limit === 1 && count === 1 && (
+                      <span className="ml-1.5 font-normal text-manager-text-muted">
+                        · picking another swaps it
+                      </span>
+                    )}
+                  </p>
+                </div>
+
+                {options.length === 0 ? (
+                  <p className="px-1 py-2 text-xs italic text-manager-text-muted">
+                    Nothing on this course matches “{query}”.
+                  </p>
+                ) : (
+                  <ul className="divide-y divide-[#f2efe9] rounded-lg border border-manager-border">
+                    {options.map((dish) => {
+                      const on = picked.includes(dish.id);
+                      // A full course above one genuinely can't take more.
+                      const blocked = !on && full && limit !== 1;
+                      return (
+                        <li key={dish.id}>
+                          <button
+                            type="button"
+                            disabled={blocked}
+                            onClick={() => toggle(dish, course)}
+                            className={cn(
+                              'flex w-full items-start gap-2.5 px-3 py-2 text-left transition-colors',
+                              on ? 'bg-[#faf6ee]' : 'hover:bg-[#faf9f7]',
+                              blocked && 'cursor-not-allowed opacity-40',
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                'mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border',
+                                on
+                                  ? 'border-manager-accent bg-manager-accent text-white'
+                                  : 'border-manager-border',
+                              )}
+                              aria-hidden
+                            >
+                              {on && <Check className="size-2.5" strokeWidth={3} />}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-xs font-medium text-manager-text">
+                                {dish.name}
+                              </span>
+                              {dish.description && (
+                                <span className="mt-0.5 block text-[11px] leading-snug text-manager-text-muted">
+                                  {dish.description}
+                                </span>
+                              )}
+                              {(dish.containsNuts ||
+                                dish.containsShellfish ||
+                                dish.containsDairy) && (
+                                <span className="mt-0.5 block text-[9.5px] font-medium uppercase tracking-wide text-[#b42318]">
+                                  {[
+                                    dish.containsNuts && 'Nuts',
+                                    dish.containsShellfish && 'Shellfish',
+                                    dish.containsDairy && 'Dairy',
+                                  ]
+                                    .filter(Boolean)
+                                    .join(' · ')}
+                                </span>
+                              )}
+                            </span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ── Note, then the change itself ────────────────────────────── */}
+        <div className="border-t border-manager-border px-5 py-3">
+          <label className="text-[10px] font-semibold uppercase tracking-[1.2px] text-manager-text-muted">
+            Note to the kitchen
+          </label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={2}
+            maxLength={500}
+            placeholder="Anything the chef should know — carried onto the ticket word for word."
+            className="mt-1.5 w-full resize-none rounded-lg border border-manager-border px-3 py-2 text-xs outline-none focus:border-manager-accent"
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-manager-border bg-[#faf9f7] px-5 py-3">
+          <p className="text-[11px] text-manager-text-muted">
+            {changed
+              ? 'The party will see this, and the ticket will show what it replaced.'
+              : 'Nothing changed yet.'}
+          </p>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="border-manager-border bg-white text-manager-text"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={save}
+              disabled={amend.isPending || !changed}
+              className="bg-manager-accent text-white hover:opacity-90"
+            >
+              {amend.isPending ? 'Saving…' : 'Save for the party'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
