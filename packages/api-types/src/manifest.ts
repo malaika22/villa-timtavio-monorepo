@@ -113,3 +113,26 @@ export interface ChefsBriefResponse {
     room: string;
   }[];
 }
+
+/**
+ * What the estate's own manifest form calls each dietary value.
+ *
+ * The values are stored as they're posted — `no_nuts`, `gluten_free` — which
+ * is fine in a database and wrong on a run sheet a chef reads at speed.
+ */
+export const DIETARY_RESTRICTION_LABELS: Record<string, string> = {
+  vegetarian: 'Vegetarian',
+  vegan: 'Vegan',
+  gluten_free: 'Gluten-free',
+  halal: 'Halal',
+  kosher: 'Kosher',
+  no_shellfish: 'No shellfish',
+  no_nuts: 'No nuts',
+  no_dairy: 'No dairy',
+  other: 'Other',
+};
+
+/** Falls back to the raw value rather than hiding a restriction we don't know. */
+export const dietaryLabel = (value: string): string =>
+  DIETARY_RESTRICTION_LABELS[value] ??
+  value.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
