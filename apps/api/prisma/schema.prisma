@@ -87,6 +87,23 @@ enum MenuCategory {
   EXCLUSIVE
 }
 
+/**
+ * Where a dish sits on the estate's printed menu.
+ *
+ * A course belongs to exactly one meal, which is what lets a limit be attached
+ * to it without ambiguity: three breakfast mains and one daily suggestion are
+ * two different allowances, not one allowance of four. Snacks, beverages and
+ * exclusives are ordered on demand and have no course.
+ */
+enum MenuCourse {
+  BREAKFAST_MAIN
+  BREAKFAST_SUGGESTION
+  LUNCH_SELECTION
+  DINNER_STARTER
+  DINNER_MAIN
+  DINNER_DESSERT
+}
+
 enum VendorStatus {
   ACTIVE
   INACTIVE
@@ -186,6 +203,7 @@ model Booking {
   folioItems         FolioItem[]
   experienceRequests ExperienceRequest[]
   diningRequests     DiningRequest[]
+  menuSelections     MenuSelection[]
   notifications      Notification[]
   auditLogs          AuditLog[]
 
@@ -419,6 +437,12 @@ model MenuItem {
   id                String       @id @default(cuid())
   name              String
   category          MenuCategory
+  /**
+   * Which part of the meal this belongs to, and therefore which allowance it
+   * counts against when the party composes a day. Null for snacks, beverages
+   * and exclusives, which are ordered on demand rather than composed.
+   */
+  course            MenuCourse?
   description       String?      @db.Text
   photoUrl          String?
   isActive          Boolean      @default(true)
@@ -450,6 +474,82 @@ model MenuItem {
   createdBy         String?
 
   dailyMenuItems DailyMenuItem[]
+  selectionItems MenuSelectionItem[]
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MENU SELECTION — what one party has chosen to eat, for one meal on one day.
+//
+// The estate publishes the whole menu once; the primary member composes each
+// day from it within the allowances the estate set. It replaces the weekly
+// planner, where the estate decided the dishes and the guest only read them.
+//
+// A day closes ahead of service because the kitchen orders and preps against
+// it. After the cutoff the estate can still amend — a party that changes its
+// mind talks to the concierge, which is the same conversation they'd have had
+// anyway, only now the estate can see what was already promised to the chef.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model MenuSelection {
+  id        String  @id @default(cuid())
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  /** Date only — a meal belongs to a day, not an instant. */
+  date     DateTime     @db.Date
+  mealType MenuCategory
+
+  /**
+   * The party's own line to the kitchen: "we're out on the boat until one".
+   * Carried verbatim onto the run sheet — it routinely changes how a meal is
+   * cooked, and a paraphrase would lose that.
+   */
+  note String? @db.Text
+
+  chosenByEmail String?
+  chosenByName  String?
+  chosenAt      DateTime?
+
+  /**
+   * Set when the estate edited a locked day on the party's behalf, so the run
+   * sheet can say who changed it after the kitchen had already been told.
+   */
+  amendedByEmail String?
+  amendedAt      DateTime?
+  /**
+   * The dish names as they stood before the estate's last amendment.
+   *
+   * A swap that silently replaces what the kitchen was told is worse than no
+   * swap at all — the chef needs to see that tonight's main *was* the ribeye,
+   * so this keeps the previous line-up rather than only the current one.
+   */
+  amendedFrom    Json?
+
+  items MenuSelectionItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([bookingId, date, mealType])
+  @@index([date])
+  @@index([bookingId])
+}
+
+model MenuSelectionItem {
+  id          String        @id @default(cuid())
+  selectionId String
+  selection   MenuSelection @relation(fields: [selectionId], references: [id], onDelete: Cascade)
+  menuItemId  String
+  menuItem    MenuItem      @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  /**
+   * Snapshotted from the dish so the run sheet still groups correctly if the
+   * estate later moves a dish to another course.
+   */
+  course      MenuCourse
+  sortOrder   Int           @default(0)
+
+  @@unique([selectionId, menuItemId])
+  @@index([selectionId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1057,9 +1157,23 @@ model EstateSettings {
   notifyInventoryLow Boolean  @default(true)
   notifyLodgifyError Boolean  @default(true)
   notifyStripeError  Boolean  @default(true)
-  // Recommended dining sitting times per meal, surfaced to guests as chips:
-  // { "BREAKFAST": ["08:00","09:00"], "LUNCH": [...], "DINNER": [...] }
+  // Superseded by sittingWindows. Kept so the migration can read the old slots
+  // when deriving a window, and so nothing is silently thrown away.
   sittingTimes       Json?
+  /**
+   * When each meal is served, as a window rather than a list of slots:
+   * { "BREAKFAST": { "start": "09:00", "end": "11:00", "lastSeating": "10:30" } }
+   *
+   * `lastSeating` is the point of the whole shape. A guest who picked 11:00 off
+   * a 9–11 list arrived exactly as the kitchen closed, so the estate needs to
+   * say how long before the end it can still take a table.
+   */
+  sittingWindows     Json?
+  /**
+   * How many dishes a party may choose per course, and how far ahead a day
+   * closes: { "cutoffHours": 24, "courseLimits": { "DINNER_MAIN": 1, ... } }
+   */
+  menuRules          Json?
   updatedAt          DateTime @default(now()) @updatedAt
 }
 

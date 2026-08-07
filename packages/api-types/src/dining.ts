@@ -1,4 +1,4 @@
-import type { MenuCategory, MenuItem } from './catalog';
+import type { MenuCategory, MenuCourse, MenuItem } from './catalog';
 
 export type DiningRequestKind = 'SITTING' | 'ORDER';
 export type DiningRequestStatus = 'REQUESTED' | 'CONFIRMED' | 'CANCELLED';
@@ -21,18 +21,6 @@ export interface DiningLateArrival {
   /** ISO timestamp the flag was raised. */
   at: string;
 }
-
-/**
- * Estate-configured recommended sitting times per meal (24h "HH:MM"), shown to
- * the primary guest as selectable chips. Empty arrays are allowed.
- */
-export interface SittingTimes {
-  BREAKFAST: string[];
-  LUNCH: string[];
-  DINNER: string[];
-}
-
-export type UpdateSittingTimesDto = SittingTimes;
 
 /** Payload a secondary guest sends to flag a late arrival to a sitting. */
 export interface AddLateArrivalDto {
@@ -139,68 +127,166 @@ export interface MenuItemDto {
   containsShellfish?: boolean;
   otherDietaryNotes?: string;
   sortOrder?: number;
+  /** Which course it belongs to. Omitted for snacks, beverages and exclusives. */
+  course?: MenuCourse | null;
   /** Required for EXCLUSIVE items, meaningless for everything else. */
   price?: number | null;
   isStanding?: boolean;
 }
 
-// ─── Daily menus ─────────────────────────────────────────────────────────────
 
-/** The three services planned per day. Snacks and drinks are always available. */
-export type PlannedMeal = 'BREAKFAST' | 'LUNCH' | 'DINNER';
+// ─── Menu composition ────────────────────────────────────────────────────────
+//
+// The estate publishes its whole menu once; the primary member composes each
+// day from it within allowances the estate sets per course. It replaces the
+// weekly planner, where the estate chose every dish and the guest only read it.
 
-export const PLANNED_MEALS: PlannedMeal[] = ['BREAKFAST', 'LUNCH', 'DINNER'];
+export const COURSES_BY_MEAL: Record<MealType, MenuCourse[]> = {
+  BREAKFAST: ['BREAKFAST_MAIN', 'BREAKFAST_SUGGESTION'],
+  LUNCH: ['LUNCH_SELECTION'],
+  DINNER: ['DINNER_STARTER', 'DINNER_MAIN', 'DINNER_DESSERT'],
+};
 
-export interface DailyMenuItem {
+/** What the estate calls each course when it talks to a guest. */
+export const COURSE_LABELS: Record<MenuCourse, string> = {
+  BREAKFAST_MAIN: 'Breakfast',
+  BREAKFAST_SUGGESTION: 'Daily suggestion',
+  LUNCH_SELECTION: 'Curated selection',
+  DINNER_STARTER: 'Starters',
+  DINNER_MAIN: 'Main dish',
+  DINNER_DESSERT: 'Dessert',
+};
+
+/**
+ * When a meal is served.
+ *
+ * `lastSeating` is why this is a window and not a list of slots. A guest given
+ * 11:00 off a 9–11 breakfast list arrived exactly as the kitchen shut, so the
+ * estate has to be able to say how late it can still take a table.
+ */
+export interface SittingWindow {
+  /** 24h "HH:MM". */
+  start: string;
+  end: string;
+  lastSeating: string;
+}
+
+export type SittingWindows = Record<MealType, SittingWindow>;
+
+export interface MenuRules {
+  /**
+   * How far ahead of a service day the party's choices close, counted back from
+   * midnight at the *start* of that day. At 24 a Tuesday is decided by Monday
+   * 00:00 — the kitchen orders a full day before it cooks.
+   */
+  cutoffHours: number;
+  courseLimits: Record<MenuCourse, number>;
+}
+
+export interface DiningRules {
+  windows: SittingWindows;
+  menu: MenuRules;
+}
+
+export interface MenuSelectionItem {
   id: string;
   menuItemId: string;
+  course: MenuCourse;
   sortOrder: number;
   menuItem: MenuItem;
 }
 
-/**
- * What the chef is actually cooking, for one meal on one day.
- *
- * `MenuItem` alone has no notion of "today", so every active dish was shown to
- * every guest on every day. A service is drawn from the dish library and stays
- * invisible until `publishedAt` is set — a half-decided Thursday should never
- * reach a guest.
- */
-export interface DailyMenu {
+/** What a party has chosen for one meal on one day. */
+export interface MenuSelection {
   id: string;
-  /** ISO date only, e.g. "2026-08-06". */
+  /** ISO date only, e.g. "2026-08-31". */
   date: string;
   mealType: MenuCategory;
+  /** The party's line to the kitchen, carried onto the run sheet verbatim. */
   note?: string | null;
-  publishedAt?: string | null;
-  publishedBy?: string | null;
-  items: DailyMenuItem[];
-  createdAt: string;
-  updatedAt: string;
+  chosenByName?: string | null;
+  chosenAt?: string | null;
+  /** Set when the estate amended a day the kitchen had already been told about. */
+  amendedByEmail?: string | null;
+  amendedAt?: string | null;
+  /**
+   * The dish names as they stood before that amendment. A swap that silently
+   * becomes the truth is worse than no swap — the chef needs to see what it
+   * replaced.
+   */
+  amendedFrom?: string[] | null;
+  items: MenuSelectionItem[];
 }
 
-export interface UpsertDailyMenuDto {
+export interface MenuPlanMeal {
+  mealType: MealType;
+  window: SittingWindow;
+  courses: MenuCourse[];
+  selection?: MenuSelection | null;
+}
+
+export interface MenuPlanDay {
   date: string;
-  mealType: MenuCategory;
+  /** The moment this day stops being the party's to change. */
+  closesAt: string;
+  isLocked: boolean;
+  /** Only the meals the party is present for — no breakfast on arrival day. */
+  meals: MenuPlanMeal[];
+}
+
+export interface MenuPlan {
+  bookingId: string;
+  rules: DiningRules;
+  days: MenuPlanDay[];
+}
+
+export interface UpsertMenuSelectionDto {
+  date: string;
+  mealType: MealType;
+  /** The whole meal, in reading order. Authoritative. */
+  menuItemIds: string[];
   note?: string;
-  /** The whole line-up, in reading order. Authoritative. */
-  menuItemIds?: string[];
 }
 
-export interface CopyDailyMenuDto {
-  fromStart: string;
-  toStart: string;
-  days?: number;
+// ─── The kitchen's run sheet ────────────────────────────────────────────────
+
+/** One person in the party who can't eat something. */
+export interface KitchenDietaryRow {
+  name: string;
+  allergies?: string | null;
+  restrictions: string[];
+  other?: string | null;
 }
 
-export interface CopyDailyMenuResult {
-  copied: number;
-  /** Services skipped because the target was already published. */
-  skipped: number;
+export interface KitchenService {
+  bookingId: string;
+  partyName: string;
+  mealType: MealType;
+  window: SittingWindow;
+  sittingTime?: string | null;
+  covers: number;
+  lateArrivals?: DiningLateArrival[] | null;
+  /**
+   * Repeated on every service, deliberately. A page the chef works from should
+   * never require them to remember to go and check the manifest.
+   */
+  dietary: KitchenDietaryRow[];
+  note?: string | null;
+  chosen?: MenuSelection | null;
+  amendedAt?: string | null;
+  amendedByEmail?: string | null;
 }
 
-/** Days in the near future with nothing published — a silent failure otherwise. */
-export interface DailyMenuGaps {
-  withinDays: number;
-  gaps: { date: string; missing: MenuCategory[] }[];
+export interface KitchenDay {
+  date: string;
+  closesAt: string;
+  isLocked: boolean;
+  services: KitchenService[];
+}
+
+export interface KitchenSheet {
+  from: string;
+  to: string;
+  rules: DiningRules;
+  days: KitchenDay[];
 }

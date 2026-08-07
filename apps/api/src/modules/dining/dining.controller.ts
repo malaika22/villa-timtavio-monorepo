@@ -8,11 +8,7 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import type {
-  SittingTimes,
-  UpdateSittingTimesDto,
-  AddLateArrivalDto,
-} from './dining.types';
+import type { AddLateArrivalDto } from './dining.types';
 import { DiningService } from './dining.service';
 import { CreateDiningRequestDto } from './dto/create-dining-request.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -22,26 +18,12 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 export class DiningController {
   constructor(private diningService: DiningService) {}
 
-  // Guest + EM — recommended sitting times per meal (read).
-  // Declared before the :param routes so "sitting-times" isn't swallowed.
-  @Get('sitting-times')
-  getSittingTimes() {
-    return this.diningService.getSittingTimes();
-  }
-
-  // EM — everything awaiting confirmation, across every booking.
-  // Also declared before the :param routes.
+  // EM — orders awaiting acknowledgement, across every booking. Declared
+  // before the :param routes so "queue" isn't swallowed by them.
   @Get('queue')
   @Roles('estate_manager', 'owner')
   getQueue() {
     return this.diningService.getQueue();
-  }
-
-  // EM/owner — configure the recommended sitting times.
-  @Patch('sitting-times')
-  @Roles('estate_manager', 'owner')
-  updateSittingTimes(@Body() dto: UpdateSittingTimesDto) {
-    return this.diningService.updateSittingTimes(dto as SittingTimes);
   }
 
   // Guest + EM — list dining requests for a booking

@@ -6,6 +6,7 @@ import { useAuth } from './useAuth';
 import type {
   CreateDiningRequestDto,
   AddLateArrivalDto,
+  UpsertMenuSelectionDto,
 } from '@repo/api-types';
 
 function useBookingId(): string | null {
@@ -48,18 +49,38 @@ export function useCreateDiningRequest() {
 }
 
 /**
- * The published menus across the guest's stay.
+ * The stay day by day — what the party has chosen, and what's still open.
  *
  * Fetched for the whole stay rather than a day at a time: guests have the app
- * weeks before arrival and browse the days ahead, and a stay is at most a
- * couple of dozen services.
+ * weeks before arrival and plan the days ahead, and a stay is at most a couple
+ * of dozen meals. Whether a day is still theirs to change is decided by the
+ * API, not here — three implementations of one deadline is three chances to
+ * disagree about it.
  */
-export function useDailyMenus(from?: string | null, to?: string | null) {
+export function useMenuPlan() {
+  const bookingId = useBookingId();
   return useQuery({
-    queryKey: ['daily-menus', from, to],
-    queryFn: () => diningApi.dailyMenus(from!, to!),
-    enabled: !!from && !!to,
-    staleTime: 60_000,
+    queryKey: ['menu-plan', bookingId],
+    queryFn: () => diningApi.menuPlan(bookingId!),
+    enabled: !!bookingId,
+    staleTime: 30_000,
+  });
+}
+
+/** Compose one meal. The dish list sent is the whole meal, not a delta. */
+export function useComposeMeal() {
+  const bookingId = useBookingId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: UpsertMenuSelectionDto) => {
+      if (!bookingId) {
+        throw new Error('No active booking found. Please reopen the app.');
+      }
+      return diningApi.composeMeal(bookingId, dto);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['menu-plan', bookingId] });
+    },
   });
 }
 
@@ -93,12 +114,12 @@ export function useApproveDining() {
   });
 }
 
-/** Estate-configured recommended sitting times per meal. */
-export function useSittingTimes() {
+/** When each meal is served, what may be chosen, and when a day closes. */
+export function useDiningRules() {
   return useQuery({
-    queryKey: ['sitting-times'],
-    queryFn: diningApi.sittingTimes,
-    staleTime: 60_000,
+    queryKey: ['dining-rules'],
+    queryFn: diningApi.rules,
+    staleTime: 5 * 60_000,
   });
 }
 

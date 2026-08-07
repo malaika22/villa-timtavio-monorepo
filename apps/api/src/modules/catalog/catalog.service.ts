@@ -233,7 +233,10 @@ export class CatalogService {
         isStanding: true,
         ...(category && { category: category as any }),
       },
-      orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }],
+      // Course before sortOrder, so the library comes back in the order the
+      // menu is printed — starters, then mains, then desserts. The enum is
+      // declared in reading order for exactly this.
+      orderBy: [{ category: 'asc' }, { course: 'asc' }, { sortOrder: 'asc' }],
     });
   }
 

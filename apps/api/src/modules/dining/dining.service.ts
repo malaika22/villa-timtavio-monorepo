@@ -5,22 +5,13 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import type {
-  SittingTimes,
-  DiningLateArrival,
-  AddLateArrivalDto,
-} from './dining.types';
+import type { DiningLateArrival, AddLateArrivalDto } from './dining.types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { PusherService, PUSHER_CHANNELS } from '../pusher/pusher.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { MenuRulesService } from '../menu/menu-rules.service';
+import { COMPOSED_MEALS, type ComposedMeal } from '../menu/menu.types';
 import { CreateDiningRequestDto } from './dto/create-dining-request.dto';
-
-const SETTINGS_SINGLETON = 'singleton';
-const EMPTY_SITTING_TIMES: SittingTimes = {
-  BREAKFAST: [],
-  LUNCH: [],
-  DINNER: [],
-};
 
 @Injectable()
 export class DiningService {
@@ -28,6 +19,7 @@ export class DiningService {
     private prisma: PrismaService,
     private pusher: PusherService,
     private notifications: NotificationsService,
+    private rules: MenuRulesService,
   ) {}
 
   async findByBooking(bookingId: string) {
@@ -98,6 +90,22 @@ export class DiningService {
       throw new BadRequestException('An order requires at least one item.');
     }
 
+    // A table is bounded by when the estate actually serves, so the guest can't
+    // pick the closing minute and arrive as the kitchen shuts.
+    if (dto.kind === 'SITTING') {
+      if (!COMPOSED_MEALS.includes(dto.mealType as ComposedMeal)) {
+        throw new BadRequestException(
+          'A table can only be reserved for breakfast, lunch or dinner.',
+        );
+      }
+      const { windows } = await this.rules.get();
+      this.rules.assertWithinWindow(
+        dto.mealType as ComposedMeal,
+        dto.time!,
+        windows,
+      );
+    }
+
     const { total, hasExclusives } = await this.priceItems(dto.items ?? []);
 
     // The primary carries the whole folio, so a secondary spending against it
@@ -110,6 +118,12 @@ export class DiningService {
         requestedByEmail: requestedBy.email,
         requestedByName: requestedBy.name,
         kind: dto.kind,
+        // A table inside the estate's own window, on a day it serves, for a
+        // party already in the villa — there was never anything for the estate
+        // to decide, and asking them to press Confirm on each one only delayed
+        // the guest and buried the run sheet under an inbox. Snacks and drinks
+        // keep their acknowledgement: those really do arrive unannounced.
+        status: dto.kind === 'SITTING' ? 'CONFIRMED' : undefined,
         mealType: dto.mealType,
         date: dto.date ? new Date(dto.date) : undefined,
         time: dto.time,
@@ -141,14 +155,19 @@ export class DiningService {
       );
     }
 
-    // Notify the estate manager dashboard in real time.
-    await this.pusher.trigger(PUSHER_CHANNELS.emDashboard, 'dining.requested', {
-      id: created.id,
-      bookingId,
-      kind: created.kind,
-      guestName: requestedBy.name,
-      mealType: created.mealType,
-    });
+    // Notify the estate manager dashboard in real time — a sitting lands on the
+    // run sheet, an order lands in the queue.
+    await this.pusher.trigger(
+      PUSHER_CHANNELS.emDashboard,
+      dto.kind === 'SITTING' ? 'dining.sitting' : 'dining.requested',
+      {
+        id: created.id,
+        bookingId,
+        kind: created.kind,
+        guestName: requestedBy.name,
+        mealType: created.mealType,
+      },
+    );
 
     return created;
   }
@@ -431,16 +450,16 @@ export class DiningService {
   }
 
   /**
-   * Everything awaiting the estate's attention, across every booking.
+   * Orders awaiting the estate's acknowledgement, across every booking.
    *
-   * Dining requests only ever surfaced on a booking's own detail page, so one
-   * nobody happened to open was one nobody answered. Ordered by when the meal
-   * is, not when it was asked for — a breakfast tomorrow outranks a dinner next
-   * week however late it came in.
+   * Sittings no longer appear here — they confirm themselves, and what the
+   * kitchen needs to see about them is on the run sheet, beside the dishes.
+   * What's left is snacks, drinks and chargeable additions: things that arrive
+   * unannounced and genuinely want a person to say yes.
    */
   async getQueue() {
     const requests = await this.prisma.diningRequest.findMany({
-      where: { status: 'REQUESTED' },
+      where: { status: 'REQUESTED', kind: 'ORDER' },
       include: {
         booking: { include: { primaryGuest: true } },
       },
@@ -450,76 +469,6 @@ export class DiningService {
       r.date ? r.date.getTime() : r.createdAt.getTime();
 
     return requests.sort((a, b) => at(a) - at(b));
-  }
-
-  // ─── Recommended sitting times (estate-configured) ────────────────────────
-
-  async getSittingTimes(): Promise<SittingTimes> {
-    const settings = await this.prisma.estateSettings.findUnique({
-      where: { id: SETTINGS_SINGLETON },
-      select: { sittingTimes: true },
-    });
-    return this.normalizeSittingTimes(settings?.sittingTimes);
-  }
-
-  async updateSittingTimes(dto: SittingTimes): Promise<SittingTimes> {
-    const value = this.normalizeSittingTimes(dto);
-    this.assertPlausibleSittingTimes(value);
-    await this.prisma.estateSettings.upsert({
-      where: { id: SETTINGS_SINGLETON },
-      create: {
-        id: SETTINGS_SINGLETON,
-        sittingTimes: value as unknown as Prisma.InputJsonValue,
-      },
-      update: { sittingTimes: value as unknown as Prisma.InputJsonValue },
-    });
-    return value;
-  }
-
-  /**
-   * Refuse a meal time that can't be that meal.
-   *
-   * Nothing stopped a dinner slot being saved as 08:15, and the guest app duly
-   * displayed "Dinner · 8:15 AM" — the formatter was right, the data wasn't.
-   * The windows are deliberately generous: the point is to catch a typo or an
-   * AM/PM slip, not to tell an estate when to serve.
-   */
-  private assertPlausibleSittingTimes(times: SittingTimes) {
-    const windows: Record<keyof SittingTimes, [number, number]> = {
-      BREAKFAST: [5, 12],
-      LUNCH: [11, 17],
-      DINNER: [16, 23],
-    };
-
-    for (const [meal, slots] of Object.entries(times) as [
-      keyof SittingTimes,
-      string[],
-    ][]) {
-      const [from, to] = windows[meal];
-      for (const slot of slots) {
-        const hour = Number(slot.split(':')[0]);
-        if (Number.isNaN(hour)) continue;
-        if (hour < from || hour > to) {
-          throw new BadRequestException(
-            `${slot} isn't a plausible ${meal.toLowerCase()} time — expected between ${String(from).padStart(2, '0')}:00 and ${to}:00.`,
-          );
-        }
-      }
-    }
-  }
-
-  /** Coerce arbitrary JSON into a well-formed SittingTimes (sorted, deduped). */
-  private normalizeSittingTimes(raw: unknown): SittingTimes {
-    const src = (raw ?? {}) as Record<string, unknown>;
-    const clean = (v: unknown): string[] =>
-      Array.isArray(v)
-        ? [...new Set(v.filter((t): t is string => typeof t === 'string'))].sort()
-        : [];
-    return {
-      BREAKFAST: clean(src.BREAKFAST),
-      LUNCH: clean(src.LUNCH),
-      DINNER: clean(src.DINNER),
-    };
   }
 
   // ─── Late arrivals (secondary guests) ─────────────────────────────────────

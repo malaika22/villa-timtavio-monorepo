@@ -18,6 +18,22 @@ export type MenuCategory =
   /** The only chargeable category — the cellar and the reserve list. */
   | 'EXCLUSIVE';
 
+/**
+ * Where a dish sits on the estate's printed menu.
+ *
+ * A course belongs to exactly one meal, which is what lets an allowance attach
+ * to it without ambiguity: three breakfast mains and one daily suggestion are
+ * two separate allowances, not one allowance of four. Null for snacks,
+ * beverages and exclusives — those are ordered on demand, not composed.
+ */
+export type MenuCourse =
+  | 'BREAKFAST_MAIN'
+  | 'BREAKFAST_SUGGESTION'
+  | 'LUNCH_SELECTION'
+  | 'DINNER_STARTER'
+  | 'DINNER_MAIN'
+  | 'DINNER_DESSERT';
+
 export interface ExperienceCategorySummary {
   id: string;
   name: string;
@@ -71,6 +87,8 @@ export interface MenuItem {
   id: string;
   name: string;
   category: MenuCategory;
+  /** Which allowance this counts against when a party composes a day. */
+  course?: MenuCourse | null;
   description?: string | null;
   photoUrl?: string | null;
   isActive: boolean;
