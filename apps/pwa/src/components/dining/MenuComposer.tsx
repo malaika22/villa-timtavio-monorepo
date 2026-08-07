@@ -290,39 +290,60 @@ export const MenuComposer = ({
                           onClick: () => openPicker(meal.mealType, course),
                         }
                       : {})}
-                    className="flex w-full items-center gap-2.5 border-b border-[#F0EDE6] px-3.5 py-2.5 text-left last:border-b-0"
+                    className="block w-full border-b border-[#F0EDE6] px-3.5 py-2.5 text-left last:border-b-0"
                   >
-                    <span className="w-[4.6rem] shrink-0 text-[8.5px] uppercase leading-tight tracking-[1.1px] text-[#9A9288]">
-                      {COURSE_LABELS[course]}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      {picked.length > 0 ? (
-                        <span className="block text-[11.5px] leading-snug text-[#2B2824]">
-                          {picked.map((i) => i.menuItem.name).join(' · ')}
-                        </span>
-                      ) : (
-                        <span className="block text-[11.5px] italic text-[#9A9288]">
-                          Nothing chosen yet
+                    {/* Label above rather than beside. Squeezed into a narrow
+                        left column, five dish names ran to five lines of grey
+                        and read as a paragraph nobody wrote. */}
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="text-[8.5px] uppercase tracking-[1.4px] text-[#9A9288]">
+                        {COURSE_LABELS[course]}
+                      </span>
+                      {editable && (
+                        <span className="flex shrink-0 items-center gap-1">
+                          <span
+                            className={cn(
+                              'text-[9.5px] tabular-nums',
+                              picked.length >= limit
+                                ? 'font-semibold text-[#3A5E48]'
+                                : 'text-[#B08D57]',
+                            )}
+                          >
+                            {picked.length > 0
+                              ? `${picked.length}/${limit}`
+                              : 'Choose'}
+                          </span>
+                          <ChevronRight
+                            className="size-3.5 text-[#B0AAA0]"
+                            aria-hidden
+                          />
                         </span>
                       )}
                     </span>
-                    {editable && (
-                      <span className="flex shrink-0 items-center gap-1">
-                        <span
-                          className={cn(
-                            'text-[9.5px] tabular-nums',
-                            picked.length >= limit
-                              ? 'font-semibold text-[#3A5E48]'
-                              : 'text-[#B08D57]',
-                          )}
-                        >
-                          {picked.length > 0 ? `${picked.length}/${limit}` : 'Choose'}
-                        </span>
-                        <ChevronRight className="size-3.5 text-[#B0AAA0]" aria-hidden />
+
+                    {picked.length === 0 ? (
+                      <span className="mt-1 block text-[12px] italic text-[#9A9288]">
+                        Nothing chosen yet
+                      </span>
+                    ) : (
+                      <span className="mt-1 block">
+                        {/* Two names, then a count. A summary that lists all
+                            five isn't a summary. */}
+                        {picked.slice(0, 2).map((i) => (
+                          <span
+                            key={i.id}
+                            className="block text-[12px] leading-snug text-[#2B2824]"
+                          >
+                            {i.menuItem.name}
+                          </span>
+                        ))}
+                        {picked.length > 2 && (
+                          <span className="mt-0.5 block text-[10.5px] text-[#797168]">
+                            and {picked.length - 2} more
+                          </span>
+                        )}
                       </span>
                     )}
-                    {/* Kept out of the DOM when there's nothing to open. */}
-                    {editable && options.length === 0 && null}
                   </Row>
                 );
               })}
