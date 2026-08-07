@@ -92,14 +92,61 @@ export function firstRecommended(groups: TimeGroup[]): string | undefined {
   return groups.flatMap((g) => g.chips).find((c) => !c.disabled)?.time;
 }
 
+/** "09:30" → 570. Null when it isn't a 24h clock time. */
+export function toMinutes(t?: string | null): number | null {
+  if (typeof t !== 'string') return null;
+  const m = t.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  return h >= 0 && h <= 23 && min >= 0 && min <= 59 ? h * 60 + min : null;
+}
+
+function toClock(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  return `${String(h).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+/**
+ * Half-hourly tables across a service window, ending at the last seating.
+ *
+ * The estate says when it serves; this turns that into something tappable. The
+ * window stops at `lastSeating` rather than `end` on purpose — a guest offered
+ * the closing time arrived exactly as the kitchen shut, which is the whole
+ * reason the estate configures a last seating at all.
+ */
+export function windowGroups(
+  window?: { start: string; lastSeating: string; end: string } | null,
+  stepMinutes = 30,
+): TimeGroup[] {
+  const start = toMinutes(window?.start);
+  const last = toMinutes(window?.lastSeating) ?? toMinutes(window?.end);
+  if (start == null || last == null || last < start) return buildGroups();
+
+  const chips: { id: string; time: string }[] = [];
+  for (let m = start; m <= last && chips.length < 24; m += stepMinutes) {
+    chips.push({ id: toClock(m), time: toClock(m) });
+  }
+  return buildGroups(chips);
+}
+
 export function TimePicker({
   value,
   groups,
   onChange,
+  min,
+  max,
 }: {
   value: string;
   groups: TimeGroup[];
   onChange: (t: string) => void;
+  /**
+   * The service window, when there is one. A free-typed time outside it is
+   * refused by the API anyway; bounding it here is what stops the guest finding
+   * that out only after they've pressed the button.
+   */
+  min?: string | null;
+  max?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   // When the trigger sits low in the viewport, open the panel upward so its
@@ -233,7 +280,18 @@ export function TimePicker({
               <Pencil className="size-3.5 text-[#C8A96E]" strokeWidth={2} />
               Prefer another time?
             </div>
-            <CustomTimeEntry value={value} onChange={onChange} />
+            <CustomTimeEntry
+              value={value}
+              onChange={onChange}
+              min={min}
+              max={max}
+            />
+            {min && max && (
+              <p className="mt-2 text-[10.5px] leading-snug text-[#797168]">
+                Served {formatTimeLabel(min)}–{formatTimeLabel(max)}. Anything
+                outside that, and your concierge will arrange it.
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -257,19 +315,39 @@ function parseHM(t: string): { h: number; m: number } | null {
 function CustomTimeEntry({
   value,
   onChange,
+  min,
+  max,
 }: {
   value: string;
   onChange: (t: string) => void;
+  min?: string | null;
+  max?: string | null;
 }) {
   const base = parseHM(value) ?? { h: 19, m: 0 };
   const h12 = ((base.h + 11) % 12) + 1;
   const ap: 'AM' | 'PM' = base.h >= 12 ? 'PM' : 'AM';
   const mm = String((Math.round(base.m / 5) * 5) % 60).padStart(2, '0');
 
+  const lo = toMinutes(min);
+  const hi = toMinutes(max);
+
+  /** Whether any minute of this hour falls inside the window. */
+  const hourAllowed = (hour12: number, meridiem: 'AM' | 'PM') => {
+    if (lo == null || hi == null) return true;
+    const h = (hour12 % 12) + (meridiem === 'PM' ? 12 : 0);
+    return h * 60 + 59 >= lo && h * 60 <= hi;
+  };
+
+  // Pull an out-of-window time back to the nearest edge rather than letting it
+  // through to a 400. The guest sees the value move, which is the honest
+  // signal that they've reached the end of service.
   const emit = (nh12: number, nmm: string, nap: 'AM' | 'PM') => {
     let h = nh12 % 12;
     if (nap === 'PM') h += 12;
-    onChange(`${String(h).padStart(2, '0')}:${nmm}`);
+    let total = h * 60 + Number(nmm);
+    if (lo != null && total < lo) total = lo;
+    if (hi != null && total > hi) total = hi;
+    onChange(toClock(total));
   };
 
   const selCls =
@@ -285,7 +363,7 @@ function CustomTimeEntry({
           className={selCls}
         >
           {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-            <option key={h} value={h}>
+            <option key={h} value={h} disabled={!hourAllowed(h, ap)}>
               {h}
             </option>
           ))}

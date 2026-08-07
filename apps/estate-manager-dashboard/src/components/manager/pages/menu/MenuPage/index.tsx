@@ -1,13 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CalendarRange, Pencil, Plus, Trash2, UtensilsCrossed } from 'lucide-react';
+import { Pencil, Plus, SlidersHorizontal, Trash2, UtensilsCrossed } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
+import { COURSE_LABELS, COURSES_BY_MEAL } from '@repo/api-types';
 import { useMenu, useDeleteMenuItem } from '@/hooks/useMenu';
 import { MenuFormDialog } from '@/components/manager/pages/menu/MenuFormDialog';
-import { SittingTimesCard } from '@/components/manager/pages/menu/SittingTimesCard';
-import { MenuWeekGrid } from '@/components/manager/pages/menu/MenuWeekGrid';
-import type { MenuCategory, MenuItem } from '@repo/api-types';
+import { DiningRulesCard } from '@/components/manager/pages/menu/DiningRulesCard';
+import type { MealType, MenuCategory, MenuItem } from '@repo/api-types';
 
 const TABS: { value: MenuCategory; label: string }[] = [
   { value: 'BREAKFAST', label: 'Breakfast' },
@@ -31,10 +31,10 @@ const DIET_BADGES: { key: keyof MenuItem; label: string; tone: string }[] = [
 ];
 
 export const MenuPage = () => {
-  // Two jobs on one page: what the kitchen is cooking this week, and the
-  // library of dishes it draws from. The week leads, because it's the one that
-  // changes daily and the one guests actually read.
-  const [view, setView] = useState<'week' | 'library'>('week');
+  // The estate publishes its menu once and sets the rules a party composes
+  // within. There is no longer a week to plan — the library leads, because it
+  // is now the thing guests actually choose from.
+  const [view, setView] = useState<'library' | 'rules'>('library');
   const [activeTab, setActiveTab] = useState<MenuCategory>('BREAKFAST');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<MenuItem | null>(null);
@@ -42,9 +42,32 @@ export const MenuPage = () => {
   const { data: items, isLoading } = useMenu();
   const deleteItem = useDeleteMenuItem();
 
+  // Grouped by course, in the order the menu prints them, so the library reads
+  // like the card the estate hands a guest rather than one long alphabetical
+  // list nobody can find a starter in.
+  const groups = useMemo(() => {
+    const inTab = (items ?? []).filter((i) => i.category === activeTab);
+    const courses = COURSES_BY_MEAL[activeTab as MealType] ?? [];
+    if (courses.length === 0) {
+      return [{ key: 'all', label: null as string | null, items: inTab }];
+    }
+    const out = courses.map((course) => ({
+      key: course as string,
+      label: COURSE_LABELS[course] as string | null,
+      items: inTab.filter((i) => i.course === course),
+    }));
+    // A dish filed under no course at all would otherwise vanish from the page
+    // while still sitting in the database.
+    const orphans = inTab.filter((i) => !i.course);
+    if (orphans.length > 0) {
+      out.push({ key: 'unfiled', label: 'Not yet filed', items: orphans });
+    }
+    return out.filter((g) => g.items.length > 0);
+  }, [items, activeTab]);
+
   const visible = useMemo(
-    () => (items ?? []).filter((i) => i.category === activeTab),
-    [items, activeTab],
+    () => groups.flatMap((g) => g.items),
+    [groups],
   );
 
   const openCreate = () => {
@@ -61,36 +84,34 @@ export const MenuPage = () => {
       <div className="inline-flex rounded-lg border border-manager-border bg-white p-0.5">
         <button
           type="button"
-          onClick={() => setView('week')}
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-medium',
-            view === 'week'
-              ? 'bg-manager-accent text-white'
-              : 'text-manager-text-muted',
-          )}
-        >
-          <CalendarRange className="size-4" />
-          This week&rsquo;s menus
-        </button>
-        <button
-          type="button"
           onClick={() => setView('library')}
           className={cn(
-            'rounded-md px-3.5 py-1.5 text-sm font-medium',
+            'inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-medium',
             view === 'library'
               ? 'bg-manager-accent text-white'
               : 'text-manager-text-muted',
           )}
         >
-          Dish library
+          <UtensilsCrossed className="size-4" />
+          The menu
+        </button>
+        <button
+          type="button"
+          onClick={() => setView('rules')}
+          className={cn(
+            'inline-flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-sm font-medium',
+            view === 'rules'
+              ? 'bg-manager-accent text-white'
+              : 'text-manager-text-muted',
+          )}
+        >
+          <SlidersHorizontal className="size-4" />
+          Service rules
         </button>
       </div>
 
-      {view === 'week' ? (
-        <>
-          <SittingTimesCard />
-          <MenuWeekGrid />
-        </>
+      {view === 'rules' ? (
+        <DiningRulesCard />
       ) : (
       <>
       {/* Tabs */}
@@ -143,8 +164,20 @@ export const MenuPage = () => {
           </button>
         </div>
       ) : (
+        groups.map((group) => (
+        <section key={group.key} className="space-y-3">
+          {group.label && (
+            <div className="flex items-baseline gap-2">
+              <h2 className="text-xs font-semibold uppercase tracking-[1.4px] text-manager-text-muted">
+                {group.label}
+              </h2>
+              <span className="text-xs text-manager-text-muted/70">
+                {group.items.length} dishes
+              </span>
+            </div>
+          )}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {visible.map((item) => (
+          {group.items.map((item) => (
             <div
               key={item.id}
               className="flex flex-col overflow-hidden rounded-xl border border-manager-border bg-white shadow-[0_1px_3px_rgba(26,22,20,0.04)]"
@@ -223,6 +256,8 @@ export const MenuPage = () => {
             </div>
           ))}
         </div>
+        </section>
+        ))
       )}
       </>
       )}

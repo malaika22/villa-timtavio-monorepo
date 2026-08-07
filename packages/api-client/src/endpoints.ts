@@ -170,8 +170,7 @@ export const API = {
     create: (bookingId: string) => `/api/v1/dining/bookings/${bookingId}`,
     confirm: (id: string) => `/api/v1/dining/${id}/confirm`,
     cancel: (id: string) => `/api/v1/dining/${id}/cancel`,
-    sittingTimes: '/api/v1/dining/sitting-times',
-    /** EM — everything awaiting confirmation, across every booking. */
+    /** EM — orders awaiting acknowledgement. Sittings confirm themselves. */
     queue: '/api/v1/dining/queue',
     lateArrival: (id: string) => `/api/v1/dining/${id}/late-arrival`,
     /** Primary — chargeable additions awaiting their decision. */
@@ -186,20 +185,17 @@ export const API = {
     /** A specific booking in the EM stay-view shape. */
     byId: (id: string) => `/api/v1/bookings/em/${id}`,
   },
-  dailyMenus: {
-    /** Guest — published services only, over a date range. */
-    published: (from: string, to: string) =>
-      `/api/v1/daily-menus/published?from=${from}&to=${to}`,
-    /** EM — the planning grid, drafts included. */
-    range: (from: string, to: string) =>
-      `/api/v1/daily-menus?from=${from}&to=${to}`,
-    gaps: (withinDays: number) =>
-      `/api/v1/daily-menus/gaps?withinDays=${withinDays}`,
-    upsert: '/api/v1/daily-menus',
-    copy: '/api/v1/daily-menus/copy',
-    publish: (id: string) => `/api/v1/daily-menus/${id}/publish`,
-    unpublish: (id: string) => `/api/v1/daily-menus/${id}/unpublish`,
-    remove: (id: string) => `/api/v1/daily-menus/${id}`,
+  menu: {
+    /** Service windows, per-course allowances and the cutoff. */
+    rules: '/api/v1/menu/rules',
+    /** Guest — the stay day by day: what's chosen, what's still open. */
+    plan: (bookingId: string) => `/api/v1/menu/bookings/${bookingId}/plan`,
+    /** Primary (or the estate, after the cutoff) — compose one meal. */
+    selections: (bookingId: string) =>
+      `/api/v1/menu/bookings/${bookingId}/selections`,
+    /** EM — every meal the estate is cooking over a stretch of days. */
+    kitchen: (from: string, to: string) =>
+      `/api/v1/menu/kitchen?from=${from}&to=${to}`,
   },
   notifications: {
     list: (bookingId: string) => `/api/v1/notifications/bookings/${bookingId}`,

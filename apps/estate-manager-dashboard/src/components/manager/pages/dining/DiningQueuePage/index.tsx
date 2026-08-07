@@ -1,7 +1,7 @@
 'use client';
 
 import { differenceInCalendarDays, format, parseISO } from 'date-fns';
-import { Coffee, Gem, Loader2, UtensilsCrossed } from 'lucide-react';
+import { Coffee, Gem, Loader2 } from 'lucide-react';
 import { Button } from '@repo/ui';
 import { cn } from '@repo/ui/lib/utils';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ import {
   useConfirmDining,
   useDiningQueue,
 } from '@/hooks/useDining';
+import { KitchenSheet } from '@/components/manager/pages/dining/KitchenSheet';
 
 /** A meal today or tomorrow is being cooked for now, not planned for. */
 const URGENT_WITHIN_DAYS = 1;
@@ -32,15 +33,22 @@ function partyOf(r: EmDiningQueueItem): string {
 }
 
 /**
- * Everything the kitchen is waiting on, across every stay.
+ * The kitchen's day, and the handful of things still waiting on a person.
  *
- * Dining requests previously appeared only inside a booking's own detail page,
- * which meant a request nobody happened to open was a request nobody answered —
- * while experiences had a whole approvals queue. Ordered by when the meal is,
- * not when it was asked for: a breakfast tomorrow outranks a dinner next week
- * however late it came in.
+ * Sittings used to queue here for confirmation, which was ceremony: a table
+ * inside the estate's own window, on a day it serves, for a party already in
+ * the villa. Removing that is what freed the page to become the sheet the chef
+ * works from. Snacks, drinks and chargeable additions keep their
+ * acknowledgement below — those genuinely arrive unannounced.
  */
-export const DiningQueuePage = () => {
+export const DiningQueuePage = () => (
+  <div className="space-y-8">
+    <KitchenSheet />
+    <OrdersWaiting />
+  </div>
+);
+
+const OrdersWaiting = () => {
   const { data: requests = [], isLoading } = useDiningQueue();
   const confirm = useConfirmDining(null);
   const cancel = useCancelDining(null);
@@ -55,22 +63,9 @@ export const DiningQueuePage = () => {
     );
   }
 
-  if (requests.length === 0) {
-    return (
-      <div className="rounded-xl border border-dashed border-manager-border bg-manager-card p-12 text-center">
-        <UtensilsCrossed
-          className="mx-auto mb-3 size-6 text-manager-text-muted"
-          aria-hidden
-        />
-        <p className="text-sm font-medium text-manager-text">
-          Nothing waiting on the kitchen
-        </p>
-        <p className="mt-1 text-sm text-manager-text-muted">
-          Sittings and orders appear here the moment a guest submits one.
-        </p>
-      </div>
-    );
-  }
+  // Nothing waiting is the normal state now that sittings confirm themselves,
+  // so an empty panel says nothing worth the space it would take.
+  if (requests.length === 0) return null;
 
   const act = (
     kind: 'confirm' | 'cancel',
@@ -95,15 +90,19 @@ export const DiningQueuePage = () => {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-manager-text-muted">
-        {requests.length} request{requests.length === 1 ? '' : 's'} awaiting
-        confirmation, soonest first. Confirming or cancelling notifies the guest;
-        an exclusive addition also goes on their folio.
-      </p>
+      <div>
+        <h2 className="text-sm font-semibold text-manager-text">
+          Waiting on you
+        </h2>
+        <p className="mt-0.5 text-xs text-manager-text-muted">
+          {requests.length} order{requests.length === 1 ? '' : 's'}, soonest
+          first. Confirming or cancelling notifies the guest; an exclusive
+          addition also goes on their folio.
+        </p>
+      </div>
 
       <ul className="flex flex-col gap-2">
         {requests.map((r) => {
-          const isSitting = r.kind === 'SITTING';
           const items = (r.items ?? []) as DiningOrderItem[];
           const amount = Number(r.totalAmount ?? 0);
           const chargeable = amount > 0;
@@ -117,9 +116,7 @@ export const DiningQueuePage = () => {
           const urgent = daysAway != null && daysAway <= URGENT_WITHIN_DAYS;
           const label = chargeable
             ? (items[0]?.name ?? 'Exclusive addition')
-            : isSitting
-              ? (MEAL_LABEL[r.mealType ?? ''] ?? 'Sitting')
-              : 'Order';
+            : (MEAL_LABEL[r.mealType ?? ''] ?? 'Order');
           const busy =
             (confirm.isPending && confirm.variables === r.id) ||
             (cancel.isPending && cancel.variables === r.id);
@@ -132,18 +129,12 @@ export const DiningQueuePage = () => {
               <span
                 className={cn(
                   'flex size-9 shrink-0 items-center justify-center rounded-full',
-                  chargeable
-                    ? 'bg-[#faf0dc]'
-                    : isSitting
-                      ? 'bg-[#f5ebe0]'
-                      : 'bg-[#eef2f6]',
+                  chargeable ? 'bg-[#faf0dc]' : 'bg-[#eef2f6]',
                 )}
                 aria-hidden
               >
                 {chargeable ? (
                   <Gem className="size-4 text-[#8a6d3b]" />
-                ) : isSitting ? (
-                  <UtensilsCrossed className="size-4 text-[#8b6914]" />
                 ) : (
                   <Coffee className="size-4 text-[#3d6382]" />
                 )}
@@ -152,8 +143,7 @@ export const DiningQueuePage = () => {
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-manager-text">
                   {label}
-                  {isSitting && r.partySize ? ` · ${r.partySize} guests` : ''}
-                  {!isSitting && items.length > 0
+                  {items.length > 0
                     ? ` · ${items.reduce((s, i) => s + i.quantity, 0)} items`
                     : ''}
                 </p>
@@ -174,7 +164,7 @@ export const DiningQueuePage = () => {
                   </p>
                 )}
 
-                {!isSitting && items.length > 0 ? (
+                {items.length > 0 ? (
                   <p className="mt-1 text-xs text-manager-text-muted">
                     {items.map((i) => `${i.quantity}× ${i.name}`).join(', ')}
                   </p>

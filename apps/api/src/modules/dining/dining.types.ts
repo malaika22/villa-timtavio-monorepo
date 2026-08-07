@@ -2,14 +2,6 @@
 // resolution and doesn't consume @repo/api-types directly, so these are kept in
 // sync with packages/api-types/src/dining.ts by hand.
 
-export interface SittingTimes {
-  BREAKFAST: string[];
-  LUNCH: string[];
-  DINNER: string[];
-}
-
-export type UpdateSittingTimesDto = SittingTimes;
-
 export interface DiningLateArrival {
   email: string;
   name: string;

@@ -16,36 +16,35 @@ import {
 import { cn } from '@repo/ui/lib/utils';
 import { Drawer, DrawerContent, DrawerTitle } from '@repo/ui/components/drawer';
 import type {
-  DailyMenu,
   MealType,
   MenuCategory,
   MenuItem,
   DiningRequest,
   DiningOrderItem,
-  SittingTimes,
+  SittingWindows,
 } from '@repo/api-types';
 import {
   useMenu,
   useDiningRequests,
   useCreateDiningRequest,
-  useSittingTimes,
+  useDiningRules,
   useAddLateArrival,
   useCancelDiningRequest,
-  useDailyMenus,
+  useMenuPlan,
 } from '@/hooks/useDining';
 import { useAuth } from '@/hooks/useAuth';
 import { useBookingStore } from '@/store/useBookingStore';
 import { CalenderPicker } from '../CalenderPicker';
 import { DishThumb } from './DishThumb';
-import { DailyMenus } from './DailyMenus';
+import { MenuComposer } from './MenuComposer';
 import { ExclusiveAdditions } from './ExclusiveAdditions';
 import { DiningApprovals } from './DiningApprovals';
 import { GuestStepper } from '../RequestExperienceSheet/GuestStepper';
 import {
   TimePicker,
-  buildGroups,
   firstRecommended,
   formatTimeLabel,
+  windowGroups,
 } from '../TimePicker';
 
 const MEAL_CATEGORIES: { value: MealType; label: string }[] = [
@@ -87,10 +86,10 @@ export const DiningPage = () => {
   const router = useRouter();
   const { data: menu, isLoading } = useMenu();
   const { data: requests } = useDiningRequests();
-  const { data: sittingTimes } = useSittingTimes();
+  const { data: rules } = useDiningRules();
   const checkIn = useBookingStore((b) => b.checkIn);
   const checkOut = useBookingStore((b) => b.checkOut);
-  const { data: dailyMenus } = useDailyMenus(checkIn, checkOut);
+  const { data: plan } = useMenuPlan();
   // Only the primary member sets the main sitting times; secondaries view them
   // read-only and can flag a late arrival instead.
   const { isPrimary, email } = useAuth();
@@ -99,7 +98,7 @@ export const DiningPage = () => {
   const [lateFor, setLateFor] = useState<DiningRequest | null>(null);
   const [cart, setCart] = useState<Record<string, { item: MenuItem; qty: number }>>({});
   const [orderOpen, setOrderOpen] = useState(false);
-  const [libraryCategory, setLibraryCategory] = useState<MenuCategory>('BREAKFAST');
+  const [libraryCategory, setLibraryCategory] = useState<MenuCategory>('SNACKS');
 
   const byCategory = useMemo(() => {
     const map: Record<string, MenuItem[]> = {};
@@ -223,12 +222,14 @@ export const DiningPage = () => {
       </button>
       )}
 
-      {/* What the kitchen is cooking, day by day. */}
-      {checkIn && checkOut && (
-        <DailyMenus
-          menus={dailyMenus ?? []}
-          checkIn={checkIn}
-          checkOut={checkOut}
+      {/* What the party is eating, day by day — and, until each day closes,
+          what they'd like to be. */}
+      {plan && (
+        <MenuComposer
+          days={plan.days}
+          rules={plan.rules.menu}
+          dishes={menu ?? []}
+          canCompose={isPrimary}
           sittings={sittings}
           onFlagLate={isPrimary ? undefined : (r) => setLateFor(r)}
           flaggedLate={flaggedLate}
@@ -238,33 +239,32 @@ export const DiningPage = () => {
       {/* The one chargeable block, kept out of the included lists entirely. */}
       <ExclusiveAdditions items={exclusives} sittings={sittings} />
 
-      {/* The dish library. Kept beneath the day view rather than replaced by
-          it — on the day this shipped nothing was published yet, and a guest
-          seeing an empty Dining page would read it as broken. */}
+      {/* Snacks and drinks — the only things still browsed as a list. The
+          three meals are composed above, so listing every breakfast dish again
+          here would be the same menu twice, and the second copy the one you
+          can't act on. */}
       {isLoading ? (
         <div className="flex flex-col gap-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-20 animate-pulse rounded-[12px] bg-[#E3E0DA]" />
           ))}
         </div>
-      ) : (menu?.length ?? 0) === 0 ? (
-        <p className="rounded-[12px] border border-dashed border-[#C9C4BC] bg-[#F7F5F2] px-4 py-8 text-center text-[11px] text-[#797168]">
-          The menu is being prepared. Check back soon.
-        </p>
-      ) : (
+      ) : ORDER_CATEGORIES.every(
+          (c) => (byCategory[c.value] ?? []).length === 0,
+        ) ? null : (
         <div className="flex flex-col gap-4">
           <p className="text-[10px] leading-relaxed text-[#797168]">
-            <span className="font-medium text-[#2B2824]">What we cook.</span>{' '}
-            Dishes from the estate kitchen — snacks and drinks can be ordered at
-            any hour.
+            <span className="font-medium text-[#2B2824]">Any hour.</span>{' '}
+            Snacks and drinks, brought to wherever you are.
           </p>
 
           {/* A category at a time. Rendering all five in full meant scrolling
               past everything to reach breakfast, and the page grew with every
               dish the estate added. Same control the Experiences page uses. */}
           <div className="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3">
-            {[...MEAL_CATEGORIES, ...ORDER_CATEGORIES]
-              .filter((cat) => (byCategory[cat.value] ?? []).length > 0)
+            {ORDER_CATEGORIES.filter(
+              (cat) => (byCategory[cat.value] ?? []).length > 0,
+            )
               .map((cat) => (
                 <button
                   key={cat.value}
@@ -283,10 +283,9 @@ export const DiningPage = () => {
               ))}
           </div>
 
-          {[...MEAL_CATEGORIES, ...ORDER_CATEGORIES].map((cat) => {
+          {ORDER_CATEGORIES.map((cat) => {
             const items = byCategory[cat.value] ?? [];
             if (items.length === 0 || cat.value !== libraryCategory) return null;
-            const orderable = ORDER_CATEGORIES.some((o) => o.value === cat.value);
             return (
               <section key={cat.value}>
                 <div className="flex flex-col gap-2">
@@ -305,8 +304,7 @@ export const DiningPage = () => {
                         )}
                         <DietBadges item={item} />
                       </div>
-                      {orderable && (
-                        <div className="shrink-0">
+                      <div className="shrink-0">
                           {cart[item.id] ? (
                             <div className="flex items-center gap-2">
                               <button
@@ -334,9 +332,8 @@ export const DiningPage = () => {
                             >
                               <Plus className="size-3" /> Order
                             </button>
-                          )}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -366,8 +363,7 @@ export const DiningPage = () => {
       <SittingSheet
         open={sittingOpen}
         onClose={() => setSittingOpen(false)}
-        sittingTimes={sittingTimes}
-        menus={dailyMenus}
+        windows={rules?.windows}
         stayCheckIn={checkIn}
         stayCheckOut={checkOut}
       />
@@ -517,16 +513,14 @@ function RequestRow({
 function SittingSheet({
   open,
   onClose,
-  sittingTimes,
-  menus,
+  windows,
   stayCheckIn,
   stayCheckOut,
 }: {
   open: boolean;
   onClose: () => void;
-  sittingTimes?: SittingTimes;
-  /** Published services, so the guest sees what they're reserving a seat at. */
-  menus?: DailyMenu[];
+  /** When the estate serves each meal, and how late it can still seat. */
+  windows?: SittingWindows;
   stayCheckIn?: string | null;
   stayCheckOut?: string | null;
 }) {
@@ -535,29 +529,16 @@ function SittingSheet({
   const [date, setDate] = useState<Date | null>(null);
   const [time, setTime] = useState('19:30');
   const [party, setParty] = useState(2);
-
-  const chosenMenu = date
-    ? menus?.find(
-        (m) =>
-          m.mealType === meal &&
-          m.date.slice(0, 10) ===
-            new Date(date.getTime() - date.getTimezoneOffset() * 60000)
-              .toISOString()
-              .slice(0, 10),
-      )
-    : undefined;
   const [allergies, setAllergies] = useState('');
   const [special, setSpecial] = useState('');
   const [done, setDone] = useState(false);
 
-  // Recommended sitting times for the chosen meal, grouped by time-of-day.
-  const groups = useMemo(
-    () =>
-      buildGroups((sittingTimes?.[meal] ?? []).map((t) => ({ id: t, time: t }))),
-    [sittingTimes, meal],
-  );
-  // Default to the meal's first recommendation whenever the meal (or config)
-  // changes — the guest can still pick another slot or a custom time.
+  // Half-hourly tables across the meal's service window, stopping at the last
+  // seating the estate can take.
+  const window = windows?.[meal];
+  const groups = useMemo(() => windowGroups(window), [window]);
+  // Default to the first table whenever the meal changes — the guest can still
+  // pick another, or type a time of their own within the window.
   useEffect(() => {
     setTime((prev) => firstRecommended(groups) ?? prev);
   }, [groups]);
@@ -598,9 +579,10 @@ function SittingSheet({
             <div className="flex size-14 items-center justify-center rounded-full bg-[#EAF3E8]">
               <Check className="size-6 text-[#3A5E48]" strokeWidth={2.5} />
             </div>
-            <h2 className="font-cormorant text-[26px] italic text-[#2B2824]">Sitting requested</h2>
+            <h2 className="font-cormorant text-[26px] italic text-[#2B2824]">Your table is set</h2>
             <p className="text-[12px] text-[#797168]">
-              The estate will confirm your table shortly.
+              It’s on the kitchen’s sheet. Change or cancel it from Dining
+              whenever you like.
             </p>
             <button
               onClick={close}
@@ -640,41 +622,14 @@ function SittingSheet({
                 />
               </Field>
 
-              {/* Picking a date used to tell the guest nothing about the meal
-                  itself. If that service is published, show it here — it is the
-                  whole reason they're choosing one evening over another. */}
-              {chosenMenu && (
-                <div className="overflow-hidden rounded-[12px] border border-[#E3E0DA]">
-                  <p className="border-b border-[#E3E0DA] bg-[#F7F5F2] px-3.5 py-2 font-cormorant text-[13px] text-[#2B2824]">
-                    That {meal === 'BREAKFAST' ? 'morning' : meal === 'LUNCH' ? 'afternoon' : 'evening'}
-                  </p>
-                  {chosenMenu.note && (
-                    <p className="border-b border-[#F0EDE6] bg-[#FBF3DF] px-3.5 py-2 text-[10px] italic leading-snug text-[#8A6D3B]">
-                      {chosenMenu.note}
-                    </p>
-                  )}
-                  <ul>
-                    {chosenMenu.items.map((item) => (
-                      <li
-                        key={item.id}
-                        className="flex items-center gap-2.5 border-b border-[#F0EDE6] px-3.5 py-2 last:border-b-0"
-                      >
-                        <DishThumb
-                          photoUrl={item.menuItem.photoUrl}
-                          name={item.menuItem.name}
-                          className="!size-9 !rounded-[7px]"
-                        />
-                        <span className="text-[11.5px] text-[#2B2824]">
-                          {item.menuItem.name}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
               <Field label="Preferred time">
-                <TimePicker value={time} groups={groups} onChange={setTime} />
+                <TimePicker
+                  value={time}
+                  groups={groups}
+                  onChange={setTime}
+                  min={window?.start}
+                  max={window?.lastSeating}
+                />
               </Field>
 
               <Field label="Party size">
@@ -708,7 +663,7 @@ function SittingSheet({
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0F1F2E] py-4 text-[11px] font-semibold uppercase tracking-[2px] text-white disabled:opacity-60"
               >
                 {create.isPending && <Loader2 className="size-4 animate-spin" />}
-                {create.isPending ? 'Requesting…' : 'Request sitting'}
+                {create.isPending ? 'Reserving…' : 'Reserve the table'}
               </button>
             </div>
           </>

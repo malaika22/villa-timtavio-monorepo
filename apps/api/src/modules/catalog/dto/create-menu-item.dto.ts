@@ -7,7 +7,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { MenuCategory } from '@prisma/client';
+import { MenuCategory, MenuCourse } from '@prisma/client';
 
 /**
  * Menu writes used to take `any` and hand it straight to Prisma, so a bad
@@ -20,6 +20,15 @@ export class CreateMenuItemDto {
 
   @IsEnum(MenuCategory)
   category!: MenuCategory;
+
+  /**
+   * Which part of the meal this belongs to, and so which allowance it counts
+   * against when a party composes a day. Omitted for snacks, beverages and
+   * exclusives — those are ordered on demand rather than composed.
+   */
+  @IsOptional()
+  @IsEnum(MenuCourse)
+  course?: MenuCourse | null;
 
   @IsOptional()
   @IsString()

@@ -22,7 +22,23 @@ import { ImagePlus, Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCreateMenuItem, useUpdateMenuItem } from '@/hooks/useMenu';
 import { uploadImage } from '@/lib/upload';
-import type { MenuCategory, MenuItem, MenuItemDto } from '@repo/api-types';
+import type {
+  MealType,
+  MenuCategory,
+  MenuCourse,
+  MenuItem,
+  MenuItemDto,
+} from '@repo/api-types';
+import { COURSE_LABELS, COURSES_BY_MEAL } from '@repo/api-types';
+
+/**
+ * The courses available for a category, if it has any.
+ *
+ * Snacks, beverages and exclusives are ordered on demand rather than composed,
+ * so a course on one would be a number nothing counts against.
+ */
+const coursesFor = (category: MenuCategory): MenuCourse[] =>
+  COURSES_BY_MEAL[category as MealType] ?? [];
 
 const CATEGORY_OPTIONS: { value: MenuCategory; label: string }[] = [
   { value: 'BREAKFAST', label: 'Breakfast' },
@@ -52,6 +68,7 @@ type Props = {
 const blank = (category: MenuCategory): MenuItemDto => ({
   name: '',
   category,
+  course: coursesFor(category)[0] ?? null,
   description: '',
   photoUrl: '',
   isActive: true,
@@ -73,6 +90,7 @@ function formFromItem(
   return {
     name: item.name,
     category: item.category,
+    course: item.course ?? null,
     description: item.description ?? '',
     photoUrl: item.photoUrl ?? '',
     isActive: item.isActive,
@@ -188,7 +206,14 @@ export const MenuFormDialog = ({
               </label>
               <Select
                 value={form.category}
-                onValueChange={(v) => set('category', v as MenuCategory)}
+                onValueChange={(v) => {
+                  const next = v as MenuCategory;
+                  setForm((f) => ({
+                    ...f,
+                    category: next,
+                    course: coursesFor(next)[0] ?? null,
+                  }));
+                }}
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue />
@@ -203,6 +228,33 @@ export const MenuFormDialog = ({
               </Select>
             </div>
           </div>
+
+          {/* Which allowance the dish counts against. A breakfast main and a
+              daily suggestion are two different offers on the same page, and
+              filing one as the other is what would let a party pick four
+              mains. */}
+          {coursesFor(form.category).length > 0 && (
+            <div>
+              <label className="text-xs font-medium text-manager-text-muted">
+                Course
+              </label>
+              <Select
+                value={form.course ?? coursesFor(form.category)[0]!}
+                onValueChange={(v) => set('course', v as MenuCourse)}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {coursesFor(form.category).map((c) => (
+                    <SelectItem key={c} value={c}>
+                      {COURSE_LABELS[c]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* The only category that carries money. Shown only when it applies,
               so an included dish never gets a price by accident. */}
