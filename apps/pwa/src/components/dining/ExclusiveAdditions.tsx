@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { format } from 'date-fns';
-import { Loader2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { format, isToday, isTomorrow, parseISO } from 'date-fns';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import { formatPrice } from '@repo/api-types';
 import type { DiningRequest, MenuItem } from '@repo/api-types';
 import { cn } from '@repo/ui/lib/utils';
@@ -13,6 +13,39 @@ import { DishThumb } from './DishThumb';
 
 /** Sittings a bottle can be attached to — confirmed or not, it's their table. */
 const ATTACHABLE = ['REQUESTED', 'CONFIRMED'];
+
+const MEAL_WORD: Record<string, string> = {
+  BREAKFAST: 'breakfast',
+  LUNCH: 'lunch',
+  DINNER: 'dinner',
+};
+
+/** The instant a sitting happens, for ordering and for ruling out the past. */
+function sittingAt(s: DiningRequest): number {
+  if (!s.date) return Number.POSITIVE_INFINITY;
+  const day = s.date.slice(0, 10);
+  const time = /^\d{2}:\d{2}$/.test(s.time ?? '') ? s.time : '23:59';
+  const at = new Date(`${day}T${time}:00`);
+  return Number.isNaN(at.getTime()) ? Number.POSITIVE_INFINITY : at.getTime();
+}
+
+/**
+ * A table named the way someone would say it out loud.
+ *
+ * "With Breakfast on Monday" is a database row read aloud. A guest ordering a
+ * bottle at six in the evening is thinking "with dinner tonight", and if the
+ * label doesn't sound like that they have to work out which row means it.
+ */
+function sittingLabel(s: DiningRequest): string {
+  const meal = MEAL_WORD[s.mealType ?? ''] ?? 'your table';
+  if (!s.date) return `With ${meal}`;
+  const day = parseISO(s.date.slice(0, 10));
+  if (isToday(day)) {
+    return `With ${meal} ${s.mealType === 'DINNER' ? 'tonight' : 'today'}`;
+  }
+  if (isTomorrow(day)) return `With ${meal} tomorrow`;
+  return `With ${meal} on ${format(day, 'EEEE')}`;
+}
 
 /**
  * The only chargeable part of dining.
@@ -34,14 +67,30 @@ export const ExclusiveAdditions = ({
   const create = useCreateDiningRequest();
   const [chosen, setChosen] = useState<MenuItem | null>(null);
   const [linkedSittingId, setLinkedSittingId] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
+
+  // Only tables that haven't happened. The filter was on status alone, so a
+  // breakfast from three days ago was still offered as a "when" — and a week's
+  // stay put twenty-one radio buttons in a bottom sheet, which is a list, not
+  // a choice.
+  const upcoming = useMemo(() => {
+    const now = Date.now();
+    return sittings
+      .filter((s) => ATTACHABLE.includes(s.status) && sittingAt(s) > now)
+      .sort((a, b) => sittingAt(a) - sittingAt(b));
+  }, [sittings]);
+
+  // The next table does the job nearly every time; the rest wait behind a tap.
+  const next = upcoming[0];
+  const rest = upcoming.slice(1);
+  const visible = showAll ? upcoming : upcoming.slice(0, 1);
 
   if (items.length === 0) return null;
-
-  const attachable = sittings.filter((s) => ATTACHABLE.includes(s.status));
 
   const close = () => {
     setChosen(null);
     setLinkedSittingId(null);
+    setShowAll(false);
     create.reset();
   };
 
@@ -133,40 +182,43 @@ export const ExclusiveAdditions = ({
               {formatPrice(Number(chosen.price ?? 0))}
             </p>
 
-            {attachable.length > 0 && (
+            {next && (
               <>
                 <p className="mt-3 mb-1.5 text-[8px] uppercase tracking-[2.2px] text-[#9A9288]">
                   When
                 </p>
                 <div className="flex flex-col gap-1.5">
-                  {attachable.map((sitting) => (
-                    <Choice
-                      key={sitting.id}
-                      on={linkedSittingId === sitting.id}
-                      onSelect={() => setLinkedSittingId(sitting.id)}
-                      main={`With ${
-                        sitting.mealType
-                          ? sitting.mealType.charAt(0) +
-                            sitting.mealType.slice(1).toLowerCase()
-                          : 'your sitting'
-                      }${
-                        sitting.date
-                          ? ` on ${format(new Date(sitting.date), 'EEEE')}`
-                          : ''
-                      }`}
-                      sub={
-                        sitting.time
-                          ? `Your table, ${sitting.time} — brought on arrival`
-                          : 'Brought to your table'
-                      }
-                    />
-                  ))}
                   <Choice
                     on={linkedSittingId === null}
                     onSelect={() => setLinkedSittingId(null)}
                     main="Bring it to the villa"
                     sub="As soon as it can be brought up"
                   />
+
+                  {visible.map((sitting) => (
+                    <Choice
+                      key={sitting.id}
+                      on={linkedSittingId === sitting.id}
+                      onSelect={() => setLinkedSittingId(sitting.id)}
+                      main={sittingLabel(sitting)}
+                      sub={
+                        sitting.time
+                          ? `Your table, ${sitting.time} — poured when you sit down`
+                          : 'Brought to your table'
+                      }
+                    />
+                  ))}
+
+                  {rest.length > 0 && !showAll && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAll(true)}
+                      className="flex items-center justify-center gap-1 py-1 text-[10px] font-medium text-[#8A6D3B]"
+                    >
+                      <ChevronDown className="size-3" aria-hidden />
+                      Another table ({rest.length})
+                    </button>
+                  )}
                 </div>
               </>
             )}

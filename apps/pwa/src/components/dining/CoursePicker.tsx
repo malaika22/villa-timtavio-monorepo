@@ -101,6 +101,18 @@ export const CoursePicker = ({
   const [filter, setFilter] = useState<FilterKey>('ALL');
   const [detail, setDetail] = useState<MenuItem | null>(null);
 
+  // A filter belongs to the sitting it was set in. The sheet is one mounted
+  // component reused for every course of every day, so "no nuts" on Tuesday's
+  // breakfast was still on when you opened Thursday's dinner — quietly hiding
+  // most of the menu for a reason nobody would think to look for.
+  const session = `${open ? 'open' : 'shut'}:${course ?? ''}`;
+  const [lastSession, setLastSession] = useState(session);
+  if (session !== lastSession) {
+    setLastSession(session);
+    setFilter('ALL');
+    setDetail(null);
+  }
+
   const chips = useMemo(
     () => FILTERS.filter((f) => f.relevant(dishes)),
     [dishes],
