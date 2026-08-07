@@ -99,6 +99,9 @@ export const DiningPage = () => {
   const [cart, setCart] = useState<Record<string, { item: MenuItem; qty: number }>>({});
   const [orderOpen, setOrderOpen] = useState(false);
   const [libraryCategory, setLibraryCategory] = useState<MenuCategory>('SNACKS');
+  // Planning the week and asking for a drink now are different jobs, and they
+  // were sharing a page purely because both involve food.
+  const [tab, setTab] = useState<'menu' | 'order'>('menu');
 
   const byCategory = useMemo(() => {
     const map: Record<string, MenuItem[]> = {};
@@ -160,14 +163,35 @@ export const DiningPage = () => {
         <span className="w-9" />
       </div>
 
-      <p className="mb-5 text-[11px] leading-relaxed text-[#797168]">
-        All-inclusive food &amp; drink.{' '}
-        {isPrimary
-          ? 'Reserve a sitting for a meal, or order snacks & beverages to the villa.'
-          : 'Sitting times are set by the primary member — order snacks & beverages any time.'}
-      </p>
+      {/* A secondary's chargeable order waits on the primary, who carries the
+          folio. Above the tabs: it's the only thing here blocking someone. */}
+      <DiningApprovals />
 
-      {!isPrimary && sittings.length === 0 && (
+      <div className="mb-4 flex rounded-[10px] border border-[#E3E0DA] bg-white p-0.5">
+        {(
+          [
+            { key: 'menu' as const, label: 'Your menu' },
+            { key: 'order' as const, label: 'Order now' },
+          ]
+        ).map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setTab(t.key)}
+            aria-pressed={tab === t.key}
+            className={cn(
+              'flex-1 rounded-[8px] py-2 text-[11px] font-medium transition-colors',
+              tab === t.key
+                ? 'bg-[#0F1F2E] text-white'
+                : 'text-[#797168]',
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'menu' && !isPrimary && sittings.length === 0 && (
         <section className="mb-6">
           <p className="mb-2 text-[8px] uppercase tracking-[2.5px] text-[#9A9288]">
             Meal sittings
@@ -179,18 +203,14 @@ export const DiningPage = () => {
         </section>
       )}
 
-      {/* A secondary's chargeable order waits on the primary, who carries the
-          folio. Shown first: it's the only thing here blocking someone else. */}
-      <DiningApprovals />
-
-      {/* Your dining — primary: sittings + orders; secondary: orders only */}
-      {(isPrimary ? allRequests : orders).length > 0 && (
+      {/* Tables sit with the menu; orders sit with ordering. */}
+      {(tab === 'menu' ? (isPrimary ? sittings : []) : orders).length > 0 && (
         <section className="mb-6">
           <p className="mb-2 text-[8px] uppercase tracking-[2.5px] text-[#9A9288]">
-            {isPrimary ? 'Your dining' : 'Your orders'}
+            {tab === 'menu' ? 'Your tables' : 'Your orders'}
           </p>
           <div className="flex flex-col gap-2">
-            {(isPrimary ? allRequests : orders).map((r) => (
+            {(tab === 'menu' ? sittings : orders).map((r) => (
               <RequestRow
                 key={r.id}
                 request={r}
@@ -207,7 +227,7 @@ export const DiningPage = () => {
       )}
 
       {/* Reserve a sitting — primary member only */}
-      {isPrimary && (
+      {tab === 'menu' && isPrimary && (
       <button
         onClick={() => setSittingOpen(true)}
         className="mb-6 flex items-center justify-between rounded-[12px] border border-[#0F1F2E] bg-[#0F1F2E] px-4 py-3.5 text-left text-white"
@@ -224,7 +244,7 @@ export const DiningPage = () => {
 
       {/* What the party is eating, day by day — and, until each day closes,
           what they'd like to be. */}
-      {plan && (
+      {tab === 'menu' && plan && (
         <MenuComposer
           days={plan.days}
           rules={plan.rules.menu}
@@ -237,13 +257,15 @@ export const DiningPage = () => {
       )}
 
       {/* The one chargeable block, kept out of the included lists entirely. */}
-      <ExclusiveAdditions items={exclusives} sittings={sittings} />
+      {tab === 'order' && (
+        <ExclusiveAdditions items={exclusives} sittings={sittings} />
+      )}
 
       {/* Snacks and drinks — the only things still browsed as a list. The
           three meals are composed above, so listing every breakfast dish again
           here would be the same menu twice, and the second copy the one you
           can't act on. */}
-      {isLoading ? (
+      {tab !== 'order' ? null : isLoading ? (
         <div className="flex flex-col gap-3">
           {[1, 2, 3].map((i) => (
             <div key={i} className="h-20 animate-pulse rounded-[12px] bg-[#E3E0DA]" />
