@@ -84,7 +84,7 @@ export const RequestActionsMenu = ({
             type="button"
             aria-label="Close"
             onClick={close}
-            className="absolute inset-0 bg-[#14120E]/45"
+            className="no-press absolute inset-0 bg-[#14120E]/45"
           />
 
           <div className="relative rounded-t-[16px] bg-white px-4 pt-3 pb-6">

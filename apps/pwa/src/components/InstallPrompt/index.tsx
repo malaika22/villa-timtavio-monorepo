@@ -59,7 +59,7 @@ export const InstallPrompt = () => {
             type="button"
             aria-label="Dismiss"
             onClick={dismissDockHint}
-            className="fixed inset-0 z-40 cursor-default"
+            className="no-press fixed inset-0 z-40 cursor-default"
           />
           <div className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-end px-3 pt-[52px]">
             <button
@@ -108,7 +108,7 @@ export const InstallPrompt = () => {
             type="button"
             aria-label="Close"
             onClick={() => setSheetOpen(false)}
-            className="absolute inset-0 bg-[#14120E]/45"
+            className="no-press absolute inset-0 bg-[#14120E]/45"
           />
           <div className="relative rounded-t-[16px] bg-white px-4 pt-3 pb-6">
             <span
