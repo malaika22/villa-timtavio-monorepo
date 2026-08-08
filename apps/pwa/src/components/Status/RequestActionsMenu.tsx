@@ -9,6 +9,7 @@ import {
   X,
 } from 'lucide-react';
 import type { ExperienceRequest } from '@repo/api-types';
+import { Drawer, DrawerContent, DrawerTitle } from '@repo/ui/components/drawer';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useCancelRequest } from '@/hooks/useRequests';
@@ -78,21 +79,16 @@ export const RequestActionsMenu = ({
         <MoreHorizontal className="size-4" aria-hidden />
       </button>
 
-      {menuOpen && (
-        <div className="fixed inset-0 z-[110] flex flex-col justify-end">
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={close}
-            className="no-press absolute inset-0 bg-[#14120E]/45"
-          />
-
-          <div className="relative rounded-t-[16px] bg-white px-4 pt-3 pb-6">
-            <span
-              className="mx-auto mb-3 block h-1 w-9 rounded-full bg-[#E3E0DA]"
-              aria-hidden
-            />
-
+      {/* vaul rather than a hand-rolled `fixed inset-0`: this used to appear
+          and vanish with no transition at all, while every other sheet in the
+          app slid. The same gesture behaving differently depending on the
+          screen is what read as the app being broken. */}
+      <Drawer open={menuOpen} onOpenChange={(v) => !v && close()}>
+        <DrawerContent className="bg-white pb-6">
+          <DrawerTitle className="sr-only">
+            {request.catalogItem?.name ?? 'This experience'}
+          </DrawerTitle>
+          <div className="px-4 pt-1" data-vaul-no-drag>
             {confirming ? (
               <>
                 <p className="font-cormorant text-[18px] text-[#2B2824]">
@@ -198,8 +194,8 @@ export const RequestActionsMenu = ({
               </ul>
             )}
           </div>
-        </div>
-      )}
+        </DrawerContent>
+      </Drawer>
     </>
   );
 };

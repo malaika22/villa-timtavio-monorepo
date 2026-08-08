@@ -1,6 +1,7 @@
 'use client';
 
 import { Share, SquarePlus, X } from 'lucide-react';
+import { Drawer, DrawerContent, DrawerTitle } from '@repo/ui/components/drawer';
 
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { useInstallSheet } from '@/store/install/useInstallSheet';
@@ -102,20 +103,10 @@ export const InstallPrompt = () => {
         </div>
       )}
 
-      {sheetOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={() => setSheetOpen(false)}
-            className="no-press absolute inset-0 bg-[#14120E]/45"
-          />
-          <div className="relative rounded-t-[16px] bg-white px-4 pt-3 pb-6">
-            <span
-              className="mx-auto mb-2 block h-1 w-9 rounded-full bg-[#E3E0DA]"
-              aria-hidden
-            />
-
+      <Drawer open={sheetOpen} onOpenChange={setSheetOpen}>
+        <DrawerContent className="bg-white pb-6">
+          <DrawerTitle className="sr-only">Add to home screen</DrawerTitle>
+          <div className="px-4 pt-1" data-vaul-no-drag>
             <div className="flex items-center gap-2.5">
               <span
                 className="flex size-9 shrink-0 items-center justify-center rounded-[9px] bg-[#0F1F2E]"
@@ -178,8 +169,8 @@ export const InstallPrompt = () => {
               Close
             </button>
           </div>
-        </div>
-      )}
+        </DrawerContent>
+      </Drawer>
     </>
   );
 };

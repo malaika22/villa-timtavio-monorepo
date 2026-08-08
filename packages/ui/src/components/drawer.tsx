@@ -37,7 +37,12 @@ function DrawerOverlay({
     <DrawerPrimitive.Overlay
       data-slot="drawer-overlay"
       className={cn(
-        'fixed inset-0 z-[100] bg-black/10 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
+        // 10% black was too little to establish depth, so the sheet read as
+        // pasted onto the page rather than layered over it. The fade is timed
+        // to the tokens and leaves quicker than it arrives.
+        'fixed inset-0 z-[100] bg-black/35 supports-backdrop-filter:backdrop-blur-sm',
+        'data-open:animate-in data-open:fade-in-0 data-open:duration-base',
+        'data-closed:animate-out data-closed:fade-out-0 data-closed:duration-exit',
         className,
       )}
       {...props}
