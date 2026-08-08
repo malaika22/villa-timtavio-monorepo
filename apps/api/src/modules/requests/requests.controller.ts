@@ -9,6 +9,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { RequestsService } from './requests.service';
+import { VendorBookingService } from './vendor-booking.service';
 import {
   CreateRequestDto,
   ConfirmRequestDto,
@@ -45,7 +46,68 @@ function redactForGuest(req: any, tier?: string) {
 
 @Controller('api/v1/requests')
 export class RequestsController {
-  constructor(private requestsService: RequestsService) {}
+  constructor(
+    private requestsService: RequestsService,
+    private vendorBooking: VendorBookingService,
+  ) {}
+
+  // ─── Booking the vendor ───────────────────────────────────────────────────
+  //
+  // Declared before the :id routes so none of these paths is swallowed.
+
+  /** EM — the WhatsApp message, written for them. Read-only. */
+  @Get(':id/vendor-message')
+  @Roles('estate_manager', 'owner')
+  vendorMessage(@Param('id') id: string) {
+    return this.vendorBooking.draftMessage(id);
+  }
+
+  /** EM — they've sent it. */
+  @Post(':id/vendor-asked')
+  @Roles('estate_manager')
+  vendorAsked(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.vendorBooking.markAsked(
+      id,
+      user?.email || user?.auth0Id || 'the estate',
+    );
+  }
+
+  /** EM — what the vendor said. The step that makes the rest honest. */
+  @Post(':id/vendor-reply')
+  @Roles('estate_manager')
+  vendorReply(
+    @Param('id') id: string,
+    @Body()
+    dto: {
+      outcome: 'CONFIRMED' | 'DECLINED' | 'ALTERNATIVE';
+      quotedCost?: number;
+      note?: string;
+      proposedDate?: string;
+      proposedTime?: string;
+    },
+    @CurrentUser() user: any,
+  ) {
+    return this.vendorBooking.recordReply(
+      id,
+      dto,
+      user?.email || user?.auth0Id || 'the estate',
+    );
+  }
+
+  /** Guest — accept or turn down a time the vendor offered instead. */
+  @Post(':id/alternative')
+  @Roles('primary_member', 'secondary_guest')
+  respondToAlternative(
+    @Param('id') id: string,
+    @Body() body: { accept: boolean },
+    @CurrentUser() user: any,
+  ) {
+    return this.vendorBooking.respondToAlternative(
+      id,
+      !!body?.accept,
+      user?.email ?? 'a guest',
+    );
+  }
 
   // Guest — submit request
   @Post('bookings/:bookingId')

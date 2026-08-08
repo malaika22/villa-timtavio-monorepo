@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { BreezeWayService } from '../breezeway/breezeway.service';
 import { ConflictService } from './conflict.service';
+import { VendorBookingService } from './vendor-booking.service';
 import { PusherService } from '../pusher/pusher.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
@@ -39,6 +40,7 @@ export class RequestsService {
     private pusherService: PusherService,
     private notificationsService: NotificationsService,
     private conflictService: ConflictService,
+    private vendorBooking: VendorBookingService,
   ) {}
 
   // ─── Submit request ───────────────────────────────────────────────────────
@@ -687,6 +689,10 @@ export class RequestsService {
     data: { confirmedCost: number; emNotes?: string },
     confirmedBy: string,
   ) {
+    // Nothing tells a guest an experience is confirmed until somebody outside
+    // the villa has said yes. Estate-run items have no vendor and pass through.
+    await this.vendorBooking.assertVendorBooked(id);
+
     const request = await this.findOne(id);
 
     // Measure against whatever the guest last agreed to — not always the
@@ -1278,8 +1284,13 @@ export class RequestsService {
     // Held back until the experience is near. A price agreed weeks early would
     // otherwise put a task in front of staff a month before they can act on it;
     // the scheduler creates it when the date comes round.
+    // needsSetupTask is the per-item opt-out: a therapist who brings her own
+    // table needs nothing from the villa, and a task nobody actions is a task
+    // everybody learns to ignore. Those requests never reach READY, which is
+    // right — nothing was prepared, so there is nothing to report ready.
     if (
       !request.catalogItem.isIncluded &&
+      request.catalogItem.needsSetupTask &&
       !request.breezeWayTaskId &&
       isWithinTaskWindow(request.confirmedDate)
     ) {

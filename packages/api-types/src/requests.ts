@@ -70,6 +70,21 @@ export interface ExperienceRequest {
    * unwinds it and confirms. Unconfirmed requests are withdrawn outright and
    * never sit in this state.
    */
+  // ── Booking the vendor ────────────────────────────────────────────────
+  /** The estate has sent the WhatsApp message. Reads as "being arranged". */
+  vendorAskedAt?: string | null;
+  vendorAskedBy?: string | null;
+  vendorRepliedAt?: string | null;
+  /** They said yes. Nothing is confirmed to the guest without this. */
+  vendorConfirmedAt?: string | null;
+  vendorDeclinedAt?: string | null;
+  /** What the vendor charges the estate — not what the guest is charged. */
+  vendorQuotedCost?: number | null;
+  vendorNote?: string | null;
+  /** A time they could do instead, for the guest to accept or turn down. */
+  vendorProposedDate?: string | null;
+  vendorProposedTime?: string | null;
+
   cancellationRequestedAt?: string | null;
   cancellationRequestedBy?: string | null;
   cancellationReason?: string | null;
@@ -131,4 +146,64 @@ export interface EmExperienceRequest extends ExperienceRequest {
   catalogItem?: ExperienceRequest['catalogItem'] & {
     vendor?: { id: string; name: string; role?: string | null };
   };
+}
+
+// ─── Booking the vendor ──────────────────────────────────────────────────────
+
+/** The WhatsApp message, composed server-side so the estate says it the same way. */
+export interface VendorMessageDraft {
+  vendorId: string;
+  vendorName: string;
+  phone: string;
+  message: string;
+  /** wa.me link with the message pre-filled. Opens in the estate's own WhatsApp. */
+  whatsappUrl: string;
+}
+
+export type VendorReplyOutcome = 'CONFIRMED' | 'DECLINED' | 'ALTERNATIVE';
+
+export interface RecordVendorReplyDto {
+  outcome: VendorReplyOutcome;
+  /** Their price. Only meaningful on CONFIRMED or ALTERNATIVE. */
+  quotedCost?: number;
+  note?: string;
+  /** Required on ALTERNATIVE — the guest needs something to accept. */
+  proposedDate?: string;
+  proposedTime?: string;
+}
+
+/**
+ * Where a request sits with its vendor, derived rather than stored.
+ *
+ * `NONE` covers everything the estate runs itself, which is most of the
+ * catalogue — those never wait on anybody.
+ */
+export type VendorStage =
+  | 'NONE'
+  | 'TO_ASK'
+  | 'ASKED'
+  | 'ALTERNATIVE_OFFERED'
+  | 'CONFIRMED'
+  | 'DECLINED';
+
+export function vendorStage(req: {
+  /**
+   * Either shape counts as "has a vendor": the guest payload carries
+   * `vendorId`, the estate's carries the nested `vendor`.
+   */
+  catalogItem?:
+    | ({ vendorId?: string | null } & { vendor?: { id: string } | null })
+    | null;
+  vendorAskedAt?: string | null;
+  vendorConfirmedAt?: string | null;
+  vendorDeclinedAt?: string | null;
+  vendorProposedDate?: string | null;
+}): VendorStage {
+  const hasVendor = !!(req.catalogItem?.vendorId || req.catalogItem?.vendor);
+  if (!hasVendor) return 'NONE';
+  if (req.vendorDeclinedAt) return 'DECLINED';
+  if (req.vendorConfirmedAt) return 'CONFIRMED';
+  if (req.vendorProposedDate) return 'ALTERNATIVE_OFFERED';
+  if (req.vendorAskedAt) return 'ASKED';
+  return 'TO_ASK';
 }

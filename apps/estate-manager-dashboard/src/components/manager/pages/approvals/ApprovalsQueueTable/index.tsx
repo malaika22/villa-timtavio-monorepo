@@ -14,10 +14,13 @@ import {
 } from '@repo/ui';
 import { DataTable } from '@repo/dashboard-ui';
 import type { DataTableColumn, DataTableGroup } from '@repo/dashboard-ui';
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronDown, Loader2, MessageCircle } from 'lucide-react';
+import { formatDistanceToNow, formatDistanceToNowStrict } from 'date-fns';
+import { cn } from '@repo/ui/lib/utils';
 
 import { GuestAvatar } from '@/components/manager/ui/GuestAvatar';
 import { ApprovalStatusPill } from '@/components/manager/pages/approvals/ApprovalStatusPill';
+import { VendorBookingDialog } from '@/components/manager/pages/approvals/VendorBookingDialog';
 import {
   useApproveRequest,
   useDeclineRequest,
@@ -41,6 +44,71 @@ const outlineBtn =
 const isActionable = (status: ApprovalQueueStatus) =>
   status === 'Pending' || status === 'Conflict';
 
+/**
+ * How far a request has got with its vendor.
+ *
+ * Nothing for the estate's own experiences — most of the catalogue — because
+ * they never wait on anybody and a pill saying so would be noise on every row.
+ */
+function VendorStagePill({ row }: { row: ApprovalQueueItem }) {
+  if (row.vendorStage === 'NONE' || row.vendorStage === 'CONFIRMED') return null;
+
+  const base =
+    'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide';
+
+  if (row.vendorStage === 'TO_ASK') {
+    return (
+      <span className={cn(base, 'bg-[#eaf4ef] text-[#1f7a5c]')}>
+        Vendor not asked
+      </span>
+    );
+  }
+
+  if (row.vendorStage === 'ALTERNATIVE_OFFERED') {
+    return (
+      <span className={cn(base, 'bg-[#faf0dc] text-[#8a6d3b]')}>
+        Guest deciding
+      </span>
+    );
+  }
+
+  if (row.vendorStage === 'DECLINED') {
+    return (
+      <span className={cn(base, 'bg-[#fdecea] text-[#b42318]')}>
+        Vendor declined
+      </span>
+    );
+  }
+
+  // ASKED. Past a day with no answer it turns amber — the only way anybody
+  // finds out a vendor never replied is if a screen says so.
+  const waited = row.vendorAskedAt
+    ? Date.now() - new Date(row.vendorAskedAt).getTime()
+    : 0;
+  const stale = waited > 24 * 60 * 60 * 1000;
+
+  return (
+    <span
+      className={cn(
+        base,
+        stale ? 'bg-[#faf0dc] text-[#8a6d3b]' : 'bg-[#eaf4ef] text-[#1f7a5c]',
+      )}
+      title={
+        row.vendorAskedAt
+          ? `Asked ${formatDistanceToNow(new Date(row.vendorAskedAt), { addSuffix: true })}`
+          : undefined
+      }
+    >
+      {stale ? 'No reply yet' : 'With the vendor'}
+      {row.vendorAskedAt && (
+        <span className="font-normal normal-case opacity-70">
+          · {formatDistanceToNowStrict(new Date(row.vendorAskedAt))}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export const ApprovalsQueueTable = ({
   rows,
   stayGroups,
@@ -52,6 +120,10 @@ export const ApprovalsQueueTable = ({
   const approve = useApproveRequest();
   const decline = useDeclineRequest();
   const confirmCost = useConfirmCost();
+  const [vendorTarget, setVendorTarget] = useState<{
+    row: ApprovalQueueItem;
+    step: 'ask' | 'reply';
+  } | null>(null);
 
   // Collapsed by booking id, so a stay stays shut as the queue refetches.
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -263,7 +335,15 @@ export const ApprovalsQueueTable = ({
     {
       key: 'status',
       header: 'Status',
-      cell: (row) => <ApprovalStatusPill status={row.status} />,
+      cell: (row) => (
+        <div className="flex flex-col items-start gap-1">
+          <ApprovalStatusPill status={row.status} />
+          {/* A request waiting on a vendor used to look exactly like one nobody
+              had opened, which is how one gets asked twice and another not at
+              all. */}
+          <VendorStagePill row={row} />
+        </div>
+      ),
     },
     {
       key: 'actions',
@@ -298,6 +378,58 @@ export const ApprovalsQueueTable = ({
         const busy =
           (approve.isPending && approve.variables?.id === row.id) ||
           (decline.isPending && decliningId === row.id);
+
+        // Nothing confirms a vendor experience until somebody outside the villa
+        // has said yes, so the estate's first action is the vendor, not the
+        // guest. Estate-run items are untouched — vendorStage is NONE.
+        if (row.vendorStage === 'TO_ASK' || row.vendorStage === 'ASKED') {
+          return (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                className="bg-[#1f7a5c] text-white hover:opacity-90"
+                onClick={() => setVendorTarget({ row, step: 'ask' })}
+              >
+                <MessageCircle className="mr-1.5 size-3.5" />
+                {row.vendorStage === 'ASKED' ? 'Ask again' : 'Ask the vendor'}
+              </Button>
+              {row.vendorStage === 'ASKED' && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className={outlineBtn}
+                  onClick={() => setVendorTarget({ row, step: 'reply' })}
+                >
+                  Record their answer
+                </Button>
+              )}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className={outlineBtn}
+                disabled={busy}
+                onClick={() => {
+                  setReason('');
+                  setDecliningId(row.id);
+                }}
+              >
+                Decline
+              </Button>
+            </div>
+          );
+        }
+
+        if (row.vendorStage === 'ALTERNATIVE_OFFERED') {
+          return (
+            <span className="text-sm text-manager-text-muted">
+              With the guest
+            </span>
+          );
+        }
+
         return (
           <div className="flex flex-wrap items-center gap-2">
             <Button
@@ -401,6 +533,12 @@ export const ApprovalsQueueTable = ({
             No experience requests to review.
           </span>
         }
+      />
+
+      <VendorBookingDialog
+        request={vendorTarget?.row ?? null}
+        step={vendorTarget?.step ?? 'ask'}
+        onOpenChange={(open) => !open && setVendorTarget(null)}
       />
 
       <Dialog

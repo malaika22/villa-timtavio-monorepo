@@ -411,6 +411,15 @@ model CatalogItem {
   vendor               Vendor?             @relation(fields: [vendorId], references: [id])
   breezeWayTeamId      String?
   breezeWayTemplateId  String?
+  /**
+   * Whether the estate's own staff have anything to prepare.
+   *
+   * A therapist who arrives with her own table needs nothing from the villa,
+   * and a Breezeway task nobody actions is a task everybody learns to ignore.
+   * Off means the request never reaches READY — nothing was prepared, so
+   * there's nothing to report ready.
+   */
+  needsSetupTask       Boolean             @default(true)
   sortOrder            Int                 @default(0)
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
@@ -796,6 +805,35 @@ model ExperienceRequest {
   quoteApprovalRequired Boolean   @default(false)
   quoteApprovedAt       DateTime?
   quoteApprovedBy       String?
+
+  // ── Booking the vendor ─────────────────────────────────────────────────
+  //
+  // Every vendor is booked by WhatsApp, by hand. That works; what didn't was
+  // that the system had no idea whether it had happened — so a guest could be
+  // told "confirmed" for an experience nobody had been asked about.
+  //
+  // Timestamps rather than new RequestStatus values: a request waiting on a
+  // vendor is still pending, it's pending on something specific, and the enum
+  // feeds every queue, filter and chip across three apps.
+
+  /** The WhatsApp message was opened. The queue reads "with the vendor". */
+  vendorAskedAt      DateTime?
+  vendorAskedBy      String?
+  /** An answer was recorded, whichever way it went. */
+  vendorRepliedAt    DateTime?
+  /** They said yes. Nothing reaches the guest as confirmed without this. */
+  vendorConfirmedAt  DateTime?
+  vendorDeclinedAt   DateTime?
+  /**
+   * Their number, kept apart from confirmedCost — one is what the vendor
+   * charges the estate, the other what the estate charges the guest.
+   */
+  vendorQuotedCost   Decimal?  @db.Decimal(10, 2)
+  /** "Ana is away, her brother Luis will take it." Verbatim. */
+  vendorNote         String?   @db.Text
+  /** A time they could do instead, for the guest to accept or turn down. */
+  vendorProposedDate DateTime?
+  vendorProposedTime String?
 
   // A guest asking to cancel something the estate has already confirmed. Not a
   // cancellation in itself — a vendor is booked by that point, so Rodrigo has

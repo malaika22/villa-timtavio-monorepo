@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { emRequestsApi } from '@/lib/api/requests';
+import { toast } from 'sonner';
 import type {
   ConfirmRequestDto,
   ConfirmCostDto,
   DeclineRequestDto,
+  RecordVendorReplyDto,
 } from '@repo/api-types';
 
 export function useApprovalQueue() {
@@ -102,5 +104,62 @@ export function useMarkReadyTest() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['requests'] });
     },
+  });
+}
+
+// ─── Booking the vendor ──────────────────────────────────────────────────────
+
+/**
+ * The WhatsApp message, fetched only when the estate opens the sheet.
+ *
+ * Composed on the server so the estate says the same thing every time, and so
+ * changing the wording doesn't need three apps redeployed.
+ */
+export function useVendorMessage(id: string | null) {
+  return useQuery({
+    queryKey: ['vendor-message', id],
+    queryFn: () => emRequestsApi.vendorMessage(id!),
+    enabled: !!id,
+    staleTime: 0,
+  });
+}
+
+/** They've sent it. The guest is told we're arranging it. */
+export function useMarkVendorAsked() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => emRequestsApi.vendorAsked(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['em-requests'] });
+      void qc.invalidateQueries({ queryKey: ['approvals'] });
+      toast.success('Marked as asked — the guest has been told');
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+}
+
+/**
+ * What the vendor said.
+ *
+ * The one step that makes the rest honest: until this lands, nothing can tell
+ * the difference between a vendor who agreed and a message nobody sent.
+ */
+export function useRecordVendorReply() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: RecordVendorReplyDto }) =>
+      emRequestsApi.vendorReply(id, dto),
+    onSuccess: (_res, vars) => {
+      void qc.invalidateQueries({ queryKey: ['em-requests'] });
+      void qc.invalidateQueries({ queryKey: ['approvals'] });
+      toast.success(
+        vars.dto.outcome === 'CONFIRMED'
+          ? 'Vendor confirmed — you can price it now'
+          : vars.dto.outcome === 'ALTERNATIVE'
+            ? 'The guest has been asked about the new time'
+            : 'Recorded — the guest has been told',
+      );
+    },
+    onError: (e) => toast.error((e as Error).message),
   });
 }

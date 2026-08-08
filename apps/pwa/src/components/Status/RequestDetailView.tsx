@@ -19,6 +19,7 @@ import {
 } from './mockData';
 import { useRequestById } from '@/hooks/useRequests';
 import { RequestActionsMenu } from './RequestActionsMenu';
+import { AlternativeTimeCard } from './AlternativeTimeCard';
 import {
   mapRequestToStatusRequest,
   buildTimelineFromRequest,
@@ -122,6 +123,11 @@ export const RequestDetailView = ({
             </div>
           ) : (
             <>
+              {/* Their decision to make, so it leads. */}
+              {apiRequest?.vendorProposedDate && (
+                <AlternativeTimeCard request={apiRequest} />
+              )}
+
               {/* Summary card */}
               <div className="rounded-[10px] border border-[#E3E0DA] bg-white p-3 shadow-[0_1px_3px_rgba(15,31,46,0.04)]">
                 <div className="flex items-center gap-3">

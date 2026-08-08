@@ -62,7 +62,14 @@ export function mapRequestToStatusRequest(
   } else if (req.staffMemberName) {
     meta = req.staffMemberName.toUpperCase();
   } else if (req.status === 'PENDING') {
-    meta = 'AWAITING CONFIRMATION';
+    // Three different truths that all used to read "awaiting confirmation": we
+    // haven't looked at it, we're checking with the provider, and the provider
+    // has come back with a different time.
+    meta = req.vendorProposedDate
+      ? 'A NEW TIME TO CONFIRM'
+      : req.vendorAskedAt
+        ? 'BEING ARRANGED'
+        : 'AWAITING CONFIRMATION';
   }
 
   const tabs = getTabsForStatus(req.status);

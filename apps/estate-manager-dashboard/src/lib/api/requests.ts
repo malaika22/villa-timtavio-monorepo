@@ -1,6 +1,8 @@
 import { api, API } from '@/lib/api';
 import type {
   EmExperienceRequest,
+  RecordVendorReplyDto,
+  VendorMessageDraft,
   ExperienceRequest,
   ConfirmRequestDto,
   ConfirmCostDto,
@@ -30,4 +32,12 @@ export const emRequestsApi = {
   // QA test affordance — simulate Breezeway completion → guest READY.
   markReadyTest: (id: string) =>
     api.patch<ExperienceRequest>(API.requests.markReadyTest(id), {}),
+
+  // ── Booking the vendor ──────────────────────────────────────────────────
+  vendorMessage: (id: string) =>
+    api.get<VendorMessageDraft>(API.vendorBooking.message(id)),
+  vendorAsked: (id: string) =>
+    api.post<ExperienceRequest>(API.vendorBooking.asked(id), {}),
+  vendorReply: (id: string, dto: RecordVendorReplyDto) =>
+    api.post<ExperienceRequest>(API.vendorBooking.reply(id), dto),
 };
