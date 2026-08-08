@@ -13,7 +13,7 @@ export const RequestSection = ({
     );
   }
   return (
-    <div className="space-y-3">
+    <div className="stagger space-y-3">
       {visibleRequests.map((request) => (
         <RequestCard key={request.id} request={request} onSelect={onSelect} />
       ))}

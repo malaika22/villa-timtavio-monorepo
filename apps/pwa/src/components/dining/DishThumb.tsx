@@ -35,6 +35,17 @@ export const DishThumb = ({
       <img
         src={photoUrl}
         alt={name}
+        data-fade
+        // Tied to the picture arriving rather than to a timer, so a cached
+        // image is already opaque on the first frame and a slow one doesn't
+        // fade in before it has anything to show.
+        onLoad={(e) => e.currentTarget.setAttribute('data-loaded', 'true')}
+        onError={(e) => e.currentTarget.setAttribute('data-loaded', 'true')}
+        ref={(el) => {
+          // Fired before React attached the handler — a decoded image from the
+          // memory cache never emits load again, and would stay invisible.
+          if (el?.complete) el.setAttribute('data-loaded', 'true');
+        }}
         className={cn(box, 'shrink-0 object-cover', className)}
       />
     );

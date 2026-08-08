@@ -170,6 +170,47 @@
   }
 }
 
+/* ─── Photographs arriving ──────────────────────────────────────────────
+ *
+ * Every image in the app hard-cut in. `data-loaded` is set on load, so the
+ * fade is tied to the picture actually being there rather than to a timer.
+ */
+img[data-fade] {
+  opacity: 0;
+  transition: opacity var(--duration-base) var(--ease-out-estate);
+}
+img[data-fade][data-loaded='true'] {
+  opacity: 1;
+}
+
+/* ─── Lists arriving ────────────────────────────────────────────────────
+ *
+ * A block of rows appearing at once isn't wrong — it just says nobody thought
+ * about it. The delay is capped at the eighth child (210ms total) so a long
+ * list doesn't crawl in and make the stagger the point.
+ */
+.stagger > * {
+  animation: route-in var(--duration-base) var(--ease-out-estate) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 30ms; }
+.stagger > *:nth-child(3) { animation-delay: 60ms; }
+.stagger > *:nth-child(4) { animation-delay: 90ms; }
+.stagger > *:nth-child(5) { animation-delay: 120ms; }
+.stagger > *:nth-child(6) { animation-delay: 150ms; }
+.stagger > *:nth-child(7) { animation-delay: 180ms; }
+.stagger > *:nth-child(n + 8) { animation-delay: 210ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger > * {
+    animation: none;
+  }
+  img[data-fade] {
+    opacity: 1;
+    transition: none;
+  }
+}
+
 /* ─── Manifest card entrance animation ─────────────────────────────────── */
 @keyframes manifest-card-in {
   from {
