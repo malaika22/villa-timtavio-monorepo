@@ -107,5 +107,9 @@ export function mapRequestToApprovalItem(
     vendorNote: req.vendorNote ?? null,
     vendorProposedDate: req.vendorProposedDate ?? null,
     vendorProposedTime: req.vendorProposedTime ?? null,
+    awaitingVendorRating:
+      req.status === 'COMPLETED' &&
+      !!req.catalogItem?.vendor &&
+      !req.vendorRating,
   };
 }

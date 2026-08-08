@@ -121,6 +121,8 @@ export type ApprovalQueueItem = {
   /** A time the vendor offered instead, waiting on the guest. */
   vendorProposedDate?: string | null;
   vendorProposedTime?: string | null;
+  /** A finished experience with a vendor and no rating yet. */
+  awaitingVendorRating?: boolean;
   /**
    * The stay this belongs to. The queue groups by booking rather than by guest
    * because a party's secondaries are not separate customers — the primary

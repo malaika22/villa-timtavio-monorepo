@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { emVendorsApi } from '@/lib/api/vendors';
 import type {
@@ -48,7 +49,12 @@ export function useAddVendorRating() {
   return useMutation({
     mutationFn: (dto: AddVendorRatingDto) => emVendorsApi.addRating(dto),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['vendors'] });
+      void queryClient.invalidateQueries({ queryKey: ['vendors'] });
+      // The history row carries the rating, and the prompt keys off it — miss
+      // this and the same experience asks to be rated again on the next visit.
+      void queryClient.invalidateQueries({ queryKey: ['requests'] });
+      toast.success('Thanks — the vendor’s rating is updated');
     },
+    onError: (e) => toast.error((e as Error).message),
   });
 }

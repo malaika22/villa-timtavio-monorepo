@@ -476,6 +476,9 @@ export class RequestsService {
       include: {
         catalogItem: { include: { vendor: true } },
         booking: { include: { primaryGuest: true } },
+        // So the queue can tell a vendor still owed a rating from one already
+        // given. Without it the prompt has no way to stop asking.
+        vendorRating: true,
       },
       orderBy: { statusUpdatedAt: 'desc' },
       take: 100,

@@ -146,6 +146,8 @@ export interface EmExperienceRequest extends ExperienceRequest {
   catalogItem?: ExperienceRequest['catalogItem'] & {
     vendor?: { id: string; name: string; role?: string | null };
   };
+  /** Present once the estate has rated the vendor on this experience. */
+  vendorRating?: { id: string; rating: number; notes?: string | null } | null;
 }
 
 // ─── Booking the vendor ──────────────────────────────────────────────────────
