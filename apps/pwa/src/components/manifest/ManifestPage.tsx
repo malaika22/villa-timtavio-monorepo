@@ -240,7 +240,7 @@ export const ManifestPage = () => {
             Guests added
           </span>
           {manifestLoading ? (
-            <div className="h-5 w-16 animate-pulse rounded bg-[#E3E0DA]" />
+            <div className="h-5 w-16 skeleton rounded bg-[#E3E0DA]" />
           ) : (
             <motion.span
               key={addedGuests}
@@ -255,7 +255,7 @@ export const ManifestPage = () => {
           )}
         </div>
         {manifestLoading ? (
-          <div className="h-[3px] w-full animate-pulse rounded-full bg-[#E3E0DA]" />
+          <div className="h-[3px] w-full skeleton rounded-full bg-[#E3E0DA]" />
         ) : (
           <Progress value={pct} className="h-[3px] rounded-full bg-[#E3E0DA]" />
         )}
@@ -317,7 +317,7 @@ export const ManifestPage = () => {
       </div>
 
       {isLoading ? (
-        <div className="h-[52px] animate-pulse rounded-[12px] bg-[#E8E5E0]" />
+        <div className="h-[52px] skeleton rounded-[12px] bg-[#E8E5E0]" />
       ) : (rooms?.length ?? 0) === 0 ? (
         <Link
           href="/rooms"

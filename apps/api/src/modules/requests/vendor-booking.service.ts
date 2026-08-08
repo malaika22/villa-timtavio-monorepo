@@ -342,4 +342,110 @@ export class VendorBookingService {
         : `${vendor} hasn’t been asked yet. Ask them first — confirming now promises the guest something nobody has agreed to.`,
     );
   }
+
+  // ─── Unwinding it ────────────────────────────────────────────────────────
+
+  /**
+   * The cancellation message, written for them.
+   *
+   * Same shape as the booking ask, pointed the other way — and it asks the one
+   * question the estate can't answer alone: whether there's a fee. Typing a
+   * number into the folio without having asked is how a guest ends up charged
+   * for something nobody could explain.
+   */
+  async draftCancellationMessage(id: string) {
+    const request = await this.load(id);
+    const vendor = request.catalogItem.vendor;
+
+    if (!vendor) {
+      throw new BadRequestException(
+        'This experience has no vendor — there is nobody to tell.',
+      );
+    }
+    if (!vendor.phone) {
+      throw new BadRequestException(
+        `${vendor.name} has no phone number on file.`,
+      );
+    }
+
+    const when = request.confirmedDate ?? request.preferredDate;
+    const day = when.toLocaleDateString('en-GB', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      timeZone: 'UTC',
+    });
+    const time = request.confirmedTime ?? request.preferredTime;
+
+    const message = [
+      `Hola ${vendor.name} — Villa TimTavio.`,
+      '',
+      `I'm sorry, we need to cancel ${request.catalogItem.name} on ${day} at ${time}.`,
+      '',
+      'Is there any charge for cancelling at this notice? Gracias.',
+    ].join('\n');
+
+    return {
+      vendorId: vendor.id,
+      vendorName: vendor.name,
+      phone: vendor.phone,
+      message,
+      whatsappUrl: `https://wa.me/${vendor.phone.replace(/\D/g, '')}?text=${encodeURIComponent(message)}`,
+    };
+  }
+
+  /** The estate has told them. */
+  async markCancellationSent(id: string, by: string) {
+    await this.load(id);
+    const updated = await this.prisma.experienceRequest.update({
+      where: { id },
+      data: { vendorToldOfCancellationAt: new Date() },
+    });
+    this.logger.log(`Vendor told of cancellation on ${id} by ${by}`);
+    return updated;
+  }
+
+  /**
+   * What they said about the fee.
+   *
+   * Recorded separately from confirming the cancellation, because they are two
+   * different facts: what the vendor charges the estate, and what the estate
+   * then does about the guest's folio. Keeping them apart is what gives the fee
+   * a provenance.
+   */
+  async recordCancellationReply(
+    id: string,
+    dto: { fee?: number; note?: string },
+    by: string,
+  ) {
+    await this.load(id);
+    const updated = await this.prisma.experienceRequest.update({
+      where: { id },
+      data: {
+        vendorCancellationRepliedAt: new Date(),
+        vendorCancellationNote: dto.note?.trim() || null,
+        // Parked here, not on the folio. Confirming the cancellation is what
+        // charges it, and that stays a separate, deliberate act.
+        cancellationFee: dto.fee && dto.fee > 0 ? dto.fee : null,
+      },
+    });
+    this.logger.log(`Vendor cancellation reply on ${id} recorded by ${by}`);
+    return updated;
+  }
+
+  /**
+   * Whether the vendor has been dealt with before the guest is told it's off.
+   *
+   * A warning rather than a refusal: a guest cancelling three weeks out may
+   * involve no vendor conversation worth blocking on, and an estate that
+   * genuinely knows there's no fee shouldn't be stopped. The run of the flow
+   * makes the right thing easy; it doesn't make the other thing impossible.
+   */
+  async cancellationVendorState(id: string) {
+    const request = await this.load(id);
+    if (!request.catalogItem.vendorId) return 'NONE' as const;
+    if (request.vendorCancellationRepliedAt) return 'SETTLED' as const;
+    if (request.vendorToldOfCancellationAt) return 'TOLD' as const;
+    return 'NOT_TOLD' as const;
+  }
 }

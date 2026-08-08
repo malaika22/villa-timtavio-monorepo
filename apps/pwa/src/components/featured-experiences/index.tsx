@@ -49,7 +49,7 @@ export const FeaturedExperiences = () => {
           {[1, 2].map((i) => (
             <div
               key={i}
-              className="flex-1 h-[180px] animate-pulse rounded-[10px] bg-[#E3E0DA]"
+              className="flex-1 h-[180px] skeleton rounded-[10px] bg-[#E3E0DA]"
             />
           ))}
         </div>

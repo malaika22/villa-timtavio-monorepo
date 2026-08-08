@@ -63,7 +63,7 @@ export const Status = () => {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-20 animate-pulse rounded-[12px] bg-[#E3E0DA]"
+                className="h-20 skeleton rounded-[12px] bg-[#E3E0DA]"
               />
             ))}
           </div>

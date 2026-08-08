@@ -26,7 +26,7 @@ export const CheckoutFolio = () => {
               Final Folio
             </span>
             {isLoading ? (
-              <span className="h-9 w-40 animate-pulse rounded bg-[#E3E0DA]" />
+              <span className="h-9 w-40 skeleton rounded bg-[#E3E0DA]" />
             ) : (
               <span className="font-cormorant text-[36px] font-medium leading-none text-[#1A1A18]">
                 {formattedAmount}

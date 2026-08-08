@@ -142,11 +142,11 @@ export function ExperiencesCatalog() {
               key={i}
               className="overflow-hidden rounded-[16px] border border-[#E3E0DA] bg-[#FAF9F7]"
             >
-              <div className="aspect-[4/3] w-full animate-pulse bg-[#E8E5E0]" />
+              <div className="aspect-[4/3] w-full skeleton bg-[#E8E5E0]" />
               <div className="flex flex-col gap-2 px-3 pb-3 pt-3">
-                <div className="h-3.5 w-4/5 animate-pulse rounded-full bg-[#E8E5E0]" />
-                <div className="h-2.5 w-2/5 animate-pulse rounded-full bg-[#ECE9E4]" />
-                <div className="mt-1 h-2.5 w-1/2 animate-pulse rounded-full bg-[#ECE9E4]" />
+                <div className="h-3.5 w-4/5 skeleton rounded-full bg-[#E8E5E0]" />
+                <div className="h-2.5 w-2/5 skeleton rounded-full bg-[#ECE9E4]" />
+                <div className="mt-1 h-2.5 w-1/2 skeleton rounded-full bg-[#ECE9E4]" />
               </div>
             </div>
           ))}

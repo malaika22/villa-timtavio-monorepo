@@ -476,6 +476,9 @@ export class RequestsService {
       include: {
         catalogItem: { include: { vendor: true } },
         booking: { include: { primaryGuest: true } },
+        // So the queue can tell a vendor still owed a rating from one already
+        // given. Without it the prompt has no way to stop asking.
+        vendorRating: true,
       },
       orderBy: { statusUpdatedAt: 'desc' },
       take: 100,
@@ -1073,7 +1076,9 @@ export class RequestsService {
         status: { notIn: ['CANCELLED', 'COMPLETED'] },
       },
       include: {
-        catalogItem: { include: { priceUnit: true } },
+        // The vendor, because unwinding it means telling somebody — and the
+        // panel can't say who without this.
+        catalogItem: { include: { priceUnit: true, vendor: true } },
         booking: { include: { primaryGuest: true } },
       },
       orderBy: { confirmedDate: 'asc' },
@@ -1200,7 +1205,9 @@ export class RequestsService {
         catalogItem: { isIncluded: false },
       },
       include: {
-        catalogItem: { include: { priceUnit: true } },
+        // The vendor, because unwinding it means telling somebody — and the
+        // panel can't say who without this.
+        catalogItem: { include: { priceUnit: true, vendor: true } },
         booking: { include: { primaryGuest: true } },
       },
       orderBy: { confirmedDate: 'asc' },

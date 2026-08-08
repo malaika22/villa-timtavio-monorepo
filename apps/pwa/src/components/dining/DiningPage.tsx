@@ -268,7 +268,7 @@ export const DiningPage = () => {
       {tab !== 'order' ? null : isLoading ? (
         <div className="flex flex-col gap-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 animate-pulse rounded-[12px] bg-[#E3E0DA]" />
+            <div key={i} className="h-20 skeleton rounded-[12px] bg-[#E3E0DA]" />
           ))}
         </div>
       ) : ORDER_CATEGORIES.every(

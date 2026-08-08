@@ -66,7 +66,7 @@ export const RoomsBrowse = () => {
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="h-64 animate-pulse rounded-[16px] bg-[#E8E5E0]"
+              className="h-64 skeleton rounded-[16px] bg-[#E8E5E0]"
             />
           ))}
         </div>

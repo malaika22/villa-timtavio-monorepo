@@ -14,13 +14,14 @@ import {
 } from '@repo/ui';
 import { DataTable } from '@repo/dashboard-ui';
 import type { DataTableColumn, DataTableGroup } from '@repo/dashboard-ui';
-import { ChevronDown, Loader2, MessageCircle } from 'lucide-react';
+import { ChevronDown, Loader2, MessageCircle, Star } from 'lucide-react';
 import { formatDistanceToNow, formatDistanceToNowStrict } from 'date-fns';
 import { cn } from '@repo/ui/lib/utils';
 
 import { GuestAvatar } from '@/components/manager/ui/GuestAvatar';
 import { ApprovalStatusPill } from '@/components/manager/pages/approvals/ApprovalStatusPill';
 import { VendorBookingDialog } from '@/components/manager/pages/approvals/VendorBookingDialog';
+import { RateVendorDialog } from '@/components/manager/pages/approvals/RateVendorDialog';
 import {
   useApproveRequest,
   useDeclineRequest,
@@ -124,6 +125,7 @@ export const ApprovalsQueueTable = ({
     row: ApprovalQueueItem;
     step: 'ask' | 'reply';
   } | null>(null);
+  const [ratingRow, setRatingRow] = useState<ApprovalQueueItem | null>(null);
 
   // Collapsed by booking id, so a stay stays shut as the queue refetches.
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -349,6 +351,24 @@ export const ApprovalsQueueTable = ({
       key: 'actions',
       header: 'Actions',
       cell: (row) => {
+        // Asked once, where the estate already is. A finished experience with
+        // a vendor and no rating is the only moment anybody has an opinion
+        // worth recording, and until now nothing ever asked.
+        if (row.awaitingVendorRating) {
+          return (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className={outlineBtn}
+              onClick={() => setRatingRow(row)}
+            >
+              <Star className="mr-1.5 size-3.5" />
+              Rate {row.vendorName ?? 'vendor'}
+            </Button>
+          );
+        }
+
         if (!isActionable(row.status)) {
           // Manager Quote Loop: log the confirmed cost to the folio for
           // confirmed/in-progress experiences.
@@ -533,6 +553,19 @@ export const ApprovalsQueueTable = ({
             No experience requests to review.
           </span>
         }
+      />
+
+      <RateVendorDialog
+        request={
+          ratingRow
+            ? {
+                id: ratingRow.id,
+                vendorName: ratingRow.vendorName ?? 'the vendor',
+                experience: ratingRow.experience,
+              }
+            : null
+        }
+        onOpenChange={(open) => !open && setRatingRow(null)}
       />
 
       <VendorBookingDialog

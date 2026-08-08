@@ -847,6 +847,17 @@ model ExperienceRequest {
    */
   cancellationFee         Decimal?  @db.Decimal(10, 2)
 
+  /**
+   * Unwinding it with the vendor — the mirror of asking them in the first
+   * place. Without it the guest could be told "cancelled" while the boat still
+   * expected them, and the fee on their folio had no provenance: no record of
+   * who was told, when, or whether the number came from the vendor or from a
+   * guess.
+   */
+  vendorToldOfCancellationAt DateTime?
+  vendorCancellationRepliedAt DateTime?
+  vendorCancellationNote      String?   @db.Text
+
   @@index([bookingId])
   @@index([status])
   @@index([catalogItemId])

@@ -85,6 +85,13 @@ export interface ExperienceRequest {
   vendorProposedDate?: string | null;
   vendorProposedTime?: string | null;
 
+  // ── Unwinding it ─────────────────────────────────────────────────────
+  /** The estate has told the vendor it's off. */
+  vendorToldOfCancellationAt?: string | null;
+  /** They've said whether there's a fee — which is where cancellationFee came from. */
+  vendorCancellationRepliedAt?: string | null;
+  vendorCancellationNote?: string | null;
+
   cancellationRequestedAt?: string | null;
   cancellationRequestedBy?: string | null;
   cancellationReason?: string | null;
@@ -146,6 +153,8 @@ export interface EmExperienceRequest extends ExperienceRequest {
   catalogItem?: ExperienceRequest['catalogItem'] & {
     vendor?: { id: string; name: string; role?: string | null };
   };
+  /** Present once the estate has rated the vendor on this experience. */
+  vendorRating?: { id: string; rating: number; notes?: string | null } | null;
 }
 
 // ─── Booking the vendor ──────────────────────────────────────────────────────
@@ -206,4 +215,26 @@ export function vendorStage(req: {
   if (req.vendorProposedDate) return 'ALTERNATIVE_OFFERED';
   if (req.vendorAskedAt) return 'ASKED';
   return 'TO_ASK';
+}
+
+/** Where a cancellation has got to with the vendor. */
+export type VendorCancellationStage = 'NONE' | 'NOT_TOLD' | 'TOLD' | 'SETTLED';
+
+export function vendorCancellationStage(req: {
+  catalogItem?:
+    | ({ vendorId?: string | null } & { vendor?: { id: string } | null })
+    | null;
+  vendorToldOfCancellationAt?: string | null;
+  vendorCancellationRepliedAt?: string | null;
+}): VendorCancellationStage {
+  if (!(req.catalogItem?.vendorId || req.catalogItem?.vendor)) return 'NONE';
+  if (req.vendorCancellationRepliedAt) return 'SETTLED';
+  if (req.vendorToldOfCancellationAt) return 'TOLD';
+  return 'NOT_TOLD';
+}
+
+export interface RecordVendorCancellationDto {
+  /** What the vendor is charging the estate, if anything. */
+  fee?: number;
+  note?: string;
 }
