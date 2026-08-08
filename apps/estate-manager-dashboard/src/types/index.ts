@@ -307,6 +307,8 @@ export type ContentExperience = {
   priceUnit?: PriceUnit | null;
   vendorId?: string | null;
   breezeWayTeamId?: string | null;
+  /** Whether a Breezeway setup task is created when this is confirmed. */
+  needsSetupTask?: boolean;
   primaryPhotoUrl?: string | null;
   photoUrls?: string[];
   maxGuestCount?: number | null;

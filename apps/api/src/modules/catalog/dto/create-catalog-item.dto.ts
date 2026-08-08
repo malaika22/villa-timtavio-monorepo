@@ -93,6 +93,16 @@ export class CreateCatalogItemDto {
   @IsString()
   breezeWayTeamId?: string;
 
+  /**
+   * Whether the estate's own staff prepare anything for this.
+   *
+   * Off means no Breezeway task, and therefore no READY — nothing was
+   * prepared, so there is nothing to report ready.
+   */
+  @IsOptional()
+  @IsBoolean()
+  needsSetupTask?: boolean;
+
   @IsOptional()
   @IsString()
   breezeWayTemplateId?: string;

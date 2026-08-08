@@ -74,6 +74,12 @@ export interface CatalogItem {
   vendor?: { id: string; name: string; status: string } | null;
   /** Breezeway person id this experience's setup task is assigned to. */
   breezeWayTeamId?: string | null;
+  /**
+   * Whether the estate's own staff prepare anything for this experience.
+   * Off means no Breezeway setup task — and so no READY status, because
+   * nothing was prepared.
+   */
+  needsSetupTask?: boolean;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -149,6 +155,7 @@ export interface CreateCatalogItemDto {
   priceUnitId?: string;
   /** Breezeway person id to assign this experience's setup task to. */
   breezeWayTeamId?: string;
+  needsSetupTask?: boolean;
   sortOrder?: number;
   included?: string[];
   hostName?: string;

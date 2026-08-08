@@ -84,6 +84,7 @@ export const ExperienceFormDialog = ({
       isIncluded: false,
       vendorId: '',
       breezeWayTeamId: '',
+      needsSetupTask: true,
       primaryPhotoUrl: '',
       photoUrls: [],
       maxGuestCount: undefined,
@@ -124,6 +125,7 @@ export const ExperienceFormDialog = ({
         isIncluded: experience.pricing === 'included',
         vendorId: experience.vendorId ?? '',
         breezeWayTeamId: experience.breezeWayTeamId ?? '',
+        needsSetupTask: experience.needsSetupTask ?? true,
         primaryPhotoUrl: experience.primaryPhotoUrl ?? '',
         photoUrls:
           experience.photoUrls && experience.photoUrls.length > 0
@@ -151,6 +153,7 @@ export const ExperienceFormDialog = ({
         isIncluded: false,
         vendorId: '',
         breezeWayTeamId: '',
+        needsSetupTask: true,
         primaryPhotoUrl: '',
         maxGuestCount: undefined,
         included: '',
@@ -211,6 +214,7 @@ export const ExperienceFormDialog = ({
       isIncluded: values.isIncluded,
       vendorId: values.vendorId || undefined,
       breezeWayTeamId: values.breezeWayTeamId || undefined,
+      needsSetupTask: values.needsSetupTask,
       photoUrls: values.photoUrls ?? [],
       // The primary is always one of the gallery images; fall back to the first.
       primaryPhotoUrl:
@@ -674,6 +678,38 @@ export const ExperienceFormDialog = ({
                       to. Leave as default to use the category&apos;s fallback
                       assignee.
                     </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="needsSetupTask"
+                render={({ field }) => (
+                  <FormItem className="rounded-lg border border-manager-border bg-[#faf9f7] p-3">
+                    <label className="flex cursor-pointer items-start gap-2.5">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value !== false}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                          className="mt-0.5 size-4 shrink-0 accent-[var(--manager-accent)]"
+                        />
+                      </FormControl>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-medium text-manager-text">
+                          Our staff prepare something for this
+                        </span>
+                        <FormDescription className="mt-0.5">
+                          Creates the Breezeway setup task above. Turn it off
+                          for anything a vendor arrives and runs on their own —
+                          a task nobody actions is a task everybody learns to
+                          ignore. With it off the request stays confirmed rather
+                          than going ready, because nothing was prepared.
+                        </FormDescription>
+                      </span>
+                    </label>
                     <FormMessage />
                   </FormItem>
                 )}
