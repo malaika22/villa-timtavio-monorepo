@@ -22,7 +22,7 @@ export const TodaySchedule = () => {
           {[1, 2].map((i) => (
             <div
               key={i}
-              className="h-16 animate-pulse rounded-[10px] bg-[#E3E0DA]"
+              className="h-16 skeleton rounded-[10px] bg-[#E3E0DA]"
             />
           ))}
         </div>

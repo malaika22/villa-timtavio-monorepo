@@ -12,8 +12,8 @@ export const Folio = () => {
   if (isLoading) {
     return (
       <div className="flex flex-col gap-4 p-4">
-        <div className="h-48 animate-pulse rounded-[12px] bg-[#E3E0DA]" />
-        <div className="h-64 animate-pulse rounded-[12px] bg-[#E3E0DA]" />
+        <div className="h-48 skeleton rounded-[12px] bg-[#E3E0DA]" />
+        <div className="h-64 skeleton rounded-[12px] bg-[#E3E0DA]" />
       </div>
     );
   }

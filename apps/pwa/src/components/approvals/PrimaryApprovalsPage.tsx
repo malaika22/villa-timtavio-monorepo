@@ -193,7 +193,7 @@ export const PrimaryApprovalsPage = () => {
           {[1, 2].map((i) => (
             <div
               key={i}
-              className="h-32 animate-pulse rounded-[14px] bg-[#E8E5E0]"
+              className="h-32 skeleton rounded-[14px] bg-[#E8E5E0]"
             />
           ))}
         </div>

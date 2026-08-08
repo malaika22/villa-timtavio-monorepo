@@ -265,17 +265,17 @@ function GuestManifestSkeleton() {
       aria-label="Loading guest manifest"
     >
       <div className="flex items-start gap-3">
-        <div className="size-12 shrink-0 animate-pulse rounded-xl bg-[#ECE7DF]" />
+        <div className="size-12 shrink-0 skeleton rounded-xl bg-[#ECE7DF]" />
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <div className="h-4 w-32 animate-pulse rounded bg-[#ECE7DF]" />
-            <div className="h-5 w-20 animate-pulse rounded-full bg-[#ECE7DF]" />
+            <div className="h-4 w-32 skeleton rounded bg-[#ECE7DF]" />
+            <div className="h-5 w-20 skeleton rounded-full bg-[#ECE7DF]" />
           </div>
-          <div className="h-3 w-full animate-pulse rounded bg-[#F0ECE5]" />
-          <div className="h-3 w-3/4 animate-pulse rounded bg-[#F0ECE5]" />
+          <div className="h-3 w-full skeleton rounded bg-[#F0ECE5]" />
+          <div className="h-3 w-3/4 skeleton rounded bg-[#F0ECE5]" />
         </div>
       </div>
-      <div className="mt-4 h-11 w-full animate-pulse rounded-lg bg-[#ECE7DF]" />
+      <div className="mt-4 h-11 w-full skeleton rounded-lg bg-[#ECE7DF]" />
     </article>
   );
 }
