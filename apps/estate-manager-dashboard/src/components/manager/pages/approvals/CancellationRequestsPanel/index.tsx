@@ -2,14 +2,17 @@
 
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Loader2, XCircle } from 'lucide-react';
+import { Check, Loader2, MessageCircle, XCircle } from 'lucide-react';
 import { Button, Input } from '@repo/ui';
 import { toast } from 'sonner';
-import { formatPrice } from '@repo/api-types';
+import { formatPrice, vendorCancellationStage } from '@repo/api-types';
 
 import {
   useCancellationRequests,
   useConfirmCancellation,
+  useMarkVendorCancelSent,
+  useRecordVendorCancelReply,
+  useVendorCancelMessage,
 } from '@/hooks/useApprovals';
 
 /**
@@ -23,7 +26,23 @@ import {
 export const CancellationRequestsPanel = () => {
   const { data: requests = [] } = useCancellationRequests();
   const confirm = useConfirmCancellation();
+  const markTold = useMarkVendorCancelSent();
+  const recordReply = useRecordVendorCancelReply();
   const [fees, setFees] = useState<Record<string, string>>({});
+  // Which row's WhatsApp draft to fetch. One at a time, on demand — the panel
+  // shouldn't compose a message for every cancellation just in case.
+  const [drafting, setDrafting] = useState<string | null>(null);
+  const { data: draft } = useVendorCancelMessage(drafting);
+
+  const tellVendor = (id: string) => {
+    if (!draft || drafting !== id) {
+      setDrafting(id);
+      return;
+    }
+    window.open(draft.whatsappUrl, '_blank', 'noopener,noreferrer');
+    markTold.mutate(id);
+    setDrafting(null);
+  };
 
   if (requests.length === 0) return null;
 
@@ -60,8 +79,10 @@ export const CancellationRequestsPanel = () => {
             {requests.length === 1 ? '' : 's'} requested
           </h2>
           <p className="mt-0.5 text-sm text-amber-800/80">
-            Unwind each with the supplier, then confirm below. Any fee they
-            charge goes on the guest&apos;s folio; the original charge comes off.
+            Tell the vendor, record what they said about a fee, then confirm.
+            The original charge comes off the folio and their fee goes on —
+            which is why the number wants to come from them rather than from
+            memory.
           </p>
         </div>
       </div>
@@ -70,6 +91,7 @@ export const CancellationRequestsPanel = () => {
         {requests.map((r) => {
           const busy = confirm.isPending && confirm.variables?.id === r.id;
           const experience = r.catalogItem?.name ?? 'Experience';
+          const stage = vendorCancellationStage(r);
           return (
             <div
               key={r.id}
@@ -93,9 +115,48 @@ export const CancellationRequestsPanel = () => {
                     “{r.cancellationReason}”
                   </p>
                 ) : null}
+
+                {/* A warning, not a block. A guest cancelling three weeks out
+                    may involve no vendor conversation worth stopping for — but
+                    nobody should confirm one without noticing. */}
+                {stage === 'NOT_TOLD' && (
+                  <p className="mt-1 text-xs font-medium text-[#b42318]">
+                    {r.catalogItem?.vendor?.name ?? 'The vendor'} hasn’t been
+                    told yet
+                  </p>
+                )}
+                {stage === 'TOLD' && (
+                  <p className="mt-1 text-xs text-[#8a6d3b]">
+                    Told — waiting on whether they’re charging
+                  </p>
+                )}
+                {stage === 'SETTLED' && (
+                  <p className="mt-1 inline-flex items-center gap-1 text-xs text-[#3a6448]">
+                    <Check className="size-3" />
+                    {r.cancellationFee
+                      ? `${r.catalogItem?.vendor?.name ?? 'The vendor'} is charging ${formatPrice(Number(r.cancellationFee))}`
+                      : 'No charge from the vendor'}
+                  </p>
+                )}
               </div>
 
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                {stage !== 'NONE' && stage !== 'SETTLED' && (
+                  <Button
+                    type="button"
+                    onClick={() => tellVendor(r.id)}
+                    disabled={markTold.isPending}
+                    className="bg-[#1f7a5c] text-white hover:opacity-90"
+                  >
+                    <MessageCircle className="mr-1.5 size-4" />
+                    {drafting === r.id
+                      ? 'Open WhatsApp'
+                      : stage === 'TOLD'
+                        ? 'Tell them again'
+                        : 'Tell the vendor'}
+                  </Button>
+                )}
+
                 <Input
                   type="number"
                   min={0}
@@ -104,9 +165,28 @@ export const CancellationRequestsPanel = () => {
                   onChange={(e) =>
                     setFees((f) => ({ ...f, [r.id]: e.target.value }))
                   }
-                  placeholder="Fee (optional)"
-                  className="w-36"
+                  placeholder="Their fee"
+                  className="w-32"
                 />
+
+                {stage !== 'NONE' && stage !== 'SETTLED' && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-manager-border bg-white text-manager-text"
+                    disabled={recordReply.isPending}
+                    onClick={() => {
+                      const raw = fees[r.id]?.trim();
+                      recordReply.mutate({
+                        id: r.id,
+                        dto: { fee: raw ? Number(raw) : undefined },
+                      });
+                    }}
+                  >
+                    Record their answer
+                  </Button>
+                )}
+
                 <Button
                   type="button"
                   onClick={() => submit(r.id, experience)}

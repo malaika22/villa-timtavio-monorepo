@@ -1076,7 +1076,9 @@ export class RequestsService {
         status: { notIn: ['CANCELLED', 'COMPLETED'] },
       },
       include: {
-        catalogItem: { include: { priceUnit: true } },
+        // The vendor, because unwinding it means telling somebody — and the
+        // panel can't say who without this.
+        catalogItem: { include: { priceUnit: true, vendor: true } },
         booking: { include: { primaryGuest: true } },
       },
       orderBy: { confirmedDate: 'asc' },
@@ -1203,7 +1205,9 @@ export class RequestsService {
         catalogItem: { isIncluded: false },
       },
       include: {
-        catalogItem: { include: { priceUnit: true } },
+        // The vendor, because unwinding it means telling somebody — and the
+        // panel can't say who without this.
+        catalogItem: { include: { priceUnit: true, vendor: true } },
         booking: { include: { primaryGuest: true } },
       },
       orderBy: { confirmedDate: 'asc' },

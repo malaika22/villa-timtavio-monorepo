@@ -94,6 +94,38 @@ export class RequestsController {
     );
   }
 
+  /** EM — the cancellation message, written for them. */
+  @Get(':id/vendor-cancel-message')
+  @Roles('estate_manager', 'owner')
+  vendorCancelMessage(@Param('id') id: string) {
+    return this.vendorBooking.draftCancellationMessage(id);
+  }
+
+  /** EM — they've told the vendor. */
+  @Post(':id/vendor-cancel-sent')
+  @Roles('estate_manager')
+  vendorCancelSent(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.vendorBooking.markCancellationSent(
+      id,
+      user?.email || user?.auth0Id || 'the estate',
+    );
+  }
+
+  /** EM — what the vendor said about a fee. */
+  @Post(':id/vendor-cancel-reply')
+  @Roles('estate_manager')
+  vendorCancelReply(
+    @Param('id') id: string,
+    @Body() dto: { fee?: number; note?: string },
+    @CurrentUser() user: any,
+  ) {
+    return this.vendorBooking.recordCancellationReply(
+      id,
+      dto,
+      user?.email || user?.auth0Id || 'the estate',
+    );
+  }
+
   /** Guest — accept or turn down a time the vendor offered instead. */
   @Post(':id/alternative')
   @Roles('primary_member', 'secondary_guest')

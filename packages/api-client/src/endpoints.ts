@@ -188,6 +188,11 @@ export const API = {
     reply: (id: string) => `/api/v1/requests/${id}/vendor-reply`,
     /** Guest — accept or turn down a time the vendor offered instead. */
     alternative: (id: string) => `/api/v1/requests/${id}/alternative`,
+    /** EM — unwinding it: the message, the send, and what they said about a fee. */
+    cancelMessage: (id: string) =>
+      `/api/v1/requests/${id}/vendor-cancel-message`,
+    cancelSent: (id: string) => `/api/v1/requests/${id}/vendor-cancel-sent`,
+    cancelReply: (id: string) => `/api/v1/requests/${id}/vendor-cancel-reply`,
   },
   takenSlots: (bookingId: string, catalogItemId: string) =>
     `/api/v1/requests/bookings/${bookingId}/taken-slots/${catalogItemId}`,

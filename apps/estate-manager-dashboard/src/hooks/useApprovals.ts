@@ -5,6 +5,7 @@ import type {
   ConfirmRequestDto,
   ConfirmCostDto,
   DeclineRequestDto,
+  RecordVendorCancellationDto,
   RecordVendorReplyDto,
 } from '@repo/api-types';
 
@@ -158,6 +159,56 @@ export function useRecordVendorReply() {
           : vars.dto.outcome === 'ALTERNATIVE'
             ? 'The guest has been asked about the new time'
             : 'Recorded — the guest has been told',
+      );
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+}
+
+/** The cancellation message, fetched when the estate opens the sheet. */
+export function useVendorCancelMessage(id: string | null) {
+  return useQuery({
+    queryKey: ['vendor-cancel-message', id],
+    queryFn: () => emRequestsApi.vendorCancelMessage(id!),
+    enabled: !!id,
+    staleTime: 0,
+  });
+}
+
+export function useMarkVendorCancelSent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => emRequestsApi.vendorCancelSent(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['requests'] });
+      toast.success('Marked as told');
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+}
+
+/**
+ * What the vendor said about a fee.
+ *
+ * Recorded before the cancellation is confirmed, so the number on the guest's
+ * folio has a source rather than being one the estate guessed at.
+ */
+export function useRecordVendorCancelReply() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      dto,
+    }: {
+      id: string;
+      dto: RecordVendorCancellationDto;
+    }) => emRequestsApi.vendorCancelReply(id, dto),
+    onSuccess: (_r, vars) => {
+      void qc.invalidateQueries({ queryKey: ['requests'] });
+      toast.success(
+        vars.dto.fee
+          ? "Recorded — confirm below and it goes on the guest's folio"
+          : 'Recorded — no fee',
       );
     },
     onError: (e) => toast.error((e as Error).message),

@@ -1,6 +1,7 @@
 import { api, API } from '@/lib/api';
 import type {
   EmExperienceRequest,
+  RecordVendorCancellationDto,
   RecordVendorReplyDto,
   VendorMessageDraft,
   ExperienceRequest,
@@ -21,8 +22,10 @@ export const emRequestsApi = {
     api.patch<ExperienceRequest>(API.requests.decline(id), dto),
   needsPricing: () =>
     api.get<ExperienceRequest[]>(API.requests.emNeedsPricing),
+  // EmExperienceRequest, not ExperienceRequest: these rows carry the vendor,
+  // and unwinding a booking means telling somebody by name.
   cancellationRequests: () =>
-    api.get<ExperienceRequest[]>(API.requests.emCancellationRequests),
+    api.get<EmExperienceRequest[]>(API.requests.emCancellationRequests),
   confirmCancellation: (id: string, cancellationFee?: number) =>
     api.post<ExperienceRequest>(API.requests.confirmCancellation(id), {
       cancellationFee,
@@ -40,4 +43,12 @@ export const emRequestsApi = {
     api.post<ExperienceRequest>(API.vendorBooking.asked(id), {}),
   vendorReply: (id: string, dto: RecordVendorReplyDto) =>
     api.post<ExperienceRequest>(API.vendorBooking.reply(id), dto),
+
+  // ── Unwinding it with the vendor ────────────────────────────────────────
+  vendorCancelMessage: (id: string) =>
+    api.get<VendorMessageDraft>(API.vendorBooking.cancelMessage(id)),
+  vendorCancelSent: (id: string) =>
+    api.post<ExperienceRequest>(API.vendorBooking.cancelSent(id), {}),
+  vendorCancelReply: (id: string, dto: RecordVendorCancellationDto) =>
+    api.post<ExperienceRequest>(API.vendorBooking.cancelReply(id), dto),
 };
