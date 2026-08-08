@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { requestsApi } from '@/lib/api/requests';
-import { useAuth } from './useAuth';
+import { useBookingScope } from './useBookingScope';
 import type { ExperienceRequest } from '@repo/api-types';
 
 export interface TodayScheduleItem {
@@ -12,7 +12,7 @@ export interface TodayScheduleItem {
 }
 
 export function useTodaySchedule() {
-  const { bookingId } = useAuth();
+  const { bookingId, resolving } = useBookingScope();
 
   const {
     data: requests,
@@ -31,5 +31,6 @@ export function useTodaySchedule() {
     status: r.status,
   }));
 
-  return { todayItems, isLoading, error };
+  // Waiting to learn which booking we're in is loading, not "no schedule".
+  return { todayItems, isLoading: isLoading || resolving, error };
 }

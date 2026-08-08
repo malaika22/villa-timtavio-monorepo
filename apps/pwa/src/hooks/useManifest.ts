@@ -6,15 +6,17 @@ import type {
   UpdatePrimaryDetailsDto,
 } from '@repo/api-types';
 import { useBookingStore } from '@/store/useBookingStore';
+import { useBookingScope, whileResolving } from './useBookingScope';
 
 export function useManifest() {
-  const bookingId = useBookingStore((s) => s.bookingId);
-  return useQuery({
+  const { bookingId, resolving } = useBookingScope();
+  const query = useQuery({
     queryKey: ['manifest', bookingId],
     queryFn: () => manifestApi.getManifest(bookingId!),
     enabled: !!bookingId,
     staleTime: 30_000,
   });
+  return whileResolving(query, resolving);
 }
 
 export function useAddManifestGuest() {

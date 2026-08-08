@@ -1,19 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { diningApi } from '@/lib/api/dining';
 import { catalogApi } from '@/lib/api/catalog';
-import { useBookingStore } from '@/store/useBookingStore';
 import { useAuth } from './useAuth';
+import {
+  useBookingId,
+  useBookingScope,
+  whileResolving,
+} from './useBookingScope';
 import type {
   CreateDiningRequestDto,
   AddLateArrivalDto,
   UpsertMenuSelectionDto,
 } from '@repo/api-types';
-
-function useBookingId(): string | null {
-  const storeBookingId = useBookingStore((s) => s.bookingId);
-  const { bookingId: authBookingId } = useAuth();
-  return storeBookingId ?? authBookingId;
-}
 
 export function useMenu() {
   return useQuery({
@@ -24,12 +22,13 @@ export function useMenu() {
 }
 
 export function useDiningRequests() {
-  const bookingId = useBookingId();
-  return useQuery({
+  const { bookingId, resolving } = useBookingScope();
+  const query = useQuery({
     queryKey: ['dining', bookingId],
     queryFn: () => diningApi.byBooking(bookingId!),
     enabled: !!bookingId,
   });
+  return whileResolving(query, resolving);
 }
 
 export function useCreateDiningRequest() {
@@ -58,13 +57,14 @@ export function useCreateDiningRequest() {
  * disagree about it.
  */
 export function useMenuPlan() {
-  const bookingId = useBookingId();
-  return useQuery({
+  const { bookingId, resolving } = useBookingScope();
+  const query = useQuery({
     queryKey: ['menu-plan', bookingId],
     queryFn: () => diningApi.menuPlan(bookingId!),
     enabled: !!bookingId,
     staleTime: 30_000,
   });
+  return whileResolving(query, resolving);
 }
 
 /** Compose one meal. The dish list sent is the whole meal, not a delta. */
@@ -93,6 +93,9 @@ export function useComposeMeal() {
 export function usePendingDiningApprovals() {
   const bookingId = useBookingId();
   const { isPrimary } = useAuth();
+  // Not wrapped: an empty approvals list and a still-resolving one look the
+  // same to a guest, and holding a skeleton over a panel that is usually empty
+  // would be worse than showing nothing.
   return useQuery({
     queryKey: ['dining-approvals', bookingId],
     queryFn: () => diningApi.pendingApprovals(bookingId!),

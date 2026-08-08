@@ -2,8 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '@repo/api-client';
 import { requestsApi } from '@/lib/api/requests';
 import { enqueueRequest } from '@/lib/offline-queue';
-import { useBookingStore } from '@/store/useBookingStore';
 import { useAuth } from './useAuth';
+import {
+  useBookingId,
+  useBookingScope,
+  whileResolving,
+} from './useBookingScope';
 import type {
   CreateExperienceRequestDto,
   ExperienceRequest,
@@ -28,19 +32,14 @@ function isNetworkError(err: unknown): boolean {
  * The booking store is the authoritative bookingId (populated by
  * useCurrentBooking); the JWT claim is often empty, so prefer the store.
  */
-function useBookingId(): string | null {
-  const storeBookingId = useBookingStore((s) => s.bookingId);
-  const { bookingId: authBookingId } = useAuth();
-  return storeBookingId ?? authBookingId;
-}
-
 export function useBookingRequests() {
-  const bookingId = useBookingId();
-  return useQuery({
+  const { bookingId, resolving } = useBookingScope();
+  const query = useQuery({
     queryKey: ['requests', bookingId],
     queryFn: () => requestsApi.byBooking(bookingId!),
     enabled: !!bookingId,
   });
+  return whileResolving(query, resolving);
 }
 
 export function useRequestById(id: string | null) {

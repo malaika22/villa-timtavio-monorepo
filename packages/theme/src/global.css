@@ -141,6 +141,38 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* ─── Motion ──────────────────────────────────────────────────────────
+   *
+   * Five durations and three curves, and nothing invents its own. Screens
+   * were each picking their own 200/300/350ms with a different easing, which
+   * is why four tabs felt like four applications rather than one.
+   *
+   * Emitted as Tailwind utilities: duration-instant, ease-out-estate, etc.
+   */
+
+  /* Press and release. Under ~100ms it reads as the surface reacting rather
+     than as an animation playing. */
+  --duration-instant: 90ms;
+  /* Chip selection, tickboxes, colour and border changes. */
+  --duration-fast: 140ms;
+  /* Fades, scrims, page cross-fade, a row arriving. */
+  --duration-base: 220ms;
+  /* A sheet arriving — the only thing here slow enough to notice, and it
+     should be. */
+  --duration-slow: 320ms;
+  /* Anything leaving. Deliberately ~0.6x the entry: arriving somewhere new
+     deserves the time, going back to a room you were just in does not, and
+     matching them makes dismissal feel like wading. */
+  --duration-exit: 190ms;
+
+  /* The house curve. Fast start, long settle — a decisive arrival. */
+  --ease-out-estate: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Exits only. Accelerates away. */
+  --ease-in-estate: cubic-bezier(0.4, 0, 1, 1);
+  /* Overshoots slightly. Only the confirm tick and a counter reaching its
+     limit — a bounce anywhere else turns the app into a toy. */
+  --ease-pop: cubic-bezier(0.34, 1.42, 0.64, 1);
 }
 
 :root {

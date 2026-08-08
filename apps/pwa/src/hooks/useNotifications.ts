@@ -1,32 +1,31 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '@/lib/api/notifications';
-import { useBookingStore } from '@/store/useBookingStore';
-import { useAuth } from './useAuth';
-
-function useBookingId(): string | null {
-  const storeBookingId = useBookingStore((s) => s.bookingId);
-  const { bookingId: authBookingId } = useAuth();
-  return storeBookingId ?? authBookingId;
-}
+import {
+  useBookingId,
+  useBookingScope,
+  whileResolving,
+} from './useBookingScope';
 
 export function useNotifications() {
-  const bookingId = useBookingId();
-  return useQuery({
+  const { bookingId, resolving } = useBookingScope();
+  const query = useQuery({
     queryKey: ['notifications', bookingId],
     queryFn: () => notificationsApi.list(bookingId!),
     enabled: !!bookingId,
     refetchInterval: 60_000,
   });
+  return whileResolving(query, resolving);
 }
 
 export function useUnreadCount() {
-  const bookingId = useBookingId();
-  return useQuery({
+  const { bookingId, resolving } = useBookingScope();
+  const query = useQuery({
     queryKey: ['notifications', bookingId, 'unread-count'],
     queryFn: () => notificationsApi.unreadCount(bookingId!),
     enabled: !!bookingId,
     refetchInterval: 60_000,
   });
+  return whileResolving(query, resolving);
 }
 
 export function useMarkNotificationRead() {

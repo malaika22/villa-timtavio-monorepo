@@ -41,6 +41,46 @@
   height: 0;
 }
 
+/* ─── Press feedback (app-wide) ─────────────────────────────────────────
+ *
+ * Applied globally rather than per component: there were eleven `active:`
+ * states in the whole app and none on the Dining buttons, and a control that
+ * doesn't move under your thumb feels laggy even when the response is instant
+ * — you're waiting for an acknowledgement that never arrives.
+ *
+ * `transform` only, never `all`: `transition-all` animates layout properties
+ * too, which is a jank risk on the phones guests actually hold.
+ *
+ * Opt out with `no-press` on anything where a scale would be wrong — chiefly
+ * full-bleed scrim buttons, where scaling the backdrop is visible and absurd.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  button:not(.no-press):not(:disabled),
+  [role='button']:not(.no-press),
+  a[data-pressable]:not(.no-press) {
+    transition:
+      transform var(--duration-instant) var(--ease-out-estate),
+      background-color var(--duration-fast) var(--ease-out-estate),
+      border-color var(--duration-fast) var(--ease-out-estate),
+      color var(--duration-fast) var(--ease-out-estate);
+  }
+
+  button:not(.no-press):not(:disabled):active,
+  [role='button']:not(.no-press):active,
+  a[data-pressable]:not(.no-press):active {
+    transform: scale(0.97);
+  }
+}
+
+/* A press is feedback, not decoration — so it survives reduced motion, just
+   without the tween. */
+@media (prefers-reduced-motion: reduce) {
+  button:not(.no-press):not(:disabled):active,
+  [role='button']:not(.no-press):active {
+    transform: scale(0.97);
+  }
+}
+
 /* ─── Manifest card entrance animation ─────────────────────────────────── */
 @keyframes manifest-card-in {
   from {
