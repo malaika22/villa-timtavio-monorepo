@@ -6,6 +6,7 @@ import { ChevronDown, Loader2 } from 'lucide-react';
 import { formatPrice } from '@repo/api-types';
 import type { DiningRequest, MenuItem } from '@repo/api-types';
 import { cn } from '@repo/ui/lib/utils';
+import { Drawer, DrawerContent, DrawerTitle } from '@repo/ui/components/drawer';
 
 import { useAuth } from '@/hooks/useAuth';
 import { useCreateDiningRequest } from '@/hooks/useDining';
@@ -160,19 +161,11 @@ export const ExclusiveAdditions = ({
         </ul>
       </section>
 
-      {chosen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={close}
-            className="no-press absolute inset-0 bg-[#14120E]/45"
-          />
-          <div className="relative rounded-t-[16px] bg-white px-4 pt-3 pb-6">
-            <span
-              className="mx-auto mb-2 block h-1 w-9 rounded-full bg-[#E3E0DA]"
-              aria-hidden
-            />
+      <Drawer open={!!chosen} onOpenChange={(v) => !v && close()}>
+        <DrawerContent className="bg-white pb-6">
+          <DrawerTitle className="sr-only">{chosen?.name ?? 'Addition'}</DrawerTitle>
+          {chosen && (
+          <div className="px-4 pt-1" data-vaul-no-drag>
             <p className="font-cormorant text-[17px] text-[#2B2824]">
               {chosen.name}
             </p>
@@ -259,8 +252,9 @@ export const ExclusiveAdditions = ({
               Not now
             </button>
           </div>
-        </div>
-      )}
+          )}
+        </DrawerContent>
+      </Drawer>
     </>
   );
 };

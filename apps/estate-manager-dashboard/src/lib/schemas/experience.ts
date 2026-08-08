@@ -16,6 +16,8 @@ export const experienceFormSchema = z.object({
   vendorId: z.string().optional(),
   /** Breezeway person id the setup task routes to (empty = category default) */
   breezeWayTeamId: z.string().optional(),
+  /** Whether the estate's own staff prepare anything — see the form's copy. */
+  needsSetupTask: z.boolean().optional(),
   primaryPhotoUrl: z.string().optional(),
   /** Full gallery shown on the guest experience detail (includes the primary) */
   photoUrls: z.array(z.string()).optional(),
