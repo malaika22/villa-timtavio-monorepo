@@ -200,3 +200,21 @@ export function useTakenSlots(catalogItemId?: string | null) {
     staleTime: 30_000,
   });
 }
+
+/**
+ * The guest's answer to a time the provider offered instead.
+ *
+ * Accepting moves the request onto the new slot; the estate still has to price
+ * it, because agreeing a time is not agreeing a cost.
+ */
+export function useRespondToAlternative() {
+  const bookingId = useBookingId();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, accept }: { id: string; accept: boolean }) =>
+      requestsApi.respondToAlternative(id, accept),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['requests', bookingId] });
+    },
+  });
+}

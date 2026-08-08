@@ -83,6 +83,8 @@ export type ApprovalFilterTab =
  */
 export type ApprovalHorizon = 'week' | 'month' | 'upcoming' | 'past' | 'all';
 
+import type { VendorStage } from '@repo/api-types';
+
 export type ApprovalQueueItem = {
   id: string;
   guestName: string;
@@ -108,6 +110,17 @@ export type ApprovalQueueItem = {
   priceUnitCode?: string | null;
   /** Set once a price has been agreed — then IT is the re-approval baseline. */
   confirmedCost?: number | null;
+  /**
+   * Where this sits with its vendor. `NONE` is everything the estate runs
+   * itself — most of the catalogue — and those never wait on anybody.
+   */
+  vendorStage: VendorStage;
+  vendorName?: string | null;
+  vendorAskedAt?: string | null;
+  vendorNote?: string | null;
+  /** A time the vendor offered instead, waiting on the guest. */
+  vendorProposedDate?: string | null;
+  vendorProposedTime?: string | null;
   /**
    * The stay this belongs to. The queue groups by booking rather than by guest
    * because a party's secondaries are not separate customers — the primary

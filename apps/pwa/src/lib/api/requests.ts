@@ -36,4 +36,7 @@ export const requestsApi = {
     api.get<{ date: string; time: string | null }[]>(
       API.takenSlots(bookingId, catalogItemId),
     ),
+  /** Accept or turn down a time the provider offered instead. */
+  respondToAlternative: (id: string, accept: boolean) =>
+    api.post<ExperienceRequest>(API.vendorBooking.alternative(id), { accept }),
 };

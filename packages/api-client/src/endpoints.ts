@@ -179,6 +179,16 @@ export const API = {
     approve: (id: string) => `/api/v1/dining/${id}/approve`,
     decline: (id: string) => `/api/v1/dining/${id}/decline`,
   },
+  vendorBooking: {
+    /** EM — the WhatsApp message, written for them. */
+    message: (id: string) => `/api/v1/requests/${id}/vendor-message`,
+    /** EM — they've sent it. */
+    asked: (id: string) => `/api/v1/requests/${id}/vendor-asked`,
+    /** EM — what the vendor said. */
+    reply: (id: string) => `/api/v1/requests/${id}/vendor-reply`,
+    /** Guest — accept or turn down a time the vendor offered instead. */
+    alternative: (id: string) => `/api/v1/requests/${id}/alternative`,
+  },
   takenSlots: (bookingId: string, catalogItemId: string) =>
     `/api/v1/requests/bookings/${bookingId}/taken-slots/${catalogItemId}`,
   bookingsEm: {

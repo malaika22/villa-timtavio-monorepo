@@ -1,4 +1,5 @@
 import type { EmExperienceRequest, RequestStatus } from '@repo/api-types';
+import { vendorStage } from '@repo/api-types';
 import type { ApprovalQueueItem, ApprovalQueueStatus } from '@/types';
 import { format, parseISO } from 'date-fns';
 
@@ -89,7 +90,9 @@ export function mapRequestToApprovalItem(
     villa: 'Villa TimTavio',
     requestedDate: displayDate,
     requestedTime: displayTime,
-    vendor: req.staffMemberName ?? '—',
+    // The vendor, when there is one — the staff member is who set it up, which
+    // is a different fact and was standing in for this one.
+    vendor: req.catalogItem?.vendor?.name ?? req.staffMemberName ?? '—',
     submitted: submittedAt,
     status: STATUS_MAP[req.status] ?? 'Pending',
     declineReason: req.declineReason ?? null,
@@ -98,5 +101,11 @@ export function mapRequestToApprovalItem(
     estimatedMax: req.estimatedMax ?? null,
     priceUnitCode: req.priceUnitCode ?? null,
     confirmedCost: req.confirmedCost ?? null,
+    vendorStage: vendorStage(req),
+    vendorName: req.catalogItem?.vendor?.name ?? null,
+    vendorAskedAt: req.vendorAskedAt ?? null,
+    vendorNote: req.vendorNote ?? null,
+    vendorProposedDate: req.vendorProposedDate ?? null,
+    vendorProposedTime: req.vendorProposedTime ?? null,
   };
 }

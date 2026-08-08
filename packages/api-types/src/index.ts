@@ -6,7 +6,7 @@ export type * from './crm';
 export type * from './folio';
 export type * from './guests';
 export type * from './inquiries';
-export type * from './requests';
+export * from './requests';
 export * from './rooms';
 export type * from './vendors';
 export * from './manifest';

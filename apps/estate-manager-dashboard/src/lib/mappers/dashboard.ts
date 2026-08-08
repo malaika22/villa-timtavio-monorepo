@@ -1,3 +1,4 @@
+import { vendorStage } from '@repo/api-types';
 import type {
   BookingStatus,
   DashboardScheduleItem,
@@ -160,6 +161,9 @@ export function mapEmRequestToApprovalItem(
     vendor: req.catalogItem?.vendor?.name ?? req.staffMemberName ?? '—',
     submitted: submittedAt,
     status: queueStatus,
+    vendorStage: vendorStage(req),
+    vendorName: req.catalogItem?.vendor?.name ?? null,
+    vendorAskedAt: req.vendorAskedAt ?? null,
   };
 }
 
