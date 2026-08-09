@@ -6,7 +6,6 @@ import { AddVendorCard } from '@/components/manager/pages/vendors/AddVendorCard'
 import { AddVendorDialog } from '@/components/manager/pages/vendors/AddVendorDialog';
 import { VendorCard } from '@/components/manager/pages/vendors/VendorCard';
 import { VendorsFilterBar } from '@/components/manager/pages/vendors/VendorsFilterBar';
-import { vendorProfiles } from '@/lib/vendors-mock-data';
 import type { VendorFilterTab, VendorProfile } from '@/types';
 import { useVendors } from '@/hooks/useVendors';
 import { mapVendorToProfile } from '@/lib/mappers/vendor';
@@ -37,9 +36,9 @@ export const VendorsPage = () => {
   const [addOpen, setAddOpen] = useState(false);
 
   const { data: vendorData, isLoading } = useVendors();
-  const allVendors: VendorProfile[] = vendorData
-    ? vendorData.map(mapVendorToProfile)
-    : vendorProfiles;
+  // No mock fallback. An estate with no vendors saw a populated list of people
+  // who don't exist, which is worse than an empty page in every direction.
+  const allVendors: VendorProfile[] = (vendorData ?? []).map(mapVendorToProfile);
 
   const filtered = useMemo(
     () => filterVendors(allVendors, activeTab, search),

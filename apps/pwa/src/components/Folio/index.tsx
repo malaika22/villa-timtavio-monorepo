@@ -3,11 +3,12 @@ import { useFolio } from '@/hooks/useFolio';
 import { mapFolioItemToUI, mapFolioResponseToMeta } from '@/lib/mappers/folio';
 import { FolioHeader } from './FolioHeader';
 import { FolioLineItems } from './FolioLineItems';
-import type { FolioItem, FolioMeta as MockFolioMeta } from './mockData';
-import { FOLIO_MOCK } from './mockData';
+import type { FolioItem, FolioMeta } from './mockData';
+import { LoadFailed } from '@/components/LoadFailed';
 
 export const Folio = () => {
-  const { data: folioData, isLoading } = useFolio();
+  const { data: folioData, isLoading, isError, refetch, isFetching } =
+    useFolio();
 
   if (isLoading) {
     return (
@@ -18,15 +19,26 @@ export const Folio = () => {
     );
   }
 
-  let folioMeta: MockFolioMeta = FOLIO_MOCK;
+  // A bill is the one screen that must never invent a number. This fell back
+  // to FOLIO_MOCK whenever the request failed, so an error, a 401 or a plane
+  // showed the guest a plausible folio of money nobody owed.
+  if (isError || !folioData) {
+    return (
+      <LoadFailed
+        what="your folio"
+        onRetry={() => void refetch()}
+        retrying={isFetching}
+      />
+    );
+  }
 
-  if (folioData) {
+  const folioMeta: FolioMeta = (() => {
     const meta = mapFolioResponseToMeta(folioData);
     const items: FolioItem[] = folioData.items.map(mapFolioItemToUI);
 
     const checkedOut = folioData.booking.status === 'CHECKED_OUT';
 
-    folioMeta = {
+    return {
       breakdown: {
         villa: meta.villaTotal,
         experiences: meta.experiencesTotal,
@@ -46,7 +58,7 @@ export const Folio = () => {
       },
       items,
     };
-  }
+  })();
 
   return (
     <div className="flex flex-1 flex-col">

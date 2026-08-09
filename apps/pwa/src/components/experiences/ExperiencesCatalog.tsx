@@ -13,6 +13,7 @@ import { mapCatalogItemsToExperiences } from '@/lib/mappers/experience';
 import { FilterChips } from './FilterChips';
 import { bookingStatusMap, PAGE_SIZE } from './constants';
 import { staggerDelay } from './animations';
+import { LoadFailed } from '@/components/LoadFailed';
 
 export function ExperiencesCatalog() {
   const [filter, setFilter] = useState<string>('all');
@@ -26,7 +27,8 @@ export function ExperiencesCatalog() {
     ? bookingStatusMap[arrivalStatus]
     : undefined;
 
-  const { data: catalogItems, isLoading } = useCatalog();
+  const { data: catalogItems, isLoading, isError, refetch, isFetching } =
+    useCatalog();
   const apiExperiences = useMemo(
     () =>
       catalogItems
@@ -135,7 +137,13 @@ export function ExperiencesCatalog() {
         </div>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+          <LoadFailed
+            what="the experiences"
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
+        ) : isLoading ? (
         <div className="grid grid-cols-2 gap-3">
           {Array.from({ length: PAGE_SIZE }).map((_, i) => (
             <div

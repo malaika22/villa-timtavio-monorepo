@@ -113,6 +113,15 @@ export function mapGuestProfileToDNA(profile: GuestProfile): GuestDNAProfile {
     totalVisits: profile.stats.totalVisits,
     lifetimeSpend: profile.stats.lifetimeSpend,
     specialOccasions: profile.specialOccasions,
+    raw: {
+      allergies: profile.allergies ?? null,
+      beveragePreferences: profile.beveragePreferences ?? null,
+      winePreferences: profile.winePreferences ?? null,
+      dietaryRestrictions: profile.dietaryRestrictions ?? [],
+      favouriteExperiences: profile.favouriteExperiences ?? [],
+      preferredTimes: profile.preferredTimes ?? null,
+      pillarPreferences: profile.pillarPreferences ?? null,
+    },
     preStock: profile.preStockSuggestions
       .filter((s) => s.type !== 'ROOM_SETUP')
       .map((s) => ({ description: s.description, source: s.source })),

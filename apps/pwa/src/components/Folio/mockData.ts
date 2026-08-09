@@ -46,59 +46,6 @@ export interface FolioMeta {
   checkedOut?: boolean;
 }
 
-export const FOLIO_MOCK: FolioMeta = {
-  breakdown: {
-    villa: 12450,
-    experiences: 750,
-    dining: 0,
-    incidentals: 440,
-  },
-  paymentInfo: '···· 4242 Visa',
-  totals: {
-    subtotal: 13640,
-    taxRate: 0.16,
-    taxLabel: 'IVA Tax (16%)',
-  },
-  items: [
-    {
-      id: 1,
-      category: 'villa',
-      title: 'Villa Azul — Base Rate',
-      amount: 12450,
-      meta: '4 NIGHTS · MAR 20–24',
-      date: 'MAR 20',
-    },
-    {
-      id: 2,
-      category: 'experience',
-      title: "Chef's Table Dinner",
-      amount: 450,
-      meta: 'MAR 21 · 6PM · CHEF BILLY',
-      date: 'MAR 21',
-      description:
-        '8-course tasting menu with wine pairing. Completed poolside terrace.',
-      staffNote: '"Guest requested additional champagne at 9pm."',
-      showViewStatus: true,
-    },
-    {
-      id: 3,
-      category: 'incidental',
-      title: 'Caymus Cabernet ×2',
-      amount: 240,
-      meta: 'MAR 20 · POOLSIDE VERBAL ORDER',
-      date: 'MAR 20',
-    },
-    {
-      id: 4,
-      category: 'experience',
-      title: 'Pool Exclusive',
-      amount: 300,
-      meta: 'MAR 21 · 7PM · 3 HRS',
-      date: 'MAR 21',
-    },
-  ],
-};
-
 export const FOLIO_CATEGORY_CONFIG: Record<
   FolioItemCategory,
   { label: string; chip: string; dot?: string }
