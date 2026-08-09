@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { emRoomsApi } from '@/lib/api/rooms';
 import type { CreateRoomDto, UpdateRoomDto } from '@repo/api-types';
@@ -35,8 +36,14 @@ export function useToggleRoomActive() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (number: number) => emRoomsApi.toggleActive(number),
-    onSuccess: () => {
+    onSuccess: (room) => {
       void queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      toast.success(
+        room?.isActive
+          ? `Room ${room.number} is back in service`
+          : `Room ${room?.number ?? ''} is out of service`.trim(),
+      );
     },
+    onError: (e) => toast.error((e as Error).message),
   });
 }

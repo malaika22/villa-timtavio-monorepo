@@ -55,6 +55,22 @@ export type GuestDNAProfile = {
   totalVisits?: number;
   lifetimeSpend?: number;
   specialOccasions?: string | null;
+  /**
+   * The editable record behind the display fields above.
+   *
+   * `dietary` and `beverage` are formatted for reading; these are what the
+   * guest actually has stored, and what the editor writes back. Keeping them
+   * apart stops a display tweak silently rewriting a guest's allergy.
+   */
+  raw?: {
+    allergies?: string | null;
+    beveragePreferences?: string | null;
+    winePreferences?: string | null;
+    dietaryRestrictions?: string[];
+    favouriteExperiences?: string[];
+    preferredTimes?: string | null;
+    pillarPreferences?: string | null;
+  };
   preStock?: { description: string; source: string }[];
 };
 

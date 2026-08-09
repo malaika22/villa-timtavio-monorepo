@@ -40,6 +40,7 @@ import { MenuComposer } from './MenuComposer';
 import { ExclusiveAdditions } from './ExclusiveAdditions';
 import { DiningApprovals } from './DiningApprovals';
 import { GuestStepper } from '../RequestExperienceSheet/GuestStepper';
+import { LoadFailed } from '@/components/LoadFailed';
 import {
   TimePicker,
   firstRecommended,
@@ -84,7 +85,7 @@ function DietBadges({ item }: { item: MenuItem }) {
 
 export const DiningPage = () => {
   const router = useRouter();
-  const { data: menu, isLoading } = useMenu();
+  const { data: menu, isLoading, isError, refetch, isFetching } = useMenu();
   const { data: requests } = useDiningRequests();
   const { data: rules } = useDiningRules();
   const checkIn = useBookingStore((b) => b.checkIn);
@@ -166,6 +167,14 @@ export const DiningPage = () => {
       {/* A secondary's chargeable order waits on the primary, who carries the
           folio. Above the tabs: it's the only thing here blocking someone. */}
       <DiningApprovals />
+
+      {isError && (
+        <LoadFailed
+          what="the menu"
+          onRetry={() => void refetch()}
+          retrying={isFetching}
+        />
+      )}
 
       <div className="mb-4 flex rounded-[10px] border border-[#E3E0DA] bg-white p-0.5">
         {(

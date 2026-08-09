@@ -11,6 +11,7 @@ import { StatusTabId } from './type';
 import { useBookingRequests } from '@/hooks/useRequests';
 import { mapRequestToStatusRequest } from '@/lib/mappers/request';
 import type { StatusRequest } from './mockData';
+import { LoadFailed } from '@/components/LoadFailed';
 
 export const Status = () => {
   // Status is the live tracker for the whole stay — open on ALL by default so
@@ -18,7 +19,8 @@ export const Status = () => {
   const [activeTab, setActiveTab] = useState<StatusTabId>('all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data: apiRequests, isLoading } = useBookingRequests();
+  const { data: apiRequests, isLoading, isError, refetch, isFetching } =
+    useBookingRequests();
 
   const requests: StatusRequest[] = (apiRequests ?? []).map(
     (r) => mapRequestToStatusRequest(r) as unknown as StatusRequest,
@@ -58,7 +60,13 @@ export const Status = () => {
         <StatusTabFilter activeTab={activeTab} setActiveTab={setActiveTab} />
         <StatusSectionLabel activeTab={activeTab} />
 
-        {isLoading ? (
+        {isError ? (
+          <LoadFailed
+            what="your plan"
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
+        ) : isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
               <div

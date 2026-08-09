@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { BedDouble, Bath, Pencil, Plus, DoorOpen } from 'lucide-react';
+import { BedDouble, Bath, Eye, EyeOff, Pencil, Plus, DoorOpen } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
-import { useRooms } from '@/hooks/useRooms';
+import { useRooms, useToggleRoomActive } from '@/hooks/useRooms';
 import { AMENITY_LABELS, type Bed, type Room } from '@repo/api-types';
 import { RoomFormDialog } from '@/components/manager/pages/rooms/RoomFormDialog';
 
@@ -14,6 +14,7 @@ function bedCount(beds: Bed[] | undefined, fallback: number): number {
 
 export const RoomsPage = () => {
   const { data: rooms, isLoading } = useRooms();
+  const toggleActive = useToggleRoomActive();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
 
@@ -125,14 +126,41 @@ export const RoomsPage = () => {
                     </div>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={() => openEdit(room)}
-                    className="mt-4 inline-flex items-center justify-center gap-1.5 self-start rounded-lg border border-manager-border bg-white px-3 py-1.5 text-xs font-medium text-manager-text transition-colors hover:border-manager-accent/40 hover:bg-[#faf9f7]"
-                  >
-                    <Pencil className="size-3.5" />
-                    Edit room
-                  </button>
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openEdit(room)}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-manager-border bg-white px-3 py-1.5 text-xs font-medium text-manager-text transition-colors hover:border-manager-accent/40 hover:bg-[#faf9f7]"
+                    >
+                      <Pencil className="size-3.5" />
+                      Edit room
+                    </button>
+
+                    {/* The page has always drawn an "Inactive" state that
+                        nothing could set — the mutation existed and no screen
+                        called it. A room out of service is a real thing: a leak,
+                        a repaint, a broken air conditioner. */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        toggleActive.mutate(room.number)
+                      }
+                      disabled={toggleActive.isPending}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-manager-border bg-white px-3 py-1.5 text-xs font-medium text-manager-text-muted transition-colors hover:border-manager-accent/40 hover:bg-[#faf9f7] disabled:opacity-50"
+                    >
+                      {room.isActive ? (
+                        <>
+                          <EyeOff className="size-3.5" />
+                          Take out of service
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="size-3.5" />
+                          Bring back
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             );

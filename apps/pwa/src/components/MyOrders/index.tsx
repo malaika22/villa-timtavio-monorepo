@@ -11,6 +11,7 @@ import type { StatusRequest } from '@/components/Status/mockData';
 import { useBookingRequests } from '@/hooks/useRequests';
 import { useAuth } from '@/hooks/useAuth';
 import { mapRequestToStatusRequest } from '@/lib/mappers/request';
+import { LoadFailed } from '@/components/LoadFailed';
 
 /**
  * Secondary-guest "My Orders" — the same request list as the Status tracker
@@ -22,7 +23,8 @@ export const MyOrders = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const { email } = useAuth();
-  const { data: apiRequests, isLoading } = useBookingRequests();
+  const { data: apiRequests, isLoading, isError, refetch, isFetching } =
+    useBookingRequests();
 
   const mine = (apiRequests ?? []).filter(
     (r) =>
@@ -57,7 +59,13 @@ export const MyOrders = () => {
         <StatusTabFilter activeTab={activeTab} setActiveTab={setActiveTab} />
         <StatusSectionLabel activeTab={activeTab} />
 
-        {isLoading ? (
+        {isError ? (
+          <LoadFailed
+            what="your orders"
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
+        ) : isLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
               <div

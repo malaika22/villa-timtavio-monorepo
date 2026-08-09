@@ -8,6 +8,7 @@ import { cn } from '@repo/ui/lib/utils';
 import { useRoomAvailability } from '@/hooks/useRoomAvailability';
 import { useAuth } from '@/hooks/useAuth';
 import { RoomDetailSheet } from '@/components/manifest/RoomDetailSheet';
+import { LoadFailed } from '@/components/LoadFailed';
 import {
   AMENITY_LABELS,
   type Bed,
@@ -22,7 +23,8 @@ function totalBedCount(beds: Bed[] | undefined, fallback: number): number {
 
 export const RoomsBrowse = () => {
   const router = useRouter();
-  const { data: rooms, isLoading } = useRoomAvailability();
+  const { data: rooms, isLoading, isError, refetch, isFetching } =
+    useRoomAvailability();
   const { isPrimary, email } = useAuth();
   const [detailRoom, setDetailRoom] = useState<RoomWithAvailability | null>(
     null,
@@ -61,7 +63,13 @@ export const RoomsBrowse = () => {
           : 'Explore each room’s layout, beds and amenities. Your assigned room is highlighted below.'}
       </p>
 
-      {isLoading ? (
+      {isError ? (
+          <LoadFailed
+            what="the rooms"
+            onRetry={() => void refetch()}
+            retrying={isFetching}
+          />
+        ) : isLoading ? (
         <div className="flex flex-col gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div

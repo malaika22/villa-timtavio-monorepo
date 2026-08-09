@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -99,7 +101,11 @@ export const VendorCard = ({ vendor }: { vendor: VendorProfile }) => {
         </DropdownMenu>
       </div>
       <h3 className="mt-1 font-cormorant text-[22px] font-medium leading-tight text-manager-text">
-        {vendor.name}
+        {/* The card was a dead end: their rating history existed and had
+            nowhere to be read, which makes giving a rating pointless. */}
+        <Link href={`/vendors/${vendor.id}`} className="hover:underline">
+          {vendor.name}
+        </Link>
       </h3>
       <div className="mt-2">
         <VendorStarRating rating={vendor.rating} />
