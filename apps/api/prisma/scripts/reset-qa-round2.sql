@@ -7,9 +7,9 @@
 --   SatisfactionReview, PushSubscription, ScheduleItem, AuditLog
 --
 -- CLEARS ONLY THE NAMED INQUIRIES (the other rows survive):
---   gefeyol726@kierko.com
---   malaikaafridi22@gmail.com            (both rows)
---   salazartrujillorodrigo@gmail.com
+--   qa-secondary@example.com
+--   qa-primary@example.com            (both rows)
+--   qa-manager@example.com
 --
 -- KEEPS: CatalogItem, ExperienceCategory, PriceUnit, MenuItem, Recommendation,
 --   Vendor, Room, EstateSettings, StaffAccount, InventoryItem, StockMovement,
@@ -52,9 +52,9 @@ RESTART IDENTITY CASCADE;
 
 DELETE FROM "Inquiry"
 WHERE email IN (
-  'gefeyol726@kierko.com',
-  'malaikaafridi22@gmail.com',
-  'salazartrujillorodrigo@gmail.com'
+  'qa-secondary@example.com',
+  'qa-primary@example.com',
+  'qa-manager@example.com'
 );
 
 COMMIT;
