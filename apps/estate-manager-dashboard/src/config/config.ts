@@ -29,10 +29,13 @@ export const config = {
   apiUrl: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001',
   publicProfileRoute:
     process.env.NEXT_PUBLIC_PROFILE_ROUTE ?? '/api/auth/profile',
+  // Only the key and cluster belong in a browser. NEXT_PUBLIC_* is inlined
+  // into the client bundle at build time, so referencing the app id and the
+  // secret here shipped both to every visitor — and the secret is what signs
+  // channel auth and lets its holder trigger events on any channel. Neither
+  // was read by anything; both are gone.
   pusher: {
-    appId: process.env.NEXT_PUBLIC_PUSHER_APP_ID,
     key: process.env.NEXT_PUBLIC_PUSHER_KEY,
-    secret: process.env.NEXT_PUBLIC_PUSHER_SECRET,
     cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
   },
   lodgify: {
