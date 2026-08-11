@@ -2,6 +2,13 @@
 
 Operations platform for a single luxury villa — a guest PWA, two staff dashboards and a NestJS API, in one Turborepo.
 
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Prisma](https://img.shields.io/badge/Prisma-6-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Turborepo](https://img.shields.io/badge/Turborepo-monorepo-EF4444?logo=turborepo&logoColor=white)](https://turbo.build)
+
 The villa hosts one party at a time. That single fact shapes most of the design: there is no multi-tenancy, the kitchen cooks for one table, and a "conflict" means one vendor being asked to be in two places at once.
 
 ---
@@ -48,26 +55,28 @@ The villa hosts one party at a time. That single fact shapes most of the design:
 
 ## Architecture
 
-```
-                    ┌──────────────┐
-   Guest ──────────▶│  apps/pwa    │
-                    └──────┬───────┘
-                           │
-  Estate    ┌──────────────┼──────────────┐
-  manager ─▶│ estate-manager-dashboard    │
-            └──────────────┼──────────────┘        ┌────────────┐
-                           │                  ┌───▶│ PostgreSQL │
-  Owner ────▶ owner-dashboard                 │    └────────────┘
-                           │                  │
-                           ▼                  │    ┌────────────┐
-                    ┌──────────────┐          ├───▶│   Redis    │
-                    │   apps/api   │──────────┤    └────────────┘
-                    │   (NestJS)   │          │
-                    └──────┬───────┘          │    ┌────────────┐
-                           │                  └───▶│   Pusher   │
-                           ▼                       └────────────┘
-             Lodgify · Stripe · Breezeway
-             Resend · Cloudinary · Web Push
+```mermaid
+flowchart LR
+  guest([Guest]) --> pwa["apps/pwa<br/>Guest PWA"]
+  em([Estate manager]) --> emd["apps/estate-manager-dashboard"]
+  owner([Owner]) --> od["apps/owner-dashboard"]
+
+  pwa --> api["apps/api<br/>NestJS"]
+  emd --> api
+  od --> api
+
+  api --> pg[("PostgreSQL")]
+  api --> redis[("Redis<br/>BullMQ")]
+  api --> pusher{{"Pusher<br/>real-time"}}
+
+  api --- ext["Lodgify · Stripe · Breezeway<br/>Resend · Cloudinary · Web Push"]
+
+  classDef app fill:#0F1F2E,stroke:#0F1F2E,color:#F2E7D2
+  classDef store fill:#F5F3EF,stroke:#B08D57,color:#211E1A
+  classDef person fill:#FBF3DF,stroke:#8A6D3B,color:#211E1A
+  class pwa,emd,od,api app
+  class pg,redis,pusher,ext store
+  class guest,em,owner person
 ```
 
 **Authentication is split by audience.** Staff sign in through Auth0 Universal Login. Guests never see Auth0 — they receive a magic link or a six-digit code by email, and the API mints its own short-lived JWT scoped to one booking. A secondary guest's token is re-validated against the manifest on every request, so removing someone from a party revokes their access immediately.
