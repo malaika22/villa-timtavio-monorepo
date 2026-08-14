@@ -103,12 +103,24 @@ export class LodgifyService {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  /** Every night from `start` up to but not including `end`. */
+  /**
+   * Every night from `start` to `end`, INCLUSIVE of both.
+   *
+   * Lodgify's availability periods close on the last occupied night, not on the
+   * checkout date. This was first written exclusive — the natural reading if you
+   * picture a period as a stay — and it handed the final night of every booking
+   * back to the calendar as free. A 15–20 August reservation showed the 19th as
+   * open, and a broker could have held a night the estate had already sold.
+   *
+   * Note this is the opposite convention to our own BrokerHold, whose checkOut
+   * IS the departure day, so there the last occupied night is the one before it.
+   * The two are not interchangeable; don't unify these loops.
+   */
   private static eachNight(start: string, end: string): string[] {
     const out: string[] = [];
     const cursor = new Date(`${start}T00:00:00`);
     const stop = new Date(`${end}T00:00:00`);
-    while (cursor < stop) {
+    while (cursor <= stop) {
       out.push(LodgifyService.day(cursor));
       cursor.setDate(cursor.getDate() + 1);
     }
