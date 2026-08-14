@@ -1223,6 +1223,18 @@ model EstateSettings {
    * closes: { "cutoffHours": 24, "courseLimits": { "DINNER_MAIN": 1, ... } }
    */
   menuRules          Json?
+  /**
+   * Indicative nightly rates by season, used only where Lodgify has no rate
+   * for a night:
+   * [{ "name": "Green", "from": "2026-05-01", "to": "2026-10-31",
+   *    "nightly": 4800, "minNights": 4 }]
+   *
+   * Exists because the estate wanted the broker page live before rates were
+   * loaded into Lodgify. A number the estate chose and can defend is safer
+   * than an invented placeholder, since a broker will quote whatever is on
+   * screen to a real client. Lodgify wins the moment it has a rate.
+   */
+  seasonRates        Json?
   updatedAt          DateTime @default(now()) @updatedAt
 }
 
@@ -1258,4 +1270,56 @@ model HealthSample {
   note      String?
 
   @@index([checkedAt])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BROKER HOLDS — a broker locking dates while their client decides
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum BrokerHoldStatus {
+  PENDING
+  CONFIRMED
+  RELEASED
+  EXPIRED
+}
+
+/// A soft, self-expiring claim on a date range, placed from the broker
+/// availability page.
+///
+/// Deliberately NOT a Booking and deliberately not blocked in Lodgify. The
+/// estate asked for the hold to be visible rather than enforced: Lodgify stays
+/// the single source of truth for what is actually sold, and the estate manager
+/// resolves the rare collision by hand. That trade is why `status` lives here
+/// instead of on Booking — a hold that never converts must leave no trace on
+/// the reservation record.
+model BrokerHold {
+  id         String           @id @default(cuid())
+  /// Typed by the broker on the page, not authenticated. One shared link means
+  /// this is accountability, not identity — enough to know who to call back.
+  brokerName String
+  checkIn    DateTime
+  checkOut   DateTime
+  nights     Int
+
+  /// What the page quoted when the hold was placed. Kept even after Lodgify
+  /// rates change, so a disagreement about the number is answerable.
+  estimatedTotal Decimal? @db.Decimal(10, 2)
+  /// `lodgify` or `season` — which source produced the figure above.
+  estimateSource String?
+
+  status    BrokerHoldStatus @default(PENDING)
+  /// Set on creation. Reads treat a PENDING hold past this instant as expired
+  /// without waiting for the sweeper, so the calendar is never stale.
+  expiresAt DateTime
+  createdAt DateTime         @default(now())
+
+  confirmedAt DateTime?
+  confirmedBy String?
+  releasedAt  DateTime?
+  releasedBy  String?
+  note        String?   @db.Text
+
+  @@index([status])
+  @@index([checkIn])
+  @@index([expiresAt])
 }
