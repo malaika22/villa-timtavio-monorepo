@@ -29,6 +29,7 @@ import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { DiningModule } from './modules/dining/dining.module';
 import { MenuModule } from './modules/menu/menu.module';
+import { BrokerModule } from './modules/broker/broker.module';
 import { ExperienceCategoriesModule } from './modules/experience-categories/experience-categories.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { HealthController } from './health.controller';
@@ -73,6 +74,7 @@ import { HealthController } from './health.controller';
     UploadsModule,
     DiningModule,
     MenuModule,
+    BrokerModule,
     ExperienceCategoriesModule,
   ],
 })
