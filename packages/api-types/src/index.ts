@@ -19,3 +19,4 @@ export * from './analytics';
 export * from './notifications';
 export * from './dining';
 export * from './pricing';
+export * from './broker';

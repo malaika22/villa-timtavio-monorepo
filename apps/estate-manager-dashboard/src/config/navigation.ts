@@ -6,6 +6,7 @@ import {
   BedDouble,
   BookMarked,
   Calendar,
+  CalendarClock,
   CheckSquare,
   Flame,
   Gauge,
@@ -52,6 +53,9 @@ export const managerNavSections: ManagerNavSection[] = [
       { title: 'Guests', href: '/guests', icon: Users },
       { title: 'Inquiries', href: '/inquiries', icon: Inbox },
       { title: 'Vendors', href: '/vendors', icon: Truck },
+      // Under Operations rather than Finance: a hold is a decision with a
+      // clock on it, not a number to report on.
+      { title: 'Broker Holds', href: '/broker-holds', icon: CalendarClock },
       { title: 'Calendar', href: '/calendar', icon: Calendar },
       { title: 'Reports', href: '/reports', icon: BarChart3 },
     ],
@@ -199,6 +203,11 @@ export const pageMeta: Record<string, PageMeta> = {
   '/dining': {
     title: 'Dining',
     subtitle: 'Sittings & orders awaiting confirmation',
+    showNotifications: true,
+  },
+  '/broker-holds': {
+    title: 'Broker Holds',
+    subtitle: 'Dates brokers are holding for their clients',
     showNotifications: true,
   },
   '/menu': {

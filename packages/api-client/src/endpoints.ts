@@ -101,6 +101,17 @@ export const API = {
     paymentLinkSent: (id: string) => `/api/v1/inquiries/${id}/payment-link-sent`,
     delete: (id: string) => `/api/v1/inquiries/${id}`,
   },
+  broker: {
+    // The `public/*` pair is reached only by the teaser site's server, which
+    // holds the shared secret. Listed here so the contract stays in one place.
+    availability: (from: string, to: string) =>
+      `/api/v1/broker/public/availability?from=${from}&to=${to}`,
+    createHold: '/api/v1/broker/public/holds',
+
+    holds: '/api/v1/broker/holds',
+    confirmHold: (id: string) => `/api/v1/broker/holds/${id}/confirm`,
+    releaseHold: (id: string) => `/api/v1/broker/holds/${id}/release`,
+  },
   magicLink: {
     send: (bookingId: string) => `/api/v1/magic-link/send/${bookingId}`,
     resend: (manifestGuestId: string) =>
