@@ -39,6 +39,10 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+# Operational scripts are run by hand on the Render shell, so they have to
+# be in the runtime image — dist and prisma alone left `scripts/` on the
+# build host, and the first attempt to use one failed with MODULE_NOT_FOUND.
+COPY --from=builder /app/apps/api/scripts ./apps/api/scripts
 
 EXPOSE 4000
 
