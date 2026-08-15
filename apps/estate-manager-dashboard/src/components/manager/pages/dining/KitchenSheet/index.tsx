@@ -411,14 +411,26 @@ function Ticket({
                 items.length > 0 && (
                   <div
                     key={course}
-                    className="grid grid-cols-[4.4rem_1fr] items-baseline gap-2"
+                    className="grid grid-cols-[5.5rem_1fr] items-start gap-2"
                   >
-                    <span className="text-[9px] font-semibold uppercase tracking-[1px] text-manager-text-muted">
+                    <span className="pt-[3px] text-[9px] font-semibold uppercase leading-tight tracking-[1px] text-manager-text-muted">
                       {COURSE_LABELS[course]}
                     </span>
-                    <span className="text-xs leading-relaxed text-manager-text">
-                      {items.map((i) => i.menuItem.name).join(' · ')}
-                    </span>
+                    {/* One dish per line. Joined with "·" they ran together
+                        into a paragraph — five Spanish dish names wrapped to
+                        three lines with no way to tell where one ended and the
+                        next began, on the sheet a chef reads at a glance while
+                        cooking. A ticket is a list, so it reads as one. */}
+                    <ul className="space-y-[3px]">
+                      {items.map((i) => (
+                        <li
+                          key={i.menuItem.id ?? i.menuItem.name}
+                          className="text-[12.5px] leading-snug text-manager-text"
+                        >
+                          {i.menuItem.name}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 ),
             )}
