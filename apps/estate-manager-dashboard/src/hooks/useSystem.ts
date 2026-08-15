@@ -63,3 +63,23 @@ export function useDismissSystemAlert() {
     },
   });
 }
+
+/**
+ * Clears the lot.
+ *
+ * The endpoint has existed all along with nothing calling it, so the only way
+ * to empty the panel was to tick twelve alerts one at a time — which nobody
+ * does, so the list only ever grew. Alerts here are notices rather than tasks:
+ * the work they point at lives in Approvals, Bookings and Inquiries, and those
+ * queues are the real record.
+ */
+export function useClearSystemAlerts() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () => systemApi.markAllRead(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['system', 'alerts'] });
+      void queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
