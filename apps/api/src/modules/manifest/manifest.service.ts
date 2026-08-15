@@ -109,9 +109,21 @@ export class ManifestService {
         ? Math.min(100, Math.round((addedGuests / totalGuests) * 100))
         : 0;
 
+    // The most recent edit anywhere in the party. Compared by the dashboard
+    // against manifestBriefViewedAt to warn that something moved after the
+    // brief went to the chef — a late allergy reaches the run sheet on its own,
+    // but it does not reach a WhatsApp message Rodrigo already sent.
+    const manifestLastChangedAt = booking.manifestGuests.reduce<Date | null>(
+      (latest, g) => (!latest || g.updatedAt > latest ? g.updatedAt : latest),
+      null,
+    );
+
     return {
       bookingId,
       manifestStatus: booking.manifestStatus,
+      manifestLastChangedAt,
+      manifestBriefViewedAt: booking.manifestBriefViewedAt,
+      manifestBriefViewedBy: booking.manifestBriefViewedBy,
       totalGuests,
       addedGuests,
       progressPercent,
@@ -273,11 +285,40 @@ export class ManifestService {
 
   // ─── Update a guest in the manifest ──────────────────────────────────────
 
+  /**
+   * The fields a guest may change about themselves.
+   *
+   * Everything here is personal knowledge — nobody knows their own allergy
+   * better than they do, and it's the allergy the kitchen run sheet quotes.
+   * What's absent is deliberate:
+   *
+   *   `email`     — their sign-in is scoped to it. Letting them change it is
+   *                 how someone locks themselves out with no way back in.
+   *   `roomNumber`— a party-level decision. If any guest could reassign
+   *                 themselves, whoever opens the app first takes the master
+   *                 suite and the person paying loses the choice.
+   *
+   * Both remain editable by the primary member and by the estate.
+   */
+  private static readonly SELF_EDITABLE = [
+    'firstName',
+    'lastName',
+    'phone',
+    'dateOfBirth',
+    'dietaryRestrictions',
+    'dietaryOtherDetails',
+    'allergies',
+    'beveragePreferences',
+    'specialNotes',
+  ] as const;
+
   async updateGuest(
     bookingId: string,
     guestId: string,
     dto: UpdateManifestGuestDto,
     updatedByEmail: string,
+    /** Set for a secondary guest editing themselves; absent for primary/estate. */
+    selfEditOnly = false,
   ) {
     const guest = await this.prisma.manifestGuest.findUnique({
       where: { id: guestId },
@@ -285,6 +326,29 @@ export class ManifestService {
 
     if (!guest || guest.bookingId !== bookingId) {
       throw new NotFoundException('Guest not found in this manifest');
+    }
+
+    if (selfEditOnly) {
+      // Their own record only. The manifest is unique on (bookingId, email),
+      // so the token's email is the whole of the identity check.
+      if (guest.email.toLowerCase() !== updatedByEmail.toLowerCase()) {
+        throw new ForbiddenException(
+          'You can only change your own details. Ask the lead guest or the estate for anything else.',
+        );
+      }
+
+      const forbidden = Object.keys(dto).filter(
+        (k) =>
+          dto[k as keyof UpdateManifestGuestDto] !== undefined &&
+          !(ManifestService.SELF_EDITABLE as readonly string[]).includes(k),
+      );
+      if (forbidden.length > 0) {
+        throw new ForbiddenException(
+          forbidden.includes('email')
+            ? 'Your email is how you sign in — the estate can change it for you.'
+            : 'Rooms and the guest list are set by the lead guest.',
+        );
+      }
     }
 
     // If room is being changed, validate new room capacity
@@ -426,12 +490,9 @@ export class ManifestService {
       );
     }
 
-    if (booking.manifestStatus === 'APPROVED') {
-      throw new BadRequestException(
-        'Manifest has already been approved. Contact the estate to make changes.',
-      );
-    }
-
+    // Re-submitting is fine. Submission means "the estate can act on this
+    // now", not "this is final" — the party keeps changing right up to
+    // arrival, and refusing the second submit only sent them to the telephone.
     const updated = await this.prisma.booking.update({
       where: { id: bookingId },
       data: { manifestStatus: 'SUBMITTED' },
@@ -482,100 +543,50 @@ export class ManifestService {
 
   // ─── Rodrigo approves manifest + sends secondary guest links ─────────────
 
-  async approveManifest(bookingId: string, approvedBy: string) {
+  /**
+   * The estate acknowledging the guest list — what "approve" used to be.
+   *
+   * Approval was retired because it gated nothing: secondary guests receive
+   * their access the moment they are added, and Rodrigo has no way to verify
+   * a guest list he wasn't part of assembling. Clicking it was theatre.
+   *
+   * What it did carry, and what survives here, is the moment the estate read
+   * the brief. That timestamp is the whole basis of "changed since you last
+   * looked" — the thing that protects the kitchen when a guest adds an allergy
+   * after the brief was forwarded to the chef. It also clears the submitted
+   * alert, which otherwise had nothing left to dismiss it.
+   */
+  async markBriefViewed(bookingId: string, viewedBy: string) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
-      include: {
-        primaryGuest: true,
-        manifestGuests: true,
-      },
+      select: { id: true },
     });
+    if (!booking) throw new NotFoundException('Booking not found');
 
-    if (!booking) {
-      throw new NotFoundException('Booking not found');
-    }
+    const [updated] = await Promise.all([
+      this.prisma.booking.update({
+        where: { id: bookingId },
+        data: {
+          manifestBriefViewedAt: new Date(),
+          manifestBriefViewedBy: viewedBy,
+        },
+        select: { manifestBriefViewedAt: true, manifestBriefViewedBy: true },
+      }),
+      this.prisma.systemAlert.updateMany({
+        where: {
+          entityType: 'Booking',
+          entityId: bookingId,
+          isDismissed: false,
+        },
+        data: {
+          isDismissed: true,
+          dismissedBy: viewedBy,
+          dismissedAt: new Date(),
+        },
+      }),
+    ]);
 
-    if (booking.manifestStatus !== 'SUBMITTED') {
-      throw new BadRequestException(
-        'Manifest must be in SUBMITTED status to approve',
-      );
-    }
-
-    // Update manifest status
-    await this.prisma.booking.update({
-      where: { id: bookingId },
-      data: { manifestStatus: 'APPROVED' },
-    });
-
-    // Send magic links to all secondary guests
-    const results = await Promise.allSettled(
-      booking.manifestGuests.map((guest) =>
-        this.magicLinkService.sendMagicLink({
-          email: guest.email,
-          firstName: guest.firstName,
-          lastName: guest.lastName,
-          bookingId,
-          role: 'secondary_guest',
-          guestTier: 'secondary',
-          checkOutDate: booking.checkOut,
-        }),
-      ),
-    );
-
-    const sent = results.filter((r) => r.status === 'fulfilled').length;
-    const failed = results.filter((r) => r.status === 'rejected').length;
-
-    // Notify primary member that manifest was approved
-    await this.notificationsService.send({
-      bookingId,
-      recipientEmail: booking.primaryGuest.email,
-      type: 'MANIFEST_APPROVED',
-      title: 'Guest list approved',
-      body: `Your guest list has been approved. ${sent} of ${booking.manifestGuests.length} guests will receive access links shortly.`,
-      deepLink: '/manifest',
-    });
-
-    // Dismiss the system alert
-    await this.prisma.systemAlert.updateMany({
-      where: {
-        entityType: 'Booking',
-        entityId: bookingId,
-        isDismissed: false,
-      },
-      data: {
-        isDismissed: true,
-        dismissedBy: approvedBy,
-        dismissedAt: new Date(),
-      },
-    });
-
-    await this.prisma.auditLog.create({
-      data: {
-        action: 'MANIFEST_APPROVED',
-        entityType: 'Booking',
-        entityId: bookingId,
-        performedBy: approvedBy,
-        performedByRole: 'estate_manager',
-        bookingId,
-        metadata: {
-          guestCount: booking.manifestGuests.length,
-          linksSent: sent,
-          linksFailed: failed,
-        } as any,
-      },
-    });
-
-    this.logger.log(
-      `Manifest approved for booking ${bookingId}. ${sent} links sent, ${failed} failed`,
-    );
-
-    return {
-      success: true,
-      manifestStatus: 'APPROVED',
-      linksSent: sent,
-      linksFailed: failed,
-      totalGuests: booking.manifestGuests.length,
-    };
+    return updated;
   }
 
   // ─── Generate chef's brief ────────────────────────────────────────────────
@@ -679,12 +690,10 @@ export class ManifestService {
       throw new NotFoundException('Guest not found in this manifest');
     }
 
-    if (guest.booking.manifestStatus !== 'APPROVED') {
-      throw new BadRequestException(
-        'Manifest must be approved before sending guest links',
-      );
-    }
-
+    // No approval check. Links now go out the moment a guest is added, so
+    // requiring approval here meant the estate couldn't resend to the one
+    // person who says they never got theirs — which is the only reason this
+    // endpoint exists.
     await this.magicLinkService.sendMagicLink({
       email: guest.email,
       firstName: guest.firstName,

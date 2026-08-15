@@ -21,12 +21,10 @@ export function PrimaryDetailsCard({
   primary,
   rooms,
   isPrimary,
-  isLocked,
 }: {
   primary: Primary;
   rooms: RoomWithAvailability[];
   isPrimary: boolean;
-  isLocked: boolean;
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const updateDetails = useUpdatePrimaryDetails();
@@ -122,7 +120,7 @@ export function PrimaryDetailsCard({
               {roomName}
             </span>
           )}
-          {isPrimary && !isLocked && !isEditing && (
+          {isPrimary && !isEditing && (
             <button
               onClick={openEditor}
               aria-label="Edit your details"
@@ -169,7 +167,7 @@ export function PrimaryDetailsCard({
             !primary.beveragePreferences &&
             !roomName &&
             isPrimary &&
-            !isLocked && (
+            (
               <button
                 onClick={openEditor}
                 className="text-left text-[10px] text-[#B08A2E] underline underline-offset-2"

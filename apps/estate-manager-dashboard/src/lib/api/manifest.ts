@@ -33,8 +33,12 @@ export const emManifestApi = {
       status,
     }),
 
-  approve: (bookingId: string) =>
-    api.post<{ manifestStatus: string }>(API.manifest.approve(bookingId), {}),
+  /** Acknowledge the brief — records who read it and clears the alert. */
+  markBriefViewed: (bookingId: string) =>
+    api.post<{ manifestBriefViewedAt: string }>(
+      API.manifest.briefViewed(bookingId),
+      {},
+    ),
 
   chefsBrief: (bookingId: string) =>
     api.get<ChefsBriefResponse>(API.manifest.chefsBrief(bookingId)),

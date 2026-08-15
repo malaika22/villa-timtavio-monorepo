@@ -182,6 +182,16 @@ model Booking {
   primaryArrivalStatus  GuestArrivalStatus @default(EXPECTED)
   status                BookingStatus      @default(CONFIRMED)
   manifestStatus        ManifestStatus     @default(INCOMPLETE)
+  /**
+   * When the estate last opened the guest brief, and who opened it.
+   *
+   * Compared against the manifest's own updatedAt to answer "has anything
+   * changed since you forwarded this to the chef?". That question used to be
+   * answered by freezing the manifest on approval; guests change plans, so the
+   * freeze only produced telephone calls. Knowing beats forbidding.
+   */
+  manifestBriefViewedAt DateTime?
+  manifestBriefViewedBy String?
   baseRate              Decimal            @db.Decimal(10, 2)
   taxRate               Decimal            @default(0.08) @db.Decimal(5, 4)
   serviceChargeRate     Decimal            @default(0.15) @db.Decimal(5, 4)

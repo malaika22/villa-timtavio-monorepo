@@ -8,6 +8,7 @@ import {
   Plus,
   ArrowLeft,
   ArrowRight,
+  ChevronRight,
   Pencil,
   Check,
   Clock,
@@ -30,6 +31,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { GuestManifestForm } from '@/components/GuestManifestForm';
 import type { GuestManifestFormValues } from '@/components/GuestManifestForm';
 import { GuestAddedSheet } from './GuestAddedSheet';
+import { YourDetailsSheet } from './YourDetailsSheet';
 import { PrimaryDetailsCard } from './PrimaryDetailsCard';
 import type {
   CreateManifestGuestDto,
@@ -116,7 +118,7 @@ const STATUS_META: Record<
 
 export const ManifestPage = () => {
   const router = useRouter();
-  const { bookingId, isPrimary } = useAuth();
+  const { bookingId, isPrimary, user } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: manifest, isLoading: manifestLoading } = useManifest();
@@ -133,10 +135,25 @@ export const ManifestPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [addedGuestName, setAddedGuestName] = useState('');
   const [showAddedSheet, setShowAddedSheet] = useState(false);
+  const [showOwnDetails, setShowOwnDetails] = useState(false);
+
+  // A secondary guest's own row. The manifest is unique on (booking, email),
+  // so their token's email is enough to find it.
+  const ownRecord =
+    !isPrimary && user?.email
+      ? (manifest?.guests?.find(
+          (g) => g.email.toLowerCase() === user.email.toLowerCase(),
+        ) ?? null)
+      : null;
 
   const isLoading = manifestLoading || roomsLoading;
   const status = manifest?.manifestStatus ?? 'INCOMPLETE';
-  const isLocked = status === 'SUBMITTED' || status === 'APPROVED';
+  // Submitting no longer freezes the list. It used to, and the copy told the
+  // party to telephone the estate for any change — which is what a group of
+  // eight does constantly, so the lock only ever converted an edit into a phone
+  // call. Submission now means "the estate can act on this", and the guest list
+  // stays open until they leave.
+  const isSubmitted = status === 'SUBMITTED' || status === 'APPROVED';
   const meta = STATUS_META[status] ?? STATUS_META.INCOMPLETE!;
 
   const addedGuests = manifest?.addedGuests ?? 0;
@@ -156,7 +173,7 @@ export const ManifestPage = () => {
   // refusal in the first place.
   const primaryComplete = manifest?.primaryComplete ?? true;
   const canSubmit =
-    isPrimary && addedGuests > 0 && !isLocked && primaryComplete;
+    isPrimary && addedGuests > 0 && primaryComplete;
   // The party counter includes the primary (+1), so it's full once the added
   // count reaches the reservation headcount — stop offering "Add guest" then.
   const secondaryCount = manifest?.guests?.length ?? 0;
@@ -207,7 +224,7 @@ export const ManifestPage = () => {
   };
 
   return (
-    <div className={cn('flex flex-col', isLocked ? 'pb-28' : 'pb-52')}>
+    <div className={'flex flex-col pb-52'}>
       {/* ─── Header ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-5">
         <button
@@ -261,8 +278,8 @@ export const ManifestPage = () => {
         )}
       </div>
 
-      {/* ─── Locked status banner (submitted / approved) ────────── */}
-      {isLocked &&
+      {/* ─── Submitted banner — a receipt, not a lock ──────────── */}
+      {isSubmitted &&
         (status === 'APPROVED' ? (
           <div className="mb-5 flex items-center gap-3 rounded-[12px] border border-[#3A5E48]/30 bg-[#EAF3E8] px-4 py-3.5">
             <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[#3A5E48]">
@@ -274,10 +291,10 @@ export const ManifestPage = () => {
             </span>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold text-[#2F4A3A]">
-                Guest list approved
+                The estate has your guest list
               </p>
               <p className="text-[10px] leading-snug text-[#5E6B5C]">
-                All guests are confirmed and their access links have been sent.
+                Everyone has their access. You can still make changes.
               </p>
             </div>
           </div>
@@ -292,11 +309,11 @@ export const ManifestPage = () => {
             </span>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold text-[#7A4A0B]">
-                Submitted for review
+                Sent to the estate
               </p>
               <p className="text-[10px] leading-snug text-[#8A6A2F]">
-                The estate manager is reviewing your guest list. You&apos;ll be
-                notified once it&apos;s approved.
+                They&apos;ll take it from here. Change anything you need to —
+                your party each keep their own details up to date.
               </p>
             </div>
           </div>
@@ -373,8 +390,39 @@ export const ManifestPage = () => {
             primary={manifest.primaryGuest}
             rooms={rooms ?? []}
             isPrimary={isPrimary}
-            isLocked={isLocked}
           />
+        </div>
+      )}
+
+      {/* ─── Your details (secondary guest) ─────────────────────
+          The primary gets PrimaryDetailsCard above; a secondary guest had
+          nothing at all and could only read the party list. This is the one
+          thing they own. */}
+      {ownRecord && (
+        <div className="mt-6">
+          <p className="mb-3 text-[8px] uppercase tracking-[2.5px] text-[#9A9288]">
+            Your details
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowOwnDetails(true)}
+            className="flex w-full items-center justify-between gap-3 rounded-[14px] border border-[#E3E0DA] bg-white px-4 py-4 text-left"
+          >
+            <span className="min-w-0">
+              <span className="block text-[14px] text-[#2B2824]">
+                {ownRecord.firstName} {ownRecord.lastName}
+              </span>
+              <span className="mt-1 block truncate text-[11.5px] text-[#797168]">
+                {ownRecord.allergies?.trim()
+                  ? ownRecord.allergies
+                  : 'No allergies recorded — tap to add'}
+              </span>
+            </span>
+            <ChevronRight
+              className="size-4 shrink-0 text-[#9A9288]"
+              aria-hidden
+            />
+          </button>
         </div>
       )}
 
@@ -400,7 +448,7 @@ export const ManifestPage = () => {
                 guest={guest}
                 rooms={rooms ?? []}
                 onEdit={
-                  isLocked || !isPrimary ? undefined : () => openEditForm(guest)
+                  !isPrimary ? undefined : () => openEditForm(guest)
                 }
               />
             ))}
@@ -409,7 +457,7 @@ export const ManifestPage = () => {
       )}
 
       {/* ─── Empty state (no guests yet) ────────────────────────── */}
-      {!isLoading && (manifest?.guests?.length ?? 0) === 0 && !isLocked && (
+      {!isLoading && (manifest?.guests?.length ?? 0) === 0 && (
         <div className="mt-8 flex flex-col items-center justify-center rounded-[16px] border border-dashed border-[#E3D9CD] bg-[#FAF8F4] px-6 py-10 text-center">
           <span className="mb-3 flex size-12 items-center justify-center rounded-full border border-[#E3D9CD] bg-[#F3EDE4]">
             <Users className="size-5 text-[#8C7261]" strokeWidth={2} aria-hidden />
@@ -425,7 +473,7 @@ export const ManifestPage = () => {
       )}
 
       {/* ─── Allergy reminder ───────────────────────────────────── */}
-      {!isLocked && (
+      {(
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -443,14 +491,14 @@ export const ManifestPage = () => {
       )}
 
       {/* ─── Sticky action bar (only when there's an action) ────── */}
-      {!isLocked && (
+      {(
         <div className="fixed bottom-[72px] left-0 right-0 z-20 px-4 pb-3 pt-4 bg-gradient-to-t from-[#F0EDE6] via-[#F0EDE6]/95 to-transparent">
           {submitError && (
             <p className="mb-2 rounded-[10px] border border-[#E4B7B2] bg-[#FBEEEA] px-3 py-2 text-center text-[11px] font-medium text-[#9A3A30]">
               {submitError}
             </p>
           )}
-          {isPrimary && !isLocked && !primaryComplete && addedGuests > 0 && (
+          {isPrimary && !primaryComplete && addedGuests > 0 && (
             <p className="mb-2 rounded-[10px] border border-[#D9C79A] bg-[#FBF3DF] px-3 py-2 text-[11px] leading-snug text-[#8A6D3B]">
               <span className="font-medium">Your own details are still to come.</span>{' '}
               Choose your room above, then you can send the list to the estate.
@@ -541,6 +589,14 @@ export const ManifestPage = () => {
       />
 
       {/* ─── Post-save completion sheet ─────────────────────────── */}
+      {ownRecord && (
+        <YourDetailsSheet
+          open={showOwnDetails}
+          onClose={() => setShowOwnDetails(false)}
+          guest={ownRecord}
+        />
+      )}
+
       <GuestAddedSheet
         open={showAddedSheet}
         onClose={() => setShowAddedSheet(false)}

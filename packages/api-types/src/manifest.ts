@@ -4,7 +4,17 @@ export type { ManifestGuest };
 
 export interface ManifestResponse {
   bookingId: string;
+  /**
+   * `APPROVED` is retained only so old rows still parse — nothing sets it and
+   * nothing gates on it. Submission means "the estate can act on this", not
+   * "this is final"; the party keeps changing right up to arrival.
+   */
   manifestStatus: 'INCOMPLETE' | 'IN_PROGRESS' | 'SUBMITTED' | 'APPROVED';
+  /** Most recent edit to any guest in the party. */
+  manifestLastChangedAt?: string | null;
+  /** When the estate last opened the brief, and who. */
+  manifestBriefViewedAt?: string | null;
+  manifestBriefViewedBy?: string | null;
   totalGuests: number;
   addedGuests: number;
   progressPercent: number;
@@ -136,3 +146,54 @@ export const DIETARY_RESTRICTION_LABELS: Record<string, string> = {
 export const dietaryLabel = (value: string): string =>
   DIETARY_RESTRICTION_LABELS[value] ??
   value.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+
+/**
+ * The brief as plain text, for pasting into WhatsApp.
+ *
+ * That is where the chef and the housekeeping staff actually are — the estate
+ * runs its vendors the same way — so the brief is only useful if it survives
+ * being pasted into a message. No markdown, no tables: those render as noise on
+ * a phone.
+ *
+ * Allergies lead, and are spelled out per guest rather than counted. A number
+ * is not something a chef can cook around.
+ */
+export function briefAsText(brief: ChefsBriefResponse): string {
+  const date = (iso: string) =>
+    new Date(iso).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+    });
+
+  const lines: string[] = [
+    `Villa TimTavio — guest brief`,
+    `${date(brief.checkIn)} to ${date(brief.checkOut)} · ${brief.totalGuests} guests`,
+    '',
+  ];
+
+  lines.push(
+    brief.allergies.length > 0
+      ? `ALLERGIES\n${brief.allergies.map((a) => `• ${a.guest} — ${a.allergy}`).join('\n')}`
+      : 'ALLERGIES\n• None recorded',
+  );
+
+  const dietary = Object.entries(brief.dietaryRestrictions);
+  if (dietary.length > 0) {
+    lines.push(
+      '',
+      `DIETARY\n${dietary
+        .map(([key, names]) => `• ${dietaryLabel(key)} — ${names.join(', ')}`)
+        .join('\n')}`,
+    );
+  }
+
+  const rooms = brief.guestBreakdown.filter((g) => g.room);
+  if (rooms.length > 0) {
+    lines.push(
+      '',
+      `ROOMS\n${rooms.map((g) => `• ${g.room} — ${g.name}`).join('\n')}`,
+    );
+  }
+
+  return lines.join('\n');
+}
