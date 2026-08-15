@@ -248,7 +248,10 @@ export const API = {
     updateGuest: (bookingId: string, guestId: string) => `/api/v1/manifest/${bookingId}/guests/${guestId}`,
     removeGuest: (bookingId: string, guestId: string) => `/api/v1/manifest/${bookingId}/guests/${guestId}`,
     submit: (bookingId: string) => `/api/v1/manifest/${bookingId}/submit`,
-    approve: (bookingId: string) => `/api/v1/manifest/${bookingId}/approve`,
+    // Replaced `approve`, which gated nothing — secondary guests get their
+    // access when they're added, not when the estate blesses the list.
+    briefViewed: (bookingId: string) =>
+      `/api/v1/manifest/${bookingId}/brief-viewed`,
     chefsBrief: (bookingId: string) => `/api/v1/manifest/${bookingId}/chefs-brief`,
     resendLink: (bookingId: string, guestId: string) => `/api/v1/manifest/${bookingId}/guests/${guestId}/resend-link`,
     linkOpened: '/api/v1/manifest/link-opened',

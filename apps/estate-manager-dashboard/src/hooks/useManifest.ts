@@ -92,13 +92,21 @@ export function useSetPrimaryArrivalStatus(bookingId: string) {
   });
 }
 
-export function useApproveManifest() {
+/**
+ * Marks the brief as read.
+ *
+ * Replaces useApproveManifest. Approving gated nothing — secondary guests get
+ * their access when they're added — so the only fact worth keeping was when
+ * the estate last looked, which is what warns them a guest changed something
+ * after the brief went to the chef.
+ */
+export function useMarkBriefViewed() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (bookingId: string) => emManifestApi.approve(bookingId),
+    mutationFn: (bookingId: string) => emManifestApi.markBriefViewed(bookingId),
     onSuccess: (_data, bookingId) => {
       void queryClient.invalidateQueries({ queryKey: ['manifest', bookingId] });
-      void queryClient.invalidateQueries({ queryKey: ['guests', 'current'] });
+      void queryClient.invalidateQueries({ queryKey: ['alerts'] });
     },
   });
 }

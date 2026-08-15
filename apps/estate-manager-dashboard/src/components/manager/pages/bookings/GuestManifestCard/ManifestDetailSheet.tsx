@@ -24,7 +24,6 @@ import type {
   GuestArrivalStatus,
 } from '@repo/api-types';
 import {
-  useApproveManifest,
   useResendGuestLink,
   useUpdateManifestGuest,
   useSetGuestArrivalStatus,
@@ -45,7 +44,6 @@ export function ManifestDetailSheet({
   bookingId,
   manifest,
 }: ManifestDetailSheetProps) {
-  const approveManifest = useApproveManifest();
   const resendLink = useResendGuestLink();
   const updateGuest = useUpdateManifestGuest(bookingId);
   const setGuestArrival = useSetGuestArrivalStatus(bookingId);
@@ -61,14 +59,6 @@ export function ManifestDetailSheet({
       { guestId, status },
       { onError: () => toast.error('Failed to update presence') },
     );
-  };
-
-  const handleApprove = async () => {
-    await approveManifest.mutateAsync(bookingId);
-    toast.success('Manifest approved', {
-      description: 'Guest PWA links have been sent to all guests.',
-    });
-    onClose();
   };
 
   const handleResend = (guestId: string, name: string) => {
@@ -291,41 +281,13 @@ export function ManifestDetailSheet({
           </div>
         </div>
 
-        {/* Footer — review (approve) vs. ops (bulk presence) */}
-        {manifest.manifestStatus === 'SUBMITTED' && (
-          <div className="sticky bottom-0 border-t border-[#e8e4de] bg-[#fdfdfb] px-6 py-4">
-            <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
-              <span className="inline-flex items-center gap-1.5 text-[#4a453f]">
-                <Check className="size-3.5 text-[#4a7c59]" />
-                {manifest.addedGuests} of {manifest.totalGuests} guests
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-[#4a453f]">
-                {roomsAssigned ? (
-                  <Check className="size-3.5 text-[#4a7c59]" />
-                ) : (
-                  <AlertTriangle className="size-3.5 text-[#b45309]" />
-                )}
-                Rooms assigned
-              </span>
-              {allergyList.length > 0 && (
-                <span className="inline-flex items-center gap-1.5 text-[#4a453f]">
-                  <AlertTriangle className="size-3.5 text-[#b45309]" />
-                  {allergyList.length}{' '}
-                  {allergyList.length === 1 ? 'allergy' : 'allergies'} to review
-                </span>
-              )}
-            </div>
-            <Button
-              onClick={handleApprove}
-              disabled={approveManifest.isPending}
-              className="w-full h-11 gap-2 rounded-xl bg-[#4a7c59] text-sm font-medium text-white hover:bg-[#3a6448] disabled:opacity-60"
-            >
-              <CheckCircle2 className="size-4 shrink-0" strokeWidth={2} />
-              {approveManifest.isPending ? 'Approving…' : 'Approve Manifest'}
-            </Button>
-          </div>
-        )}
-        {manifest.manifestStatus === 'APPROVED' && (
+        {/* Footer — check-in presence.
+            The approve button that used to live here is gone: approval gated
+            nothing, since secondary guests get their access when they're added.
+            The presence controls were hidden behind APPROVED, which would have
+            made them unreachable once approval went — they belong to check-in,
+            not to a review step. */}
+        {manifest.guests.length > 0 && (
           <div className="sticky bottom-0 flex gap-2 border-t border-[#e8e4de] bg-[#fdfdfb] px-6 py-4">
             <Button
               variant="outline"

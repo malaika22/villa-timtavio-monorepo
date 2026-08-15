@@ -17,6 +17,7 @@ import { UpdateManifestGuestDto } from './dto/update-manifest-guest.dto';
 import { UpsertManifestDraftDto } from './dto/upsert-manifest-draft.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import type { AuthUser } from '../auth/jwt.strategy';
 
 @Controller('api/v1/manifest')
 export class ManifestController {
@@ -122,19 +123,31 @@ export class ManifestController {
 
   // ─── Guest PWA: Update a guest ────────────────────────────────────────────
 
+  /**
+   * Also reachable by a secondary guest, for their own record only.
+   *
+   * They were previously locked out entirely, which meant the one person who
+   * knows their own allergy had to text the lead guest and have it typed in
+   * for them. The service narrows what a self-edit may touch — see
+   * SELF_EDITABLE — so opening the route up doesn't open up the room plan or
+   * anybody else's details.
+   */
   @Patch(':bookingId/guests/:guestId')
-  @Roles('primary_member', 'estate_manager')
+  @Roles('primary_member', 'estate_manager', 'secondary_guest')
   updateGuest(
     @Param('bookingId') bookingId: string,
     @Param('guestId') guestId: string,
     @Body() dto: UpdateManifestGuestDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
   ) {
+    const selfEditOnly = user.guestTier === 'secondary';
+
     return this.manifestService.updateGuest(
       bookingId,
       guestId,
       dto,
       user.email,
+      selfEditOnly,
     );
   }
 
@@ -163,15 +176,20 @@ export class ManifestController {
     return this.manifestService.submitManifest(bookingId, user.email);
   }
 
-  // ─── Estate Manager: Approve manifest + send secondary links ─────────────
+  // ─── Estate Manager: acknowledge the brief ───────────────────────────────
+  // Replaces the old `approve` step, which gated nothing and could only ever
+  // be clicked in good faith.
 
-  @Post(':bookingId/approve')
+  @Post(':bookingId/brief-viewed')
   @Roles('estate_manager')
-  approveManifest(
+  markBriefViewed(
     @Param('bookingId') bookingId: string,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthUser,
   ) {
-    return this.manifestService.approveManifest(bookingId, user.auth0Id);
+    return this.manifestService.markBriefViewed(
+      bookingId,
+      user.email ?? user.auth0Id,
+    );
   }
 
   // ─── Estate Manager: Generate chef's brief ───────────────────────────────

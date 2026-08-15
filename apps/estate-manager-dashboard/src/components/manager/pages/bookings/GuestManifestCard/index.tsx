@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, CheckCircle2, FileText, ChefHat } from 'lucide-react';
+import { Check, FileText, ChefHat, TriangleAlert } from 'lucide-react';
 import { Button } from '@repo/ui';
 
 import type { ManifestResponse } from '@repo/api-types';
-import { useApproveManifest, useChefsBrief } from '@/hooks/useManifest';
+import { useChefsBrief, useMarkBriefViewed } from '@/hooks/useManifest';
 import { STATUS_LABELS } from './constants';
 import { ManifestDetailSheet } from './ManifestDetailSheet';
 import { ChefsBriefSheet } from './ChefsBriefSheet';
@@ -19,12 +19,21 @@ export const GuestManifestCard = ({
 }) => {
   const [showDetail, setShowDetail] = useState(false);
   const [showChefsBrief, setShowChefsBrief] = useState(false);
-  const approveManifest = useApproveManifest();
-  // The chef's brief is generated once the manifest is submitted (before approval).
-  const briefAvailable =
-    manifest?.manifestStatus === 'SUBMITTED' ||
-    manifest?.manifestStatus === 'APPROVED';
+  const markViewed = useMarkBriefViewed();
+
+  // Available as soon as there is a party to describe. It used to wait for
+  // SUBMITTED, but submission is no longer a gate — a half-filled list is still
+  // worth reading, and the estate often wants it before the guests are done.
+  const briefAvailable = (manifest?.guests?.length ?? 0) > 0;
   const { data: chefsBrief } = useChefsBrief(briefAvailable ? bookingId : null);
+
+  // Did anything move after the estate last read this? A late allergy reaches
+  // the kitchen run sheet on its own, but it does not reach the WhatsApp
+  // message Rodrigo already sent the chef. This is what tells him to resend.
+  const viewedAt = manifest?.manifestBriefViewedAt;
+  const changedAt = manifest?.manifestLastChangedAt;
+  const changedSinceViewed =
+    !!viewedAt && !!changedAt && new Date(changedAt) > new Date(viewedAt);
 
   const pct = manifest
     ? Math.min(
@@ -36,17 +45,17 @@ export const GuestManifestCard = ({
     : 0;
   const statusInfo = STATUS_LABELS[manifest?.manifestStatus ?? 'INCOMPLETE'];
 
-  const handleApprove = () => {
-    approveManifest.mutate(bookingId);
+  const openBrief = () => {
+    setShowChefsBrief(true);
+    // Opening it is the acknowledgement. Nothing else in the flow marks the
+    // moment the estate read the list, and a separate "mark as read" button is
+    // one nobody would press.
+    markViewed.mutate(bookingId);
   };
 
-  const isSubmitted = manifest?.manifestStatus === 'SUBMITTED';
-  const isApproved = manifest?.manifestStatus === 'APPROVED';
-  // The per-guest review drawer only makes sense once the guest has finished
-  // filling the manifest — gate it until SUBMITTED (and keep it reachable after
-  // approval for reference).
-  const canReview =
-    (manifest?.guests?.length ?? 0) > 0 && (isSubmitted || isApproved);
+  // Reviewing no longer waits for submission. Guests fill the manifest over
+  // weeks; refusing to show a partial list helped nobody.
+  const canReview = (manifest?.guests?.length ?? 0) > 0;
 
   // While the manifest is still loading, show a skeleton instead of flashing
   // "0 of 0 / 0%" before the real numbers arrive.
@@ -130,40 +139,35 @@ export const GuestManifestCard = ({
           </div>
         )}
 
+        {changedSinceViewed && (
+          <div className="flex items-start gap-2.5 rounded-lg border border-[#e8d5ae] bg-[#fdf4e3] px-3.5 py-3">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-[#8a6d3b]" />
+            <p className="text-xs leading-relaxed text-[#7a5f33]">
+              A guest changed their details after you last opened the brief.{' '}
+              <strong>Re-read it before the kitchen relies on the old one.</strong>
+            </p>
+          </div>
+        )}
+
         <div className="flex gap-2 pt-1">
-          {/* Per-guest review drawer — always present so reviewing before
-              approval stays possible, but gated until the manifest is submitted. */}
+          {/* Per-guest review drawer. */}
           <Button
             className="h-11 flex-[1] gap-2 rounded-lg border-0 bg-[#e8f1e9] text-sm font-medium text-[#4a7c59] shadow-none hover:bg-[#dce8de] disabled:opacity-50"
             onClick={() => setShowDetail(true)}
             disabled={!canReview}
-            title={
-              !canReview && !isSubmitted && !isApproved
-                ? 'Available once the manifest is submitted'
-                : undefined
-            }
+            title={!canReview ? 'Nobody has been added yet' : undefined}
           >
             <FileText className="size-4 shrink-0" strokeWidth={2} />
             Review details
           </Button>
-          {isSubmitted && (
-            <Button
-              className="h-11 flex-[1] gap-2 rounded-lg border-0 bg-[#4a7c59] text-sm font-medium text-white shadow-none hover:bg-[#3a6448]"
-              onClick={handleApprove}
-              disabled={approveManifest.isPending}
-            >
-              <CheckCircle2 className="size-4 shrink-0" strokeWidth={2} />
-              {approveManifest.isPending ? 'Approving…' : 'Approve Manifest'}
-            </Button>
-          )}
           {briefAvailable && (
             <Button
               variant="outline"
               className="h-11 shrink-0 gap-2 rounded-lg border-[#d4d0c8] bg-white px-5 text-sm font-medium text-manager-text shadow-none hover:bg-[#faf9f7]"
-              onClick={() => setShowChefsBrief(true)}
+              onClick={openBrief}
             >
               <ChefHat className="size-4 shrink-0" strokeWidth={2} />
-              Chef&apos;s Brief
+              Guest brief
             </Button>
           )}
         </div>

@@ -6,7 +6,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@repo/ui/components/sheet';
-import { AlertTriangle, ChefHat, Wine, Utensils } from 'lucide-react';
+import { AlertTriangle, ChefHat, Copy, MessageCircle, Wine, Utensils } from 'lucide-react';
+import { toast } from 'sonner';
+import { briefAsText } from '@repo/api-types';
 import type { ChefsBriefResponse } from '@repo/api-types';
 
 const DIETARY_LABEL: Record<string, string> = {
@@ -45,7 +47,7 @@ export function ChefsBriefSheet({ open, onClose, brief }: Props) {
             </span>
             <div>
               <SheetTitle className="font-cormorant text-2xl font-medium leading-tight text-[#1a1614]">
-                Chef&apos;s Brief
+                Guest brief
               </SheetTitle>
               <p className="mt-0.5 text-sm text-[#8a8178]">
                 {brief
@@ -54,6 +56,39 @@ export function ChefsBriefSheet({ open, onClose, brief }: Props) {
               </p>
             </div>
           </div>
+
+          {/* The brief's whole purpose is reaching the chef and the
+              housekeeping staff, and they're on WhatsApp — same as the
+              vendors. Reading it on screen was only ever half the job. */}
+          {brief && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  void navigator.clipboard.writeText(briefAsText(brief));
+                  toast.success('Brief copied');
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#d4d0c8] bg-white px-3.5 py-2 text-xs font-medium text-[#1a1614]"
+              >
+                <Copy className="size-3.5" aria-hidden />
+                Copy
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  window.open(
+                    `https://wa.me/?text=${encodeURIComponent(briefAsText(brief))}`,
+                    '_blank',
+                    'noopener,noreferrer',
+                  )
+                }
+                className="inline-flex items-center gap-1.5 rounded-lg bg-[#1f7a5c] px-3.5 py-2 text-xs font-medium text-white"
+              >
+                <MessageCircle className="size-3.5" aria-hidden />
+                Send on WhatsApp
+              </button>
+            </div>
+          )}
         </SheetHeader>
 
         {!brief ? (
