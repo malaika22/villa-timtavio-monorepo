@@ -15,6 +15,18 @@
  *   node scripts/lodgify-webhooks.js subscribe <event> <url>
  *   node scripts/lodgify-webhooks.js unsubscribe <id>
  *
+ * One subscription per callback URL: Lodgify answers a second subscribe on the
+ * same URL with 409 "This callback url already exists", whatever the event. To
+ * receive more than one event, give each its own URL — a query string is enough,
+ * since the route ignores it:
+ *
+ *   .../webhooks/lodgify?event=booking_change
+ *
+ * Subscribing returns a per-subscription `secret`. It must be set as
+ * LODGIFY_WEBHOOK_SECRET on Render or the API rejects every delivery as an
+ * invalid signature — quietly, since the 5-minute poller keeps the data current
+ * and nothing looks broken.
+ *
  * The events this API actually handles (see lodgify-booking.mapper.ts):
  *   booking_new_status_booked, booking_new_any_status,
  *   booking_status_change_booked, booking_change,
@@ -89,7 +101,9 @@ const [command, ...args] = process.argv.slice(2);
         console.error('Usage: unsubscribe <subscription_id>');
         process.exit(1);
       }
-      await call('/unsubscribe', 'POST', { id });
+      // DELETE, not POST: Lodgify answers POST /unsubscribe with 405, so the
+      // path exists but only accepts the verb that matches what it does.
+      await call('/unsubscribe', 'DELETE', { id });
       console.log(`Unsubscribed ${id}`);
       break;
     }
