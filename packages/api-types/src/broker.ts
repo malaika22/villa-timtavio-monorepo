@@ -43,11 +43,16 @@ export interface BrokerAvailability {
   to: string;
   nights: BrokerAvailabilityNight[];
   /**
-   * `lodgify` is a real rate. Anything else is indicative and must be labelled
-   * as such on screen — a broker quotes whatever number they're shown.
+   * `lodgify` when at least one night is priced, `none` otherwise. There is no
+   * indicative tier: the estate prices in Lodgify and nowhere else, so a rate
+   * we invented would be a rate a broker quotes to a client.
    */
-  rateSource: 'lodgify' | 'season' | 'mixed' | 'none';
-  currency: 'USD';
+  rateSource: 'lodgify' | 'none';
+  /**
+   * ISO code from the rental's Lodgify settings — never assumed. Null when it
+   * couldn't be established, in which case no night carries a rate either.
+   */
+  currency: string | null;
   holdHours: number;
 }
 
@@ -56,16 +61,6 @@ export interface CreateBrokerHoldDto {
   checkIn: string;
   checkOut: string;
   note?: string;
-}
-
-/** One row of the estate's indicative season table. */
-export interface SeasonRate {
-  name: string;
-  /** Inclusive YYYY-MM-DD bounds. */
-  from: string;
-  to: string;
-  nightly: number;
-  minNights: number;
 }
 
 export const BROKER_HOLD_STATUS_LABELS: Record<BrokerHoldStatus, string> = {

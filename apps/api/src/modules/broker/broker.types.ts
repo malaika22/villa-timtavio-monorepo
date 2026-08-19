@@ -24,27 +24,22 @@ export interface AvailabilityWindow {
   to: string;
   nights: AvailabilityNight[];
   /**
-   * Where the prices came from. The page shows an "indicative" label for
-   * anything other than `lodgify`, and hides money entirely for `none`.
+   * `lodgify` when at least one night carries a real rate, `none` otherwise.
+   * There is no third state: the estate prices in Lodgify and nowhere else,
+   * so a figure we invented would be a figure a broker quotes to a client.
    */
-  rateSource: 'lodgify' | 'season' | 'mixed' | 'none';
-  currency: 'USD';
+  rateSource: 'lodgify' | 'none';
+  /**
+   * ISO code as configured on the rental in Lodgify — never assumed. Null when
+   * it couldn't be established, in which case every night is unpriced too.
+   */
+  currency: string | null;
   holdHours: number;
 }
 
-/** One row of EstateSettings.seasonRates. */
-export interface SeasonRate {
-  name: string;
-  /** Inclusive YYYY-MM-DD bounds. */
-  from: string;
-  to: string;
-  nightly: number;
-  minNights: number;
-}
-
 /**
- * Used when the estate has set no seasons at all. Deliberately conservative:
- * a long minimum and no price, so the page shows availability without ever
- * inventing a number a broker could quote.
+ * Assumed minimum stay until Lodgify says otherwise. Every night Lodgify
+ * prices may also carry its own `min_stay`, which wins — the estate sets stay
+ * rules where it sets rates, and this is only the gap-filler.
  */
 export const DEFAULT_MIN_NIGHTS = 4;

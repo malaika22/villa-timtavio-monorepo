@@ -16,7 +16,6 @@ import {
   MAX_HOLD_NIGHTS,
   MAX_HORIZON_DAYS,
   NightStatus,
-  SeasonRate,
 } from './broker.types';
 
 /** YYYY-MM-DD, timezone-free — the estate's calendar deals in plain dates. */
@@ -73,17 +72,21 @@ export class BrokerService {
       );
     }
 
-    const [blocked, lodgifyRates, held, seasons] = await Promise.all([
+    const [blocked, rates, held] = await Promise.all([
       this.lodgify.getUnavailableNights(from, to),
-      this.lodgify.getNightlyRates(from, to),
+      this.lodgify.getRateCalendar(from, to),
       this.heldNights(from, to),
-      this.seasons(),
     ]);
+
+    // No currency, no prices. A number without one is only meaningful if you
+    // already know whether the estate prices in dollars or pesos, and a broker
+    // reading it will assume whichever their last villa used.
+    const currency = rates.currency;
+    const priced = currency != null;
 
     const today = todayMidnight();
     const nights: AvailabilityNight[] = [];
-    let sawLodgify = false;
-    let sawSeason = false;
+    let sawRate = false;
 
     for (let c = new Date(from); c < to; c = addDays(c, 1)) {
       const date = day(c);
@@ -94,36 +97,27 @@ export class BrokerService {
       if (c < today || blocked.has(date)) status = 'TAKEN';
       else if (held.has(date)) status = 'HELD';
 
-      const season = this.seasonFor(date, seasons);
-      const lodgifyRate = lodgifyRates.get(date) ?? null;
-      const rate = lodgifyRate ?? season?.nightly ?? null;
-
-      if (lodgifyRate != null) sawLodgify = true;
-      else if (rate != null) sawSeason = true;
+      const night = rates.nights.get(date);
+      const rate = priced && night ? night.rate : null;
+      if (rate != null) sawRate = true;
 
       nights.push({
         date,
         status,
         rate,
-        minNights: season?.minNights ?? DEFAULT_MIN_NIGHTS,
+        // Lodgify's minimum when it has one for this date, ours otherwise.
+        // The estate sets stay rules where it sets prices; this constant is
+        // only what we assume until it hears from them.
+        minNights: night?.minStay ?? DEFAULT_MIN_NIGHTS,
       });
     }
-
-    const rateSource: AvailabilityWindow['rateSource'] =
-      sawLodgify && sawSeason
-        ? 'mixed'
-        : sawLodgify
-          ? 'lodgify'
-          : sawSeason
-            ? 'season'
-            : 'none';
 
     return {
       from: day(from),
       to: day(to),
       nights,
-      rateSource,
-      currency: 'USD',
+      rateSource: sawRate ? 'lodgify' : 'none',
+      currency,
       holdHours: HOLD_HOURS,
     };
   }
@@ -319,37 +313,4 @@ export class BrokerService {
     return nights;
   }
 
-  /** The estate's season table, or an empty list when it hasn't set one. */
-  private async seasons(): Promise<SeasonRate[]> {
-    const settings = await this.prisma.estateSettings.findUnique({
-      where: { id: 'singleton' },
-      select: { seasonRates: true },
-    });
-
-    const raw = settings?.seasonRates;
-    if (!Array.isArray(raw)) return [];
-
-    return raw
-      .map((r) => r as Partial<SeasonRate>)
-      .filter(
-        (r): r is SeasonRate =>
-          typeof r.from === 'string' &&
-          typeof r.to === 'string' &&
-          Number.isFinite(Number(r.nightly)),
-      )
-      .map((r) => ({
-        name: String(r.name ?? 'Season'),
-        from: r.from.slice(0, 10),
-        to: r.to.slice(0, 10),
-        nightly: Number(r.nightly),
-        minNights: Number.isFinite(Number(r.minNights))
-          ? Number(r.minNights)
-          : DEFAULT_MIN_NIGHTS,
-      }));
-  }
-
-  /** First season covering the date. Bounds are inclusive at both ends. */
-  private seasonFor(date: string, seasons: SeasonRate[]): SeasonRate | null {
-    return seasons.find((s) => date >= s.from && date <= s.to) ?? null;
-  }
 }
