@@ -180,19 +180,32 @@ export class LodgifyService {
   }
 
   /**
-   * Nightly rate per date, where Lodgify has one configured.
+   * What Lodgify charges per night, and on what terms.
    *
-   * Returns an empty map rather than throwing when rates aren't set up — the
-   * estate hasn't filled them in yet, and a broker page that refuses to render
-   * because a price is missing helps nobody. Callers fall back to the estate's
-   * own season table and label the figure as indicative.
+   * Returns an empty calendar rather than throwing when rates aren't set up.
+   * The estate prices in Lodgify and nowhere else, so "no rates yet" is an
+   * ordinary state, not a failure — the broker page simply shows availability
+   * without money until Rodrigo fills the Pricing screen in.
+   *
+   * `currency` is read rather than assumed. A bare 4800 is meaningless until
+   * you know whether it's dollars or pesos, and the two differ by a factor of
+   * roughly eighteen — so where the currency can't be established, the caller
+   * treats every night as unpriced. A calendar with no prices is recoverable;
+   * a broker quoting pesos as dollars to their client is not.
    */
-  async getNightlyRates(from: Date, to: Date): Promise<Map<string, number>> {
+  async getRateCalendar(
+    from: Date,
+    to: Date,
+  ): Promise<{
+    nights: Map<string, { rate: number; minStay?: number }>;
+    currency: string | null;
+  }> {
     const start = LodgifyService.day(from);
     const end = LodgifyService.day(to);
 
     return this.cached(`rates:${start}:${end}`, async () => {
-      const rates = new Map<string, number>();
+      const nights = new Map<string, { rate: number; minStay?: number }>();
+      let currency: string | null = null;
 
       try {
         const response = await this.client.get('/rates/calendar', {
@@ -203,26 +216,53 @@ export class LodgifyService {
           },
         });
 
-        const items = Array.isArray(response.data)
-          ? response.data
-          : ((response.data as { calendar_items?: unknown })?.calendar_items ??
+        const payload = response.data as Record<string, unknown> | unknown[];
+        const items = Array.isArray(payload)
+          ? payload
+          : ((payload?.['calendar_items'] as unknown[]) ??
+            (payload?.['items'] as unknown[]) ??
+            (payload?.['data'] as unknown[]) ??
             []);
 
-        if (!Array.isArray(items)) return rates;
+        if (!Array.isArray(items)) return { nights, currency };
+
+        // A currency on the envelope applies to every row; one on a row wins
+        // for that row only. Both spellings are accepted because this has never
+        // been seen against the live account — see scripts/lodgify-rates.js.
+        if (!Array.isArray(payload)) {
+          currency = LodgifyService.readCurrency(payload);
+        }
 
         for (const item of items) {
-          const r = item as { date?: string; price?: number; min_stay?: number };
-          const price = Number(r.price);
-          if (!r.date || !Number.isFinite(price) || price <= 0) continue;
-          rates.set(r.date.slice(0, 10), price);
+          const r = item as Record<string, unknown>;
+          const date = typeof r['date'] === 'string' ? r['date'].slice(0, 10) : null;
+          const price = Number(r['price'] ?? r['rate'] ?? r['amount']);
+          if (!date || !Number.isFinite(price) || price <= 0) continue;
+
+          const rawMin = Number(r['min_stay'] ?? r['minStay'] ?? r['minimum_stay']);
+          nights.set(date, {
+            rate: price,
+            ...(Number.isFinite(rawMin) && rawMin > 0 ? { minStay: rawMin } : {}),
+          });
+
+          currency ??= LodgifyService.readCurrency(r);
+        }
+
+        // The rental's own currency is authoritative — it's the value the
+        // estate set in Lodgify's Pricing screen — so it's worth one extra
+        // request when the rate rows didn't carry one.
+        if (nights.size > 0 && !currency) {
+          currency = await this.propertyCurrency();
         }
 
         this.logger.log(
-          `Lodgify rates ${start}→${end}: ${rates.size} nights priced`,
+          `Lodgify rates ${start}→${end}: ${nights.size} nights priced${
+            currency ? ` in ${currency}` : ', currency unknown'
+          }`,
         );
       } catch (error) {
         // Not configured, or the plan doesn't expose rates. Neither is an
-        // error the broker should see — the season fallback covers it.
+        // error the broker should see — the page renders without prices.
         this.logger.warn(
           `Lodgify rates unavailable (${start}→${end}): ${
             error instanceof Error ? error.message : 'unknown'
@@ -230,7 +270,32 @@ export class LodgifyService {
         );
       }
 
-      return rates;
+      return { nights, currency };
+    });
+  }
+
+  /** An ISO currency code from whichever key this payload happens to use. */
+  private static readCurrency(source: Record<string, unknown>): string | null {
+    for (const k of ['currency_code', 'currencyCode', 'currency']) {
+      const v = source[k];
+      if (typeof v === 'string' && /^[A-Za-z]{3}$/.test(v.trim())) {
+        return v.trim().toUpperCase();
+      }
+    }
+    return null;
+  }
+
+  /** The rental's configured currency, cached alongside the rates. */
+  private async propertyCurrency(): Promise<string | null> {
+    return this.cached('currency', async () => {
+      try {
+        const res = await this.client.get(`/properties/${this.propertyId()}`);
+        return LodgifyService.readCurrency(
+          (res.data ?? {}) as Record<string, unknown>,
+        );
+      } catch {
+        return null;
+      }
     });
   }
 
