@@ -1,25 +1,27 @@
 #!/usr/bin/env node
 /**
- * Dumps Lodgify's rates calendar verbatim.
+ * Finds out what Lodgify's rates calendar actually needs, and prints what it
+ * returns.
  *
- * The broker calendar reads nightly rates through getNightlyRates(), which was
- * written against Lodgify's documented shape and has never once returned data —
- * the estate hasn't entered rates yet. Building a per-date pricing UI on a
- * payload nobody has seen is how the availability bug happened: the period end
- * date was assumed exclusive, it was inclusive, and every booking's last night
- * came back on the market.
+ * First attempt asked with HouseId + StartDate + EndDate and got back
+ * "Request model is not valid. All fields are required." — a 400, not a 404,
+ * so the endpoint and the key are fine and something required is missing.
+ * Lodgify prices per room type, so that id is the likely omission; the estate's
+ * own calendar shows $6,500 a night, which rules out the data being absent.
  *
- * So: print exactly what Lodgify sends, and write the parser against that.
+ * This walks it: read the property, print its currency and room types, then
+ * ask for rates with each id until one answers. Whatever works becomes the
+ * call in lodgify.service.ts — written against a response, not a document.
  *
- *   node scripts/lodgify-rates.js            # next 60 days
- *   node scripts/lodgify-rates.js 2026-11-01 2026-12-31
+ *   node /app/apps/api/scripts/lodgify-rates.js
+ *   node /app/apps/api/scripts/lodgify-rates.js 2026-11-01 2026-12-31
  */
 
 const KEY = process.env.LODGIFY_API_KEY;
 const PROPERTY = process.env.LODGIFY_PROPERTY_ID;
 
-if (!KEY) {
-  console.error('LODGIFY_API_KEY is not set. Run this on the Render shell.');
+if (!KEY || !PROPERTY) {
+  console.error('LODGIFY_API_KEY and LODGIFY_PROPERTY_ID must be set.');
   process.exit(1);
 }
 
@@ -28,59 +30,104 @@ const [from, to] = process.argv.slice(2);
 const start = from ?? day(new Date());
 const end = to ?? day(new Date(Date.now() + 60 * 86_400_000));
 
+async function get(url) {
+  const res = await fetch(url, {
+    headers: { 'X-ApiKey': KEY, 'Content-Type': 'application/json' },
+  });
+  const text = await res.text();
+  let body = text;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    /* keep the raw text */
+  }
+  return { status: res.status, body };
+}
+
+/** Pull every plausible room-type id out of a property payload. */
+function roomTypeIds(property) {
+  const ids = new Set();
+  const visit = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) return node.forEach(visit);
+    for (const [k, v] of Object.entries(node)) {
+      if (/room_?type_?id/i.test(k) && (typeof v === 'number' || typeof v === 'string')) {
+        ids.add(String(v));
+      }
+      // `rooms: [{ id }]` is how Lodgify usually expresses them.
+      if (/^rooms?$/i.test(k) && Array.isArray(v)) {
+        for (const r of v) if (r && r.id != null) ids.add(String(r.id));
+      }
+      visit(v);
+    }
+  };
+  visit(property);
+  return [...ids];
+}
+
 (async () => {
-  // Both spellings are tried because Lodgify's v2 endpoints are inconsistent
-  // about casing between the rates and availability families, and a 404 here
-  // is indistinguishable from "no rates set" unless we rule the other out.
-  const attempts = [
-    { HouseId: PROPERTY, StartDate: start, EndDate: end },
-    { propertyId: PROPERTY, start, end },
-  ];
+  console.log(`\n══ Property ${PROPERTY}`);
+  const prop = await get(`https://api.lodgify.com/v2/properties/${PROPERTY}`);
+  console.log(`   HTTP ${prop.status}`);
 
-  for (const params of attempts) {
-    const qs = new URLSearchParams(params).toString();
+  if (prop.status !== 200) {
+    console.log(`   ${JSON.stringify(prop.body).slice(0, 300)}`);
+    process.exit(1);
+  }
+
+  const currencyKeys = ['currency_code', 'currencyCode', 'currency'];
+  const currency = currencyKeys
+    .map((k) => prop.body?.[k])
+    .find((v) => typeof v === 'string');
+  console.log(`   currency: ${currency ?? '(not on the property record)'}`);
+
+  const ids = roomTypeIds(prop.body);
+  console.log(`   room type ids: ${ids.length ? ids.join(', ') : '(none found)'}`);
+
+  if (ids.length === 0) {
+    console.log('\n   No room type id anywhere in the property payload. Printing');
+    console.log('   the top-level keys so we can see what it does carry:');
+    console.log(`   ${Object.keys(prop.body ?? {}).join(', ')}`);
+  }
+
+  // Each candidate, with the parameter names Lodgify's rates family documents.
+  for (const roomTypeId of ids) {
+    const qs = new URLSearchParams({
+      RoomTypeId: roomTypeId,
+      HouseId: PROPERTY,
+      StartDate: start,
+      EndDate: end,
+    }).toString();
     const url = `https://api.lodgify.com/v2/rates/calendar?${qs}`;
-    console.log(`\n── GET ${url}`);
+    console.log(`\n══ Rates with RoomTypeId=${roomTypeId}`);
+    console.log(`   ${url}`);
 
-    const res = await fetch(url, {
-      headers: { 'X-ApiKey': KEY, 'Content-Type': 'application/json' },
-    });
-    const text = await res.text();
+    const res = await get(url);
     console.log(`   HTTP ${res.status}`);
 
-    if (!res.ok) {
-      console.log(`   ${text.slice(0, 300)}`);
+    if (res.status !== 200) {
+      console.log(`   ${JSON.stringify(res.body).slice(0, 300)}`);
       continue;
     }
 
-    let payload;
-    try {
-      payload = JSON.parse(text);
-    } catch {
-      console.log(`   (not JSON) ${text.slice(0, 300)}`);
-      continue;
-    }
-
-    // The envelope matters as much as the rows — an array and a wrapped
-    // { calendar_items: [...] } need different handling downstream.
-    console.log(`   top-level: ${Array.isArray(payload) ? 'array' : typeof payload}`);
-    if (!Array.isArray(payload)) {
-      console.log(`   keys: ${Object.keys(payload).join(', ')}`);
-    }
-
+    const payload = res.body;
     const rows = Array.isArray(payload)
       ? payload
-      : (payload.calendar_items ?? payload.items ?? payload.data ?? []);
+      : (payload?.calendar_items ?? payload?.items ?? payload?.data ?? []);
 
+    console.log(`   top-level: ${Array.isArray(payload) ? 'array' : typeof payload}`);
+    if (!Array.isArray(payload)) {
+      console.log(`   keys: ${Object.keys(payload ?? {}).join(', ')}`);
+    }
     console.log(`   rows: ${Array.isArray(rows) ? rows.length : 'not an array'}`);
+
     if (Array.isArray(rows) && rows.length > 0) {
       console.log('   first three rows verbatim:');
       console.log(JSON.stringify(rows.slice(0, 3), null, 2));
-    } else {
-      console.log('   No rows. Either no rates are configured for this window,');
-      console.log('   or the parameter names above are wrong for this account.');
+      console.log('\n   ✅ This is the call that works — paste the above back.');
+      return;
     }
-    return;
+    console.log('   200 but no rows for this window.');
   }
 })().catch((err) => {
   console.error(err);
