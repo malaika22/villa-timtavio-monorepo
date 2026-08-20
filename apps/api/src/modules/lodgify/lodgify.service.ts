@@ -182,12 +182,24 @@ export class LodgifyService {
   /**
    * What Lodgify charges per night, and on what terms.
    *
-   * Returns an empty calendar rather than throwing when rates aren't set up.
-   * The estate prices in Lodgify and nowhere else, so "no rates yet" is an
-   * ordinary state, not a failure — the broker page simply shows availability
-   * without money until Rodrigo fills the Pricing screen in.
+   * The shape here is written against a real response, not the documentation.
+   * Two earlier readings of the docs were wrong — the availability period end
+   * turned out inclusive, and this call turned out to need a room type — so
+   * what follows describes what Lodgify actually sends:
    *
-   * `currency` is read rather than assumed. A bare 4800 is meaningless until
+   *   { calendar_items: [
+   *       { date: null, is_default: true, prices: [...] },   // the fallback
+   *       { date: "2026-08-20", is_default: false, prices: [
+   *           { min_stay: 3, max_stay: 1125, price_per_day: 6500, ... } ] },
+   *     ],
+   *     rate_settings: {...} }
+   *
+   * The price is two levels down, `prices` is a list of stay-length tiers, and
+   * the first row carries no date at all. Anything reading `item.price` — as
+   * the first implementation did — finds nothing and reports the estate as
+   * unpriced, which is exactly what happened.
+   *
+   * `currency` is read rather than assumed. A bare 6500 is meaningless until
    * you know whether it's dollars or pesos, and the two differ by a factor of
    * roughly eighteen — so where the currency can't be established, the caller
    * treats every night as unpriced. A calendar with no prices is recoverable;
@@ -208,49 +220,91 @@ export class LodgifyService {
       let currency: string | null = null;
 
       try {
+        // Lodgify prices per room type, and refuses the whole request without
+        // one — "Request model is not valid. All fields are required."
+        const roomTypeId = await this.roomTypeId();
+        if (!roomTypeId) {
+          this.logger.warn(
+            'No Lodgify room type id — rates cannot be requested. Set LODGIFY_ROOM_TYPE_ID to pin one.',
+          );
+          return { nights, currency };
+        }
+
         const response = await this.client.get('/rates/calendar', {
           params: {
+            RoomTypeId: roomTypeId,
             HouseId: this.propertyId(),
             StartDate: start,
             EndDate: end,
           },
         });
 
-        const payload = response.data as Record<string, unknown> | unknown[];
+        const payload = (response.data ?? {}) as Record<string, unknown>;
         const items = Array.isArray(payload)
           ? payload
-          : ((payload?.['calendar_items'] as unknown[]) ??
-            (payload?.['items'] as unknown[]) ??
-            (payload?.['data'] as unknown[]) ??
-            []);
+          : ((payload['calendar_items'] as unknown[]) ?? []);
 
         if (!Array.isArray(items)) return { nights, currency };
 
-        // A currency on the envelope applies to every row; one on a row wins
-        // for that row only. Both spellings are accepted because this has never
-        // been seen against the live account — see scripts/lodgify-rates.js.
-        if (!Array.isArray(payload)) {
-          currency = LodgifyService.readCurrency(payload);
-        }
+        currency = LodgifyService.readCurrency(payload);
+
+        /**
+         * A date's price is the cheapest tier the guest could qualify for, and
+         * its minimum stay is what qualifying costs them. `min_stay: 3` beside
+         * `price_per_day: 6500` means "three nights or more, at 6,500" — so the
+         * two travel together and picking a rate without its minimum would
+         * quote a price on terms nobody offered.
+         */
+        const cheapestTier = (
+          prices: unknown,
+        ): { rate: number; minStay?: number } | null => {
+          if (!Array.isArray(prices)) return null;
+
+          let best: { rate: number; minStay?: number } | null = null;
+          for (const entry of prices) {
+            const e = entry as Record<string, unknown>;
+            const rate = Number(e['price_per_day'] ?? e['price'] ?? e['rate']);
+            if (!Number.isFinite(rate) || rate <= 0) continue;
+
+            const rawMin = Number(e['min_stay'] ?? e['minStay']);
+            const minStay =
+              Number.isFinite(rawMin) && rawMin > 0 ? rawMin : undefined;
+
+            if (!best || (minStay ?? 0) < (best.minStay ?? 0)) {
+              best = { rate, ...(minStay ? { minStay } : {}) };
+            }
+          }
+          return best;
+        };
+
+        // The row with no date is Lodgify's default, applying to any date it
+        // didn't list. Kept as a fallback rather than discarded — and never
+        // written to a date, since it has none.
+        let fallback: { rate: number; minStay?: number } | null = null;
 
         for (const item of items) {
-          const r = item as Record<string, unknown>;
-          const date = typeof r['date'] === 'string' ? r['date'].slice(0, 10) : null;
-          const price = Number(r['price'] ?? r['rate'] ?? r['amount']);
-          if (!date || !Number.isFinite(price) || price <= 0) continue;
+          const row = item as Record<string, unknown>;
+          const tier = cheapestTier(row['prices']);
+          if (!tier) continue;
 
-          const rawMin = Number(r['min_stay'] ?? r['minStay'] ?? r['minimum_stay']);
-          nights.set(date, {
-            rate: price,
-            ...(Number.isFinite(rawMin) && rawMin > 0 ? { minStay: rawMin } : {}),
-          });
+          const date = typeof row['date'] === 'string' ? row['date'].slice(0, 10) : null;
+          if (!date) {
+            if (row['is_default'] === true) fallback = tier;
+            continue;
+          }
+          nights.set(date, tier);
+        }
 
-          currency ??= LodgifyService.readCurrency(r);
+        if (fallback) {
+          for (let c = new Date(from); c < to; c.setDate(c.getDate() + 1)) {
+            const date = LodgifyService.day(c);
+            if (!nights.has(date)) nights.set(date, fallback);
+          }
         }
 
         // The rental's own currency is authoritative — it's the value the
-        // estate set in Lodgify's Pricing screen — so it's worth one extra
-        // request when the rate rows didn't carry one.
+        // estate set in Lodgify's Pricing screen — and the rates payload
+        // doesn't carry one, so this request is how we learn it.
         if (nights.size > 0 && !currency) {
           currency = await this.propertyCurrency();
         }
@@ -283,6 +337,29 @@ export class LodgifyService {
       }
     }
     return null;
+  }
+
+  /**
+   * The rental's room type, which the rates calendar refuses to answer without.
+   *
+   * Discovered from the property rather than configured, so the estate never
+   * has to find an id in an API response — but LODGIFY_ROOM_TYPE_ID pins it if
+   * the villa ever has more than one and the wrong one gets picked.
+   */
+  private async roomTypeId(): Promise<string | null> {
+    const pinned = this.config.get<string>('LODGIFY_ROOM_TYPE_ID')?.trim();
+    if (pinned) return pinned;
+
+    return this.cached('roomTypeId', async () => {
+      try {
+        const res = await this.client.get(`/properties/${this.propertyId()}`);
+        const rooms = (res.data as { rooms?: { id?: unknown }[] })?.rooms;
+        const id = Array.isArray(rooms) ? rooms[0]?.id : undefined;
+        return id == null ? null : String(id);
+      } catch {
+        return null;
+      }
+    });
   }
 
   /** The rental's configured currency, cached alongside the rates. */
