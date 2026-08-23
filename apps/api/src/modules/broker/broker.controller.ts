@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -72,6 +73,12 @@ export class BrokerController {
   @Roles('estate_manager')
   confirm(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.broker.confirmHold(id, user?.email ?? 'estate_manager');
+  }
+
+  @Delete('holds/:id')
+  @Roles('estate_manager')
+  remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.broker.deleteHold(id, user?.email ?? 'estate_manager');
   }
 
   @Post('holds/:id/release')

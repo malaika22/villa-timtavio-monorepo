@@ -4,11 +4,16 @@ export type BrokerHoldStatus = 'PENDING' | 'CONFIRMED' | 'RELEASED' | 'EXPIRED';
 export interface BrokerHold {
   id: string;
   /**
-   * Typed by the broker on the page, not authenticated — the estate issues one
-   * shared link rather than an account each. Treat it as a name to call back,
-   * not as an identity.
+   * Typed by the broker when placing the hold, not authenticated — the estate
+   * issues one shared link rather than an account each. Treat it as a name to
+   * call back, not as an identity.
    */
   brokerName: string;
+  /** Null on holds placed before this was asked for; show as not recorded. */
+  brokerEmail: string | null;
+  brokerAgency: string | null;
+  /** Party size. Null on holds placed before this was asked for. */
+  guestCount: number | null;
   checkIn: string;
   checkOut: string;
   nights: number;
@@ -58,10 +63,16 @@ export interface BrokerAvailability {
 
 export interface CreateBrokerHoldDto {
   brokerName: string;
+  brokerEmail: string;
+  brokerAgency?: string;
+  guestCount: number;
   checkIn: string;
   checkOut: string;
   note?: string;
 }
+
+/** What the villa sleeps — the ceiling on a hold's party size. */
+export const MAX_PARTY_SIZE = 14;
 
 export const BROKER_HOLD_STATUS_LABELS: Record<BrokerHoldStatus, string> = {
   PENDING: 'Holding',

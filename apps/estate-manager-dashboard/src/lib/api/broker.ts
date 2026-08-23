@@ -7,4 +7,6 @@ export const emBrokerApi = {
   confirm: (id: string) => api.post<BrokerHold>(API.broker.confirmHold(id)),
   release: (id: string, note?: string) =>
     api.post<BrokerHold>(API.broker.releaseHold(id), { note }),
+  /** Only for holds that came to nothing — the API refuses confirmed ones. */
+  remove: (id: string) => api.delete<{ id: string }>(API.broker.deleteHold(id)),
 };

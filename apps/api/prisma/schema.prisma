@@ -1307,6 +1307,19 @@ model BrokerHold {
   /// Typed by the broker on the page, not authenticated. One shared link means
   /// this is accountability, not identity — enough to know who to call back.
   brokerName String
+
+  /// How the estate reaches them. Required on new holds; null on the handful
+  /// placed before it was asked for, which the dashboard shows as not recorded
+  /// rather than pretending to an address it hasn't got.
+  brokerEmail String?
+  /// Kept apart from the name so the person stays addressable. Brokers were
+  /// typing "Marisol Vega, Aurora Travel" into one box, which is neither a
+  /// name you can greet nor a firm you can look up.
+  brokerAgency String?
+  /// Party size, which Lodgify asks for and the estate cannot guess. Capped at
+  /// the villa's 14 on the way in. Null on holds placed before it was asked.
+  guestCount Int?
+
   checkIn    DateTime
   checkOut   DateTime
   nights     Int

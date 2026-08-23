@@ -1,4 +1,15 @@
-import { IsDateString, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsDateString,
+  IsEmail,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
+import { MAX_PARTY_SIZE } from '../broker.types';
 
 export class CreateBrokerHoldDto {
   /**
@@ -10,6 +21,32 @@ export class CreateBrokerHoldDto {
   @MinLength(2)
   @MaxLength(80)
   brokerName!: string;
+
+  /**
+   * Checked for shape, never for existence. This is a trusted channel and the
+   * estate telephones brokers anyway, so a confirmation loop would cost more
+   * patience than it buys certainty — but catching `marisol@aurora` before it
+   * becomes the only way to reach someone costs nothing.
+   */
+  @IsEmail({}, { message: 'That doesn’t look like an email address' })
+  @MaxLength(160)
+  brokerEmail!: string;
+
+  /** Separate from the name so the person stays addressable. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  brokerAgency?: string;
+
+  /**
+   * Required: Lodgify asks for it and the estate cannot guess it. Bounded by
+   * what the villa sleeps, so an impossible party is refused here rather than
+   * discovered when rooms are being assigned.
+   */
+  @IsInt()
+  @Min(1)
+  @Max(MAX_PARTY_SIZE)
+  guestCount!: number;
 
   @IsDateString()
   checkIn!: string;
