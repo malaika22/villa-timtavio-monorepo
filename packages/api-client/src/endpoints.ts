@@ -111,6 +111,7 @@ export const API = {
     holds: '/api/v1/broker/holds',
     confirmHold: (id: string) => `/api/v1/broker/holds/${id}/confirm`,
     releaseHold: (id: string) => `/api/v1/broker/holds/${id}/release`,
+    deleteHold: (id: string) => `/api/v1/broker/holds/${id}`,
   },
   magicLink: {
     send: (bookingId: string) => `/api/v1/magic-link/send/${bookingId}`,

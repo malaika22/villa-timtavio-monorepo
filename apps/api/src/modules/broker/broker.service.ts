@@ -179,6 +179,9 @@ export class BrokerService {
     const hold = await this.prisma.brokerHold.create({
       data: {
         brokerName: dto.brokerName.trim(),
+        brokerEmail: dto.brokerEmail.trim().toLowerCase(),
+        brokerAgency: dto.brokerAgency?.trim() || null,
+        guestCount: dto.guestCount,
         checkIn,
         checkOut,
         nights,
@@ -191,7 +194,7 @@ export class BrokerService {
     });
 
     this.logger.log(
-      `Hold ${hold.id}: ${dto.brokerName} took ${day(checkIn)}→${day(checkOut)} (${nights}n)`,
+      `Hold ${hold.id}: ${dto.brokerName} took ${day(checkIn)}→${day(checkOut)} (${nights}n, ${dto.guestCount} guests)`,
     );
 
     return hold;
@@ -241,6 +244,35 @@ export class BrokerService {
         ...(note?.trim() ? { note: note.trim() } : {}),
       },
     });
+  }
+
+  /**
+   * Removes a hold that came to nothing.
+   *
+   * Confirmed holds are refused. A confirmed hold is the record of how a
+   * booking came about, and if a broker ever says "I held those dates and you
+   * gave them away", it is the estate's answer — so the only rows that can go
+   * are the ones nobody acted on. Pending is refused too: release it first, so
+   * the broker is told rather than finding their claim silently gone.
+   */
+  async deleteHold(id: string, by: string) {
+    const hold = await this.prisma.brokerHold.findUnique({ where: { id } });
+    if (!hold) throw new NotFoundException('Hold not found');
+
+    if (hold.status === BrokerHoldStatus.CONFIRMED) {
+      throw new BadRequestException(
+        'A confirmed hold is part of the booking record and can’t be removed.',
+      );
+    }
+    if (hold.status === BrokerHoldStatus.PENDING) {
+      throw new BadRequestException(
+        'Release this hold first — the broker should know it’s gone.',
+      );
+    }
+
+    await this.prisma.brokerHold.delete({ where: { id } });
+    this.logger.log(`Hold ${id} (${hold.status}) deleted by ${by}`);
+    return { id };
   }
 
   /**

@@ -4,6 +4,9 @@ export const HOLD_HOURS = 48;
 /** The furthest ahead the calendar will answer for, in days. */
 export const MAX_HORIZON_DAYS = 400;
 
+/** What the villa sleeps. A hold for more is refused rather than negotiated. */
+export const MAX_PARTY_SIZE = 14;
+
 /** A sanity bound on a single hold — not a policy, a guard against nonsense. */
 export const MAX_HOLD_NIGHTS = 60;
 

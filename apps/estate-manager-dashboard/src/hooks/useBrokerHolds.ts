@@ -46,3 +46,22 @@ export function useReleaseHold() {
     onError: (e) => toast.error((e as Error).message),
   });
 }
+
+/**
+ * Clears out a hold nobody acted on.
+ *
+ * Confirmed holds are refused by the API — that row is the record of how a
+ * booking came about, and the estate's answer if a broker ever says they held
+ * dates that were given away.
+ */
+export function useDeleteHold() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => emBrokerApi.remove(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['broker-holds'] });
+      toast.success('Hold removed');
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+}
