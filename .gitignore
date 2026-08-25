@@ -26,6 +26,11 @@ out/
 build
 dist
 
+# Incremental typecheck caches. Two of these were committed, so every `tsc`
+# anyone ran left the tree dirty with a machine-specific file — noise in
+# `git status` that trains you to ignore it, right up until it hides something.
+*.tsbuildinfo
+
 
 # Debug
 npm-debug.log*
