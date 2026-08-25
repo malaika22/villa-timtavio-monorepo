@@ -10,6 +10,7 @@ import { InquiryDeleteButton } from '@/components/manager/pages/inquiries/Inquir
 import { InquiryPostApprovalPanel } from '@/components/manager/pages/inquiries/InquiryPostApprovalPanel';
 import { InquiryVettingPanel } from '@/components/manager/pages/inquiries/InquiryVettingPanel';
 import { useInquiry } from '@/hooks/useInquiries';
+import { stayNights } from '@/lib/stay-date';
 import { toSocialUrl, socialLinkLabel } from '@/lib/inquiry-utils';
 import { PURPOSE_LABEL, STATUS_PILL } from '../InquiriesPage/constants';
 
@@ -52,11 +53,14 @@ function parseStructuredMessage(
 function DetailRow({
   label,
   value,
+  hint,
   href,
   linkLabel = 'View',
 }: {
   label: string;
   value?: string | null;
+  /** A second, quieter line under the value — a derived fact, not another field. */
+  hint?: string | null;
   href?: string | null;
   linkLabel?: string;
 }) {
@@ -74,8 +78,15 @@ function DetailRow({
           <ExternalLink className="size-3.5" />
         </a>
       ) : (
-        <span className="text-right text-sm font-medium text-manager-text">
-          {value ?? '—'}
+        <span className="text-right">
+          <span className="block text-sm font-medium text-manager-text">
+            {value ?? '—'}
+          </span>
+          {hint ? (
+            <span className="mt-0.5 block text-xs text-manager-text-muted">
+              {hint}
+            </span>
+          ) : null}
         </span>
       )}
     </div>
@@ -113,6 +124,14 @@ export function InquiryDetailPage({ id }: { id: string }) {
   const messageFields = inquiry.message
     ? parseStructuredMessage(inquiry.message)
     : null;
+  // The length of the stay, which is what the rate conversation actually turns
+  // on — Rodrigo was counting it off the two dates by hand on every inquiry.
+  // Differenced in milliseconds rather than by calendar arithmetic so it can't
+  // drift with the reader's timezone the way the formatted dates once did.
+  const nights =
+    inquiry.preferredFrom && inquiry.preferredTo
+      ? stayNights(inquiry.preferredFrom, inquiry.preferredTo)
+      : null;
   const isPending = inquiry.status === 'NEW';
   const isApproved = inquiry.status === 'APPROVED';
   const isConverted = inquiry.status === 'CONVERTED';
@@ -157,6 +176,14 @@ export function InquiryDetailPage({ id }: { id: string }) {
             value={
               inquiry.preferredFrom
                 ? `${formatDate(inquiry.preferredFrom)} – ${formatDate(inquiry.preferredTo)}`
+                : undefined
+            }
+            hint={
+              // Suppressed rather than shown as "0 nights" when the two dates
+              // are the same or reversed: a nonsense figure next to real dates
+              // reads as a bug in the villa's system, not a typo in the form.
+              nights != null && nights > 0
+                ? `${nights} ${nights === 1 ? 'night' : 'nights'}`
                 : undefined
             }
           />
