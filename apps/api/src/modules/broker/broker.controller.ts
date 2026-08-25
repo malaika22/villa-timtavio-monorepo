@@ -83,15 +83,26 @@ export class BrokerController {
 
   @Post('holds/:id/release')
   @Roles('estate_manager')
-  release(
+  async release(
     @Param('id') id: string,
     @Body() body: { note?: string },
     @CurrentUser() user: AuthUser,
   ) {
-    return this.broker.releaseHold(
+    const hold = await this.broker.releaseHold(
       id,
       user?.email ?? 'estate_manager',
       body?.note,
     );
+
+    // Sent for a pending release as much as a confirmed one: either way the
+    // broker asked for dates and isn't getting them, and finding out by
+    // reloading the availability page is worse than being told.
+    //
+    // Not awaited, for the same reason `createHold` doesn't await its own —
+    // the nights are already open, and a slow mail server must not make the
+    // release look like it failed.
+    void this.notify.holdReleased(hold);
+
+    return hold;
   }
 }

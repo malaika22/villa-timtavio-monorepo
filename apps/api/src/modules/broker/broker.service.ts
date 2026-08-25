@@ -31,6 +31,20 @@ const addDays = (d: Date, n: number): Date => {
   return out;
 };
 
+/**
+ * The broker's own words and the estate's reason for releasing, in one column.
+ *
+ * `note` holds what the broker typed on the availability page — a client name,
+ * an occasion — and the release path used to write straight over it, so the
+ * moment Rodrigo gave a reason the reason was all that survived. Appending
+ * costs a convention where a second column would be cleaner, and buys not
+ * losing the only record of who the stay was actually for.
+ */
+const withReleaseReason = (existing: string | null, reason: string): string =>
+  existing?.trim()
+    ? `${existing.trim()}\n— Released: ${reason}`
+    : `Released: ${reason}`;
+
 const todayMidnight = (): Date => {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
@@ -58,7 +72,10 @@ export class BrokerService {
    *   3. Rates: Lodgify's where it has them, the estate's season table where
    *      it doesn't, and nothing at all where neither does.
    */
-  async availability(fromRaw?: string, toRaw?: string): Promise<AvailabilityWindow> {
+  async availability(
+    fromRaw?: string,
+    toRaw?: string,
+  ): Promise<AvailabilityWindow> {
     const from = fromRaw ? atMidnight(fromRaw) : todayMidnight();
     const to = toRaw ? atMidnight(toRaw) : addDays(from, 90);
 
@@ -208,7 +225,12 @@ export class BrokerService {
       where: {
         OR: [
           { status: 'PENDING' },
-          { status: 'CONFIRMED' },
+          // Confirmed holds used to be listed unconditionally, which meant one
+          // placed as a test in August was still sitting in the queue months
+          // later with no way to remove it. Aged by `checkOut` rather than
+          // `createdAt`: a hold confirmed today for next March has to stay
+          // visible until March, but one whose stay is already over is history.
+          { status: 'CONFIRMED', checkOut: { gte: todayMidnight() } },
           // Resolved holds stay visible briefly so the estate can see what it
           // just did, and what lapsed while nobody was looking.
           { createdAt: { gte: new Date(Date.now() - 14 * 86_400_000) } },
@@ -232,8 +254,21 @@ export class BrokerService {
     });
   }
 
+  /**
+   * Takes a hold back, whether the estate had accepted it or not.
+   *
+   * Confirming used to be a one-way door: `deleteHold` refused CONFIRMED,
+   * this refused anything but PENDING, and the dashboard drew no control on a
+   * confirmed card. So a broker whose client cancelled after confirmation left
+   * the estate holding nights it could not sell and a row it could not clear.
+   *
+   * Releasing is the honest verb for it — the hold no longer stands, and the
+   * row survives to say who released it and when. Removing it altogether is a
+   * second, deliberate step, and `deleteHold` still allows that only once a
+   * hold has been resolved this way.
+   */
   async releaseHold(id: string, by: string, note?: string) {
-    const hold = await this.requirePending(id);
+    const hold = await this.requireReleasable(id);
 
     return this.prisma.brokerHold.update({
       where: { id: hold.id },
@@ -241,7 +276,9 @@ export class BrokerService {
         status: BrokerHoldStatus.RELEASED,
         releasedAt: new Date(),
         releasedBy: by,
-        ...(note?.trim() ? { note: note.trim() } : {}),
+        ...(note?.trim()
+          ? { note: withReleaseReason(hold.note, note.trim()) }
+          : {}),
       },
     });
   }
@@ -254,6 +291,9 @@ export class BrokerService {
    * gave them away", it is the estate's answer — so the only rows that can go
    * are the ones nobody acted on. Pending is refused too: release it first, so
    * the broker is told rather than finding their claim silently gone.
+   *
+   * That is no longer a dead end, only an order of operations. `releaseHold`
+   * accepts a confirmed hold, and a released one is deletable here.
    */
   async deleteHold(id: string, by: string) {
     const hold = await this.prisma.brokerHold.findUnique({ where: { id } });
@@ -318,6 +358,41 @@ export class BrokerService {
     return hold;
   }
 
+  /**
+   * A hold that can still be taken back — anything not already resolved.
+   *
+   * Wider than `requirePending` on purpose, and the expiry check is narrower
+   * to match: a confirmed hold ignores the clock by design, so testing it
+   * against `expiresAt` would refuse every confirmation older than 48 hours,
+   * which is all of them.
+   */
+  private async requireReleasable(id: string) {
+    const hold = await this.prisma.brokerHold.findUnique({ where: { id } });
+    if (!hold) throw new NotFoundException('Hold not found');
+
+    if (
+      hold.status === BrokerHoldStatus.RELEASED ||
+      hold.status === BrokerHoldStatus.EXPIRED
+    ) {
+      throw new BadRequestException(
+        `That hold is already ${hold.status.toLowerCase()}`,
+      );
+    }
+
+    if (
+      hold.status === BrokerHoldStatus.PENDING &&
+      hold.expiresAt <= new Date()
+    ) {
+      await this.prisma.brokerHold.update({
+        where: { id },
+        data: { status: BrokerHoldStatus.EXPIRED },
+      });
+      throw new BadRequestException('That hold has expired');
+    }
+
+    return hold;
+  }
+
   /** Nights spoken for by a live hold — PENDING and still inside its window. */
   private async heldNights(from: Date, to: Date): Promise<Set<string>> {
     const holds = await this.prisma.brokerHold.findMany({
@@ -344,5 +419,4 @@ export class BrokerService {
     }
     return nights;
   }
-
 }
