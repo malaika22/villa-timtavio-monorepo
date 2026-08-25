@@ -1,5 +1,6 @@
 import type { GuestProfile, GuestSummary } from '@repo/api-types';
 
+import { stayRange } from '@/lib/stay-date';
 import type { GuestDNAProfile, GuestListItem, GuestListStatus } from '@/types';
 
 function initials(firstName: string, lastName: string) {
@@ -33,13 +34,14 @@ function deriveListStatus(
   }
 }
 
+/**
+ * Stay dates are calendar dates, so they're formatted in UTC — see
+ * lib/stay-date. Rendering them in the browser's timezone showed every booking
+ * a day early for anyone west of Greenwich, which is how a 17–18 September
+ * reservation appeared here as 16–17.
+ */
 function formatDateRange(checkIn?: string, checkOut?: string) {
-  if (!checkIn || !checkOut) return 'Dates TBD';
-  const inDate = new Date(checkIn);
-  const outDate = new Date(checkOut);
-  const fmt = (d: Date) =>
-    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  return `${fmt(inDate)} – ${fmt(outDate)}`;
+  return stayRange(checkIn, checkOut);
 }
 
 export function mapGuestSummaryToListItem(

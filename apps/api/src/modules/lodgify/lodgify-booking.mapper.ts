@@ -179,12 +179,28 @@ function diffNights(arrival: string, departure: string): number {
 export function normalizeLodgifyBooking(
   raw: Record<string, unknown>,
 ): LodgifySyncPayload | null {
-  // Skip reservations that were deleted/cancelled in Lodgify — otherwise the
-  // 5-minute pull keeps resurrecting a booking the user already removed.
+  // Reservations that aren't a stay the estate is holding the villa for.
+  //
+  // This used to check only for deletion, and a *declined* reservation sailed
+  // through: the poller re-synced it as CONFIRMED every five minutes, so a
+  // booking Lodgify had turned down sat in Guests as an arriving party. The
+  // deletion reconciler couldn't help either — it cancels bookings that have
+  // vanished from Lodgify, and a declined one is still returned.
+  //
+  // Lodgify's own availability calendar ignores these, which is why the broker
+  // page showed those nights for sale while the dashboard showed a guest
+  // arriving. The calendar was right.
+  //
+  // `Open` is a quote or an enquiry, not a commitment. It blocks nothing in
+  // Lodgify and shouldn't create a stay here; it becomes a booking when it
+  // becomes `Booked`.
+  const status = typeof raw.status === 'string' ? raw.status.toLowerCase() : '';
+  const NOT_A_STAY = ['deleted', 'declined', 'cancelled', 'canceled', 'open'];
+
   if (
     raw.is_deleted === true ||
-    raw.status === 'Deleted' ||
-    raw.canceled_at != null
+    raw.canceled_at != null ||
+    NOT_A_STAY.includes(status)
   ) {
     return null;
   }

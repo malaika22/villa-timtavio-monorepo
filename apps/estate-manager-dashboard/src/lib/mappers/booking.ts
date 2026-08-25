@@ -19,23 +19,35 @@ function initialsOf(first: string, last: string): string {
 }
 
 function fmtDay(d: Date): number {
-  return d.getDate();
+  // getUTCDate, not getDate — the whole range is read in UTC because a stay
+  // date is a calendar date. Mixing the two prints "16–21" for a 17–21 stay.
+  return d.getUTCDate();
 }
 
 function fmtMonthYear(d: Date): string {
-  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  return d.toLocaleDateString('en-US', {
+    timeZone: 'UTC',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 /** "14–21 May 2026" or "28 Apr – 3 May 2026" */
 function formatDateRange(checkIn: string, checkOut: string): string {
+  // UTC throughout — see lib/stay-date. A stay date is a calendar date, and
+  // reading it in the browser's timezone put every booking a day early for
+  // anyone west of Greenwich. getUTCMonth rather than getMonth for the same
+  // reason: the comparison has to agree with what's printed.
   const a = new Date(checkIn);
   const b = new Date(checkOut);
   const sameMonth =
-    a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+    a.getUTCMonth() === b.getUTCMonth() &&
+    a.getUTCFullYear() === b.getUTCFullYear();
   if (sameMonth) {
     return `${fmtDay(a)}–${fmtDay(b)} ${fmtMonthYear(a)}`;
   }
   const aLabel = a.toLocaleDateString('en-US', {
+    timeZone: 'UTC',
     day: 'numeric',
     month: 'short',
   });

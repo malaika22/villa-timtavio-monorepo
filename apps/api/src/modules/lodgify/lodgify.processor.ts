@@ -29,8 +29,20 @@ export class LodgifyProcessor {
         // real name flows through instead of defaulting to "Guest".
         const payload = normalizeLodgifyBooking(booking);
         if (!payload) {
+          // Skipping isn't enough on its own. A reservation that was booked
+          // and later declined has already been synced, and merely ignoring it
+          // from here leaves it CONFIRMED in the estate's records for ever —
+          // which is how a declined stay came to sit in Guests as an arriving
+          // party while the calendar sold the same nights.
+          //
+          // The deletion reconciler can't reach it either: it cancels bookings
+          // that have vanished from Lodgify, and this one is still returned.
+          await this.bookingsService.cancelIfNoLongerAStay(
+            booking?.id,
+            typeof booking?.status === 'string' ? booking.status : 'not a stay',
+          );
           this.logger.warn(
-            `Skipped Lodgify booking ${booking?.id}: missing id/dates/email`,
+            `Skipped Lodgify booking ${booking?.id}: ${booking?.status ?? 'missing id/dates/email'}`,
           );
           continue;
         }
