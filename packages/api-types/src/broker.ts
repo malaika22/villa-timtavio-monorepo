@@ -41,6 +41,10 @@ export interface BrokerAvailabilityNight {
   /** Null where neither Lodgify nor the estate's season table has a rate. */
   rate: number | null;
   minNights: number;
+  /** A stay begins here — free until the afternoon, sold from it. */
+  arrivalDay: boolean;
+  /** A stay ends here — occupied until the morning, and the night is sellable. */
+  departureDay: boolean;
 }
 
 export interface BrokerAvailability {

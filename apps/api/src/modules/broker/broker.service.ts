@@ -89,11 +89,31 @@ export class BrokerService {
       );
     }
 
+    // Both occupancy sources are asked for one night earlier than the window.
+    // Whether the first date is an arrival or a departure depends entirely on
+    // the night before it, and without that the first cell of every calendar
+    // would be drawn wrong.
+    const edgeFrom = addDays(from, -1);
+
     const [blocked, rates, held] = await Promise.all([
-      this.lodgify.getUnavailableNights(from, to),
+      this.lodgify.getUnavailableNights(edgeFrom, to),
       this.lodgify.getRateCalendar(from, to),
-      this.heldNights(from, to),
+      this.heldNights(edgeFrom, to),
     ]);
+
+    /**
+     * Whether a party is in the villa that night — from bookings and holds
+     * alone, deliberately ignoring whether the date has passed.
+     *
+     * Display status marks past nights TAKEN so nobody tries to hold one, and
+     * reusing that here would make today follow an "occupied" night every
+     * single day: the calendar would announce a departure each morning that
+     * never happened.
+     */
+    const occupied = (d: Date): boolean => {
+      const k = day(d);
+      return blocked.has(k) || held.has(k);
+    };
 
     // No currency, no prices. A number without one is only meaningful if you
     // already know whether the estate prices in dollars or pesos, and a broker
@@ -118,10 +138,19 @@ export class BrokerService {
       const rate = priced && night ? night.rate : null;
       if (rate != null) sawRate = true;
 
+      // A stay begins on an occupied night that follows a free one, and ends on
+      // a free night that follows an occupied one. Both are edges of the same
+      // block, which is why they're derived together — and why the departure
+      // day stays sellable while the arrival day does not.
+      const hereOccupied = occupied(c);
+      const beforeOccupied = occupied(addDays(c, -1));
+
       nights.push({
         date,
         status,
         rate,
+        arrivalDay: hereOccupied && !beforeOccupied,
+        departureDay: !hereOccupied && beforeOccupied,
         // Lodgify's minimum when it has one for this date, ours otherwise.
         // The estate sets stay rules where it sets prices; this constant is
         // only what we assume until it hears from them.

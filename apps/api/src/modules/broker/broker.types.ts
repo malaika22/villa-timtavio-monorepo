@@ -20,6 +20,17 @@ export interface AvailabilityNight {
   rate: number | null;
   /** Minimum nights for a stay arriving on this date. */
   minNights: number;
+  /**
+   * A stay begins here — free until the afternoon, sold from it. The night is
+   * gone, so this is not a date a broker can arrive on.
+   */
+  arrivalDay: boolean;
+  /**
+   * A stay ends here — occupied until the morning, free after. The night is
+   * sellable, which is what makes this worth showing at all: without it, a
+   * changeover looks identical to a date nobody ever booked.
+   */
+  departureDay: boolean;
 }
 
 export interface AvailabilityWindow {
