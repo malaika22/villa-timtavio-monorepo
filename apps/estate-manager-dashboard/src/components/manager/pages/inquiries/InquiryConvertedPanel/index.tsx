@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
+
+import { stayDate, stayDateWithYear } from '@/lib/stay-date';
 import { BookMarked, Send } from 'lucide-react';
 import { Button } from '@repo/ui';
 
@@ -70,8 +72,7 @@ export function InquiryConvertedPanel({ inquiry }: Props) {
         </p>
         <p className="text-manager-text-muted">{booking.primaryGuest.email}</p>
         <p className="mt-2 text-manager-text-muted">
-          {format(parseISO(booking.checkIn), 'MMM d')} –{' '}
-          {format(parseISO(booking.checkOut), 'MMM d, yyyy')} ·{' '}
+          {stayDate(booking.checkIn)} – {stayDateWithYear(booking.checkOut)} ·{' '}
           {booking.totalGuests} guests · Lodgify #{booking.lodgifyId}
         </p>
       </div>

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
+
+import { stayDate, stayDateLong, stayDateWithYear } from '@/lib/stay-date';
 import {
   CalendarClock,
   Check,
@@ -200,7 +202,7 @@ const forLodgify = (hold: BrokerHold): string =>
   [
     `${hold.brokerName}${hold.brokerAgency ? ` (${hold.brokerAgency})` : ''}`,
     hold.brokerEmail ?? 'no email recorded',
-    `${format(parseISO(hold.checkIn), 'd MMM yyyy')} → ${format(parseISO(hold.checkOut), 'd MMM yyyy')}`,
+    `${stayDateWithYear(hold.checkIn)} → ${stayDateWithYear(hold.checkOut)}`,
     `${hold.nights} nights · ${hold.guestCount ?? '?'} guests`,
   ].join('\n');
 
@@ -249,8 +251,7 @@ const HoldCard = ({
           </div>
 
           <p className="mt-1.5 text-sm text-manager-text">
-            {format(parseISO(hold.checkIn), 'EEE d MMM')} —{' '}
-            {format(parseISO(hold.checkOut), 'EEE d MMM yyyy')}
+            {stayDate(hold.checkIn)} — {stayDateLong(hold.checkOut)}
             <span className="text-manager-text-muted">
               {' '}
               · {hold.nights} nights

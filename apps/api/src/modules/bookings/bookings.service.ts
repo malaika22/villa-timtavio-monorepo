@@ -468,6 +468,73 @@ export class BookingsService {
    * response actually covered. Set LODGIFY_RECONCILE_DELETIONS=false to
    * disable it entirely without a deploy.
    */
+  /**
+   * Cancels a booking Lodgify still returns but no longer counts as a stay.
+   *
+   * Declined and open reservations reach us through the same list as real
+   * ones, so the deletion reconciler — which looks for absence — never sees
+   * them. This is the other half: Lodgify has told us plainly what the
+   * reservation is, so there is no ambiguity to be careful about and no need
+   * for the guards that surround a judgement made from silence.
+   *
+   * Idempotent, because the poller runs every five minutes and will hand us
+   * the same declined reservation each time until somebody deletes it there.
+   */
+  async cancelIfNoLongerAStay(
+    lodgifyId: unknown,
+    reason: string,
+  ): Promise<boolean> {
+    if (lodgifyId == null) return false;
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { lodgifyId: String(lodgifyId) },
+      select: { id: true, status: true },
+    });
+
+    // Already cancelled, or a reservation we never synced in the first place.
+    if (!booking || booking.status === 'CANCELLED') return false;
+
+    // A stay the guest is already on, or has finished, is not something to
+    // undo from a status field — the estate housed them.
+    if (
+      booking.status === 'CHECKED_IN' ||
+      booking.status === 'CHECKED_OUT' ||
+      booking.status === 'SETTLED' ||
+      booking.status === 'DEPARTURE_TODAY'
+    ) {
+      this.logger.warn(
+        `Lodgify reports ${lodgifyId} as "${reason}", but the stay is ${booking.status} — left alone`,
+      );
+      return false;
+    }
+
+    await this.prisma.booking.update({
+      where: { id: booking.id },
+      data: { status: 'CANCELLED' },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'BOOKING_STATUS_CHANGED',
+        entityType: 'Booking',
+        entityId: booking.id,
+        performedBy: 'system',
+        performedByRole: 'system',
+        bookingId: booking.id,
+        afterState: {
+          status: 'CANCELLED',
+          reason: `Lodgify reports this reservation as "${reason}"`,
+          lodgifyId: String(lodgifyId),
+        } as any,
+      },
+    });
+
+    this.logger.warn(
+      `Cancelled booking ${booking.id} — Lodgify reports "${reason}" (${lodgifyId})`,
+    );
+    return true;
+  }
+
   async reconcileDeletedFromLodgify(items: any[]): Promise<number> {
     if (process.env.LODGIFY_RECONCILE_DELETIONS === 'false') return 0;
 
