@@ -6,6 +6,7 @@ import { format, parseISO } from 'date-fns';
 import { stayDate, stayDateLong, stayDateWithYear } from '@/lib/stay-date';
 import {
   CalendarClock,
+  CalendarX,
   Check,
   ChevronDown,
   Copy,
@@ -24,11 +25,11 @@ import {
 import type { BrokerHold } from '@repo/api-types';
 
 import { toast } from 'sonner';
+import { BrokerHoldReleaseDialog } from '@/components/manager/pages/broker-holds/BrokerHoldReleaseDialog';
 import {
   useBrokerHolds,
   useConfirmHold,
   useDeleteHold,
-  useReleaseHold,
 } from '@/hooks/useBrokerHolds';
 
 const STATUS_STYLES: Record<BrokerHold['status'], string> = {
@@ -62,9 +63,12 @@ const countdown = (hold: BrokerHold): string => {
 export const BrokerHoldsPage = () => {
   const { data: holds, isLoading, isError } = useBrokerHolds();
   const confirm = useConfirmHold();
-  const release = useReleaseHold();
   const remove = useDeleteHold();
   const [acting, setActing] = useState<string | null>(null);
+  // One dialog for the whole list rather than one per card: releasing is now
+  // a confirmed action for pending holds too, since either way it sends the
+  // broker an email.
+  const [releasing, setReleasing] = useState<BrokerHold | null>(null);
   // Resolved holds start folded away. They are reassurance, not work, and with
   // contact details on every card an open list of them buried the two or three
   // that actually need Rodrigo.
@@ -136,13 +140,7 @@ export const BrokerHoldsPage = () => {
                   setActing(hold.id);
                   confirm.mutate(hold.id, { onSettled: () => setActing(null) });
                 }}
-                onRelease={() => {
-                  setActing(hold.id);
-                  release.mutate(
-                    { id: hold.id },
-                    { onSettled: () => setActing(null) },
-                  );
-                }}
+                onRelease={() => setReleasing(hold)}
               />
             ))}
           </div>
@@ -177,6 +175,14 @@ export const BrokerHoldsPage = () => {
                   key={hold.id}
                   hold={hold}
                   busy={acting === hold.id}
+                  // A confirmed hold is released, not deleted — that row is
+                  // how a booking came about. Releasing it stops it holding
+                  // nights and then, and only then, it can be removed.
+                  onRelease={
+                    hold.status === 'CONFIRMED'
+                      ? () => setReleasing(hold)
+                      : undefined
+                  }
                   onDelete={
                     hold.status === 'CONFIRMED'
                       ? undefined
@@ -193,8 +199,47 @@ export const BrokerHoldsPage = () => {
           )}
         </section>
       )}
+
+      {releasing && (
+        <BrokerHoldReleaseDialog
+          key={releasing.id}
+          open
+          onOpenChange={(next) => {
+            if (!next) setReleasing(null);
+          }}
+          hold={releasing}
+        />
+      )}
     </div>
   );
+};
+
+const RELEASE_MARKER = '\n— Released: ';
+const RELEASE_ONLY = 'Released: ';
+
+/**
+ * `note` carries two authors: what the broker typed when placing the hold,
+ * and — once released — the estate's reason appended underneath.
+ *
+ * Split so they are not run together inside one pair of quotation marks. The
+ * card quotes the note as the broker's words, and a newline collapses in
+ * HTML, so appending without this renders "Ana Ruiz — 40th birthday —
+ * Released: test row" as a single sentence the broker appears to have said.
+ */
+const splitNote = (
+  note: string,
+): { broker: string | null; release: string | null } => {
+  const at = note.lastIndexOf(RELEASE_MARKER);
+  if (at !== -1) {
+    return {
+      broker: note.slice(0, at).trim() || null,
+      release: note.slice(at + RELEASE_MARKER.length).trim() || null,
+    };
+  }
+  // Released with a reason but no note of the broker's own.
+  return note.startsWith(RELEASE_ONLY)
+    ? { broker: null, release: note.slice(RELEASE_ONLY.length).trim() || null }
+    : { broker: note, release: null };
 };
 
 /** Everything Lodgify asks for, in one clipboard paste. */
@@ -205,6 +250,26 @@ const forLodgify = (hold: BrokerHold): string =>
     `${stayDateWithYear(hold.checkIn)} → ${stayDateWithYear(hold.checkOut)}`,
     `${hold.nights} nights · ${hold.guestCount ?? '?'} guests`,
   ].join('\n');
+
+const HoldNote = ({ note }: { note: string }) => {
+  const { broker, release } = splitNote(note);
+
+  return (
+    <div className="mt-2 max-w-[60ch] space-y-1.5 rounded-lg bg-manager-bg px-3 py-2">
+      {broker && (
+        <p className="text-xs italic text-manager-text-muted">
+          &ldquo;{broker}&rdquo;
+        </p>
+      )}
+      {release && (
+        <p className="text-xs text-manager-text-muted">
+          <span className="font-medium text-manager-text">Released:</span>{' '}
+          {release}
+        </p>
+      )}
+    </div>
+  );
+};
 
 const HoldCard = ({
   hold,
@@ -288,11 +353,7 @@ const HoldCard = ({
             )}
           </p>
 
-          {hold.note && (
-            <p className="mt-2 max-w-[60ch] rounded-lg bg-manager-bg px-3 py-2 text-xs italic text-manager-text-muted">
-              &ldquo;{hold.note}&rdquo;
-            </p>
-          )}
+          {hold.note && <HoldNote note={hold.note} />}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -311,6 +372,21 @@ const HoldCard = ({
             <Copy className="mr-1.5 size-3.5" />
             Copy for Lodgify
           </Button>
+
+          {/* Only on a resolved card — a pending hold's Release sits with its
+              Confirm below, where the two decisions belong together. */}
+          {!pending && onRelease && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onRelease}
+              disabled={busy}
+              className="border-manager-border bg-white text-manager-text"
+            >
+              <CalendarX className="mr-1.5 size-3.5" />
+              Release
+            </Button>
+          )}
 
           {onDelete && (
             <Button

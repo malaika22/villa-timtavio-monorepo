@@ -40,7 +40,12 @@ export function useReleaseHold() {
     onSuccess: (hold) => {
       void qc.invalidateQueries({ queryKey: ['broker-holds'] });
       toast.success(`Released — those nights are open again`, {
-        description: `Let ${hold.brokerName} know.`,
+        // The API emails the broker now, so the old "let them know" is an
+        // instruction to do a thing that has already happened. Holds placed
+        // before the email field existed still need the phone call.
+        description: hold.brokerEmail
+          ? `${hold.brokerName} has been emailed.`
+          : `No email on record — let ${hold.brokerName} know.`,
       });
     },
     onError: (e) => toast.error((e as Error).message),
@@ -48,11 +53,12 @@ export function useReleaseHold() {
 }
 
 /**
- * Clears out a hold nobody acted on.
+ * Clears out a hold that came to nothing.
  *
  * Confirmed holds are refused by the API — that row is the record of how a
  * booking came about, and the estate's answer if a broker ever says they held
- * dates that were given away.
+ * dates that were given away. Release it first and it can then be removed;
+ * the two steps are what keep a tidy-up from quietly erasing the trail.
  */
 export function useDeleteHold() {
   const qc = useQueryClient();
