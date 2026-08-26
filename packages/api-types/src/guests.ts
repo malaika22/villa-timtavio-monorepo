@@ -45,6 +45,42 @@ export interface GuestWithBookings extends GuestSummary {
   primaryBookings: BookingSummaryForGuest[];
 }
 
+/** A folio line as the profile endpoint returns it. Decimal on the wire. */
+export interface FolioItemForGuest {
+  id: string;
+  description: string;
+  amount: string;
+  quantity: number;
+}
+
+export interface ExperienceRequestForGuest {
+  id: string;
+  preferredDate: string;
+  confirmedDate?: string | null;
+  status:
+    | 'PENDING'
+    | 'CONFLICT'
+    | 'CONFIRMED'
+    | 'IN_PROGRESS'
+    | 'READY'
+    | 'COMPLETED'
+    | 'CANCELLED';
+  catalogItem?: { name?: string | null } | null;
+}
+
+/**
+ * What `/guests/:id/profile` actually sends back per booking.
+ *
+ * The endpoint includes folio items and experience requests and always has —
+ * it sums the folio to work out lifetime spend. Only the type stopped short,
+ * so the dashboard believed a guest's stay history and their booked
+ * experiences were unavailable and rendered "none on file" for both.
+ */
+export interface BookingDetailForGuest extends BookingSummaryForGuest {
+  folioItems?: FolioItemForGuest[];
+  experienceRequests?: ExperienceRequestForGuest[];
+}
+
 export interface GuestProfileStats {
   totalVisits: number;
   lifetimeSpend: number;
@@ -53,7 +89,7 @@ export interface GuestProfileStats {
 }
 
 export interface GuestProfile extends GuestSummary {
-  primaryBookings: BookingSummaryForGuest[];
+  primaryBookings: BookingDetailForGuest[];
   crmNotes: CrmNote[];
   stats: GuestProfileStats;
   preStockSuggestions: {

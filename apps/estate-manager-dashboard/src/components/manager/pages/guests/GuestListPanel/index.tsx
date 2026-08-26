@@ -109,76 +109,76 @@ export const GuestListPanel = ({
   const visiblePast = filter === 'all' ? past : [];
 
   return (
-  <aside className="flex w-full shrink-0 flex-col border-r border-[#ebe6df] bg-white lg:w-[288px]">
-    <div className="shrink-0 border-b border-[#ebe6df] px-3 py-2.5">
-      <div className="relative">
-        <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-[#a8a29e]" />
-        <Input
-          value={search}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search guests..."
-          className="h-9 rounded-md border-[#e5e0d8] bg-white pl-8 text-[13px] shadow-none placeholder:text-[#a8a29e]"
-        />
+    <aside className="flex w-full shrink-0 flex-col border-r border-[#ebe6df] bg-white lg:w-[288px]">
+      <div className="shrink-0 border-b border-[#ebe6df] px-3 py-2.5">
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-[#a8a29e]" />
+          <Input
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search guests..."
+            className="h-9 rounded-md border-[#e5e0d8] bg-white pl-8 text-[13px] shadow-none placeholder:text-[#a8a29e]"
+          />
+        </div>
+
+        <div className="mt-2 flex flex-wrap gap-1">
+          {FILTERS.map((f) => {
+            const count =
+              f.id === 'all'
+                ? current.length
+                : current.filter((g) => matchesFilter(g, f.id)).length;
+            return (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setFilter(f.id)}
+                aria-pressed={filter === f.id}
+                className={cn(
+                  'rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors',
+                  filter === f.id
+                    ? 'bg-manager-accent text-white'
+                    : 'border border-[#e5e0d8] bg-white text-manager-text-muted',
+                )}
+              >
+                {f.label}
+                {count > 0 && f.id !== 'all' ? ` ${count}` : ''}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="mt-2 flex flex-wrap gap-1">
-        {FILTERS.map((f) => {
-          const count =
-            f.id === 'all'
-              ? current.length
-              : current.filter((g) => matchesFilter(g, f.id)).length;
-          return (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setFilter(f.id)}
-              aria-pressed={filter === f.id}
-              className={cn(
-                'rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors',
-                filter === f.id
-                  ? 'bg-manager-accent text-white'
-                  : 'border border-[#e5e0d8] bg-white text-manager-text-muted',
-              )}
-            >
-              {f.label}
-              {count > 0 && f.id !== 'all' ? ` ${count}` : ''}
-            </button>
-          );
-        })}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {visibleCurrent.length === 0 && visiblePast.length === 0 ? (
+          <p className="px-3 py-8 text-center text-[12px] text-manager-text-muted">
+            No guests match that filter.
+          </p>
+        ) : null}
+
+        {visibleCurrent.map((guest) => (
+          <GuestListRow
+            key={guest.id}
+            guest={guest}
+            selected={guest.id === selectedId}
+            onSelect={() => onSelect(guest.id)}
+          />
+        ))}
+
+        {visiblePast.length > 0 && (
+          <p className="border-b border-[#ebe6df] px-3 py-2 text-[10px] font-medium tracking-[0.14em] text-manager-text-muted uppercase">
+            Past Guests
+          </p>
+        )}
+
+        {visiblePast.map((guest) => (
+          <GuestListRow
+            key={guest.id}
+            guest={guest}
+            selected={guest.id === selectedId}
+            onSelect={() => onSelect(guest.id)}
+          />
+        ))}
       </div>
-    </div>
-
-    <div className="min-h-0 flex-1 overflow-y-auto">
-      {visibleCurrent.length === 0 && visiblePast.length === 0 ? (
-        <p className="px-3 py-8 text-center text-[12px] text-manager-text-muted">
-          No guests match that filter.
-        </p>
-      ) : null}
-
-      {visibleCurrent.map((guest) => (
-        <GuestListRow
-          key={guest.id}
-          guest={guest}
-          selected={guest.id === selectedId}
-          onSelect={() => onSelect(guest.id)}
-        />
-      ))}
-
-      {visiblePast.length > 0 && (
-        <p className="border-b border-[#ebe6df] px-3 py-2 text-[10px] font-medium tracking-[0.14em] text-manager-text-muted uppercase">
-          Past Guests
-        </p>
-      )}
-
-      {visiblePast.map((guest) => (
-        <GuestListRow
-          key={guest.id}
-          guest={guest}
-          selected={guest.id === selectedId}
-          onSelect={() => onSelect(guest.id)}
-        />
-      ))}
-    </div>
-  </aside>
+    </aside>
   );
 };

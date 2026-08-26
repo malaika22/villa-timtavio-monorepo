@@ -1,9 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Button,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -42,6 +49,19 @@ const STATUS_CYCLE: BookingStatus[] = [
   'CHECKED_OUT',
 ];
 
+/**
+ * The states in which checking someone out is a real thing to do.
+ *
+ * It used to be offered unconditionally, so the most prominent button on the
+ * screen sat next to a guest arriving in three months and would capture their
+ * folio if pressed. Confirmed is excluded on purpose: they have not arrived.
+ */
+const CHECKOUT_READY: BookingStatus[] = [
+  'CHECKED_IN',
+  'SETTLED',
+  'DEPARTURE_TODAY',
+];
+
 const btn =
   'h-8 gap-1.5 rounded-md border-[#e5e0d8] bg-white px-3.5 text-[13px] font-medium text-manager-text shadow-none hover:bg-[#faf9f7]';
 
@@ -54,6 +74,11 @@ export const GuestQuickActions = ({
   const bookingId = profile.activeBookingId ?? null;
   const sendLink = useSendMagicLink();
   const checkout = useCheckout(bookingId);
+  const [confirmingCheckout, setConfirmingCheckout] = useState(false);
+
+  const canCheckout =
+    profile.bookingStatus != null &&
+    CHECKOUT_READY.includes(profile.bookingStatus);
 
   const statusMutation = useMutation({
     mutationFn: (status: BookingStatus) =>
@@ -146,15 +171,12 @@ export const GuestQuickActions = ({
 
       {/* Checkout */}
       <Button
-        className="h-8 gap-1.5 rounded-md border-0 bg-manager-accent px-3.5 text-[13px] font-medium text-white shadow-none hover:bg-manager-accent-muted"
-        disabled={checkout.isPending}
-        onClick={() => {
-          if (confirm('Check out this guest and capture the folio?'))
-            checkout.mutate(undefined, {
-              onSuccess: () => toast.success('Guest checked out'),
-              onError: (e) => toast.error((e as Error).message),
-            });
-        }}
+        className="h-8 gap-1.5 rounded-md border-0 bg-manager-accent px-3.5 text-[13px] font-medium text-white shadow-none hover:bg-manager-accent-muted disabled:opacity-40"
+        disabled={checkout.isPending || !canCheckout}
+        title={
+          canCheckout ? undefined : 'Available once the guest has checked in'
+        }
+        onClick={() => setConfirmingCheckout(true)}
       >
         {checkout.isPending ? (
           <Loader2 className="size-3.5 animate-spin" />
@@ -163,6 +185,54 @@ export const GuestQuickActions = ({
         )}
         Checkout
       </Button>
+
+      {/* A native confirm() for an action that captures a folio and closes a
+          stay. Same dialog pattern as everywhere else in this dashboard, so
+          what is about to happen is named before it happens. */}
+      <Dialog open={confirmingCheckout} onOpenChange={setConfirmingCheckout}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center">
+              Check out {profile.name}?
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              This closes the stay and captures the folio
+              {profile.stay
+                ? ` — ${profile.stay.nights} ${profile.stay.nights === 1 ? 'night' : 'nights'}, party of ${profile.stay.totalGuests}`
+                : ''}
+              . Charges can no longer be added afterwards.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="gap-2 sm:gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={checkout.isPending}
+              onClick={() => setConfirmingCheckout(false)}
+              className="flex-1 border-manager-border"
+            >
+              Not yet
+            </Button>
+            <Button
+              type="button"
+              disabled={checkout.isPending}
+              onClick={() =>
+                checkout.mutate(undefined, {
+                  onSuccess: () => {
+                    toast.success('Guest checked out');
+                    setConfirmingCheckout(false);
+                  },
+                  onError: (e) => toast.error((e as Error).message),
+                })
+              }
+              className="flex-1 bg-manager-accent text-white hover:bg-manager-accent-muted"
+            >
+              {checkout.isPending ? 'Checking out…' : 'Check out'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { BookingStatus, PriceUnit } from '@repo/api-types';
+import { BookingStatus, ManifestStatus, PriceUnit } from '@repo/api-types';
 
 export type GuestStayStatus =
   | 'Settled'
@@ -29,6 +29,8 @@ export type GuestDNAProfile = {
   name: string;
   initials: string;
   summary: string;
+  email?: string;
+  phone?: string | null;
   tags: string[];
   dietary: string[];
   beverage: string[];
@@ -47,11 +49,28 @@ export type GuestDNAProfile = {
     isCurrent?: boolean;
     villa: string;
     duration: string;
-    experiences: string;
+    /** What became of the stay — checked out, cancelled, still to come. */
+    outcome: string;
     folioTotal: string;
   }[];
   activeBookingId?: string | null;
   bookingStatus?: BookingStatus;
+  /**
+   * The stay this guest is here for, or next arriving on.
+   *
+   * The mapper used to find this booking, keep its id and status, and throw
+   * the rest away — so the panel could act on a stay it could not show you.
+   */
+  stay?: {
+    id: string;
+    checkIn: string;
+    checkOut: string;
+    nights: number;
+    totalGuests: number;
+    roomNumber: number | null;
+    manifestStatus: ManifestStatus;
+    status: BookingStatus;
+  } | null;
   totalVisits?: number;
   lifetimeSpend?: number;
   specialOccasions?: string | null;
