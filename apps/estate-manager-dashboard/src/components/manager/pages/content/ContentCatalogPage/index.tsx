@@ -188,8 +188,9 @@ export const ContentCatalogPage = () => {
           <p className="-mt-2 text-xs text-manager-text-muted">
             Bulk import: upload a <span className="font-medium">.csv</span> file
             (export your catalog spreadsheet as CSV first). Each{' '}
-            <span className="font-medium">Category</span> becomes a filter, and a
-            placeholder image is added that you can replace per experience.
+            <span className="font-medium">Category</span> becomes a filter.
+            Photographs are added per experience afterwards; until then each
+            card shows its category&rsquo;s mark.
           </p>
 
           {isLoading ? (

@@ -244,7 +244,15 @@ export const ExperienceFormDialog = ({
       hostTitle: values.hostTitle || undefined,
       hostAvatarUrl: values.hostAvatarUrl || undefined,
       hostReviewNote: values.hostReviewNote || undefined,
-      isActive: true,
+      /**
+       * Whatever it already was, when editing.
+       *
+       * This was a hardcoded `true`, so correcting a typo on an experience
+       * hidden from guests quietly published it — and the dialog said nothing,
+       * so the estate found out from the guest app. Visibility belongs to the
+       * toggle on the card; the form has no business touching it.
+       */
+      isActive: isEditing && experience ? experience.active : true,
     };
 
     if (isEditing && experience) {

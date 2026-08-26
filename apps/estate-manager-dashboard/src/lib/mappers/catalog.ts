@@ -29,17 +29,6 @@ const SLUG_TO_UI_CATEGORY: Record<string, ContentExperienceCategory> = {
   culture: 'culture',
 };
 
-const IMAGE_TONE_MAP: Record<
-  ContentExperienceCategory,
-  ContentExperience['imageTone']
-> = {
-  dining: 'dining',
-  water: 'water',
-  wellness: 'wellness',
-  wine: 'wine',
-  culture: 'culture',
-};
-
 function resolveUiCategory(item: CatalogItem): ContentExperienceCategory {
   const slug = item.experienceCategory?.slug;
   if (slug && SLUG_TO_UI_CATEGORY[slug]) {
@@ -63,6 +52,7 @@ export function mapCatalogItemToContentExperience(
     category,
     categoryLabel,
     categorySlug: item.experienceCategory?.slug,
+    categoryGlyph: item.experienceCategory?.glyph ?? null,
     experienceCategoryId: item.experienceCategoryId,
     description: item.description,
     pricing: item.isIncluded ? 'included' : 'chargeable',
@@ -87,6 +77,5 @@ export function mapCatalogItemToContentExperience(
     hostTitle: item.hostTitle,
     hostAvatarUrl: item.hostAvatarUrl,
     hostReviewNote: item.hostReviewNote,
-    imageTone: item.isActive ? IMAGE_TONE_MAP[category] : 'inactive',
   };
 }
