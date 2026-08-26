@@ -102,18 +102,29 @@ export class BrokerService {
     ]);
 
     /**
-     * Whether a party is in the villa that night — from bookings and holds
-     * alone, deliberately ignoring whether the date has passed.
+     * Whether a party is in the villa that night — from Lodgify alone.
      *
-     * Display status marks past nights TAKEN so nobody tries to hold one, and
-     * reusing that here would make today follow an "occupied" night every
-     * single day: the calendar would announce a departure each morning that
-     * never happened.
+     * Holds were counted here too, and they should not have been. A hold is a
+     * claim on a night, not somebody sleeping in the house, so treating one as
+     * occupancy invented changeovers and hid real ones:
+     *
+     *   6 Oct read "a party leaves this morning" and drew the half-shaded
+     *   wedge, when all that happened was a broker's hold over the 4th and 5th
+     *   running out. Nobody was ever in the villa on the 5th.
+     *
+     *   17 Oct is Ludwig arriving, and lost its wedge entirely, because the
+     *   night before it was held by a broker rather than free.
+     *
+     * A held night is already drawn dashed, which says everything a broker
+     * needs about it. Arrival and departure are about the villa being lived
+     * in, and only Lodgify knows that.
+     *
+     * Still deliberately ignoring whether the date has passed: display status
+     * marks past nights TAKEN so nobody tries to hold one, and reusing that
+     * here would make today follow an "occupied" night every single day — the
+     * calendar would announce a departure each morning that never happened.
      */
-    const occupied = (d: Date): boolean => {
-      const k = day(d);
-      return blocked.has(k) || held.has(k);
-    };
+    const occupied = (d: Date): boolean => blocked.has(day(d));
 
     // No currency, no prices. A number without one is only meaningful if you
     // already know whether the estate prices in dollars or pesos, and a broker
