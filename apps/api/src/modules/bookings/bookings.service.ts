@@ -395,6 +395,27 @@ export class BookingsService {
         : undefined;
 
     const peopleCount = Number(lodgifyData.people_count);
+
+    // A cancelled booking Lodgify is still selling comes back.
+    //
+    // This path is only reached for a reservation that passed the mapper —
+    // Lodgify actively counts it as a stay. So a CANCELLED row arriving here
+    // is a disagreement, and Lodgify is the source of truth for whether a
+    // reservation exists. Until now status was never written on update, so the
+    // disagreement was permanent: a booking cancelled in error stayed
+    // cancelled through every five-minute poll for ever, invisible in Guests
+    // and Folio while Lodgify showed it as Booked.
+    //
+    // That is not hypothetical. The old deletion reconciler judged a booking
+    // absent if it missed one page of results, and there was no way back.
+    //
+    // Only CANCELLED is reversed. CHECKED_OUT and SETTLED are things the
+    // estate did to a stay it housed, and no sync should undo them.
+    const current = await this.prisma.booking.findUnique({
+      where: { lodgifyId: String(lodgifyData.id) },
+      select: { id: true, status: true },
+    });
+
     const booking = await this.prisma.booking.update({
       where: { lodgifyId: String(lodgifyData.id) },
       data: {
@@ -405,9 +426,33 @@ export class BookingsService {
           ? { totalGuests: peopleCount }
           : {}),
         ...(baseRate != null ? { baseRate } : {}),
+        ...(current?.status === 'CANCELLED'
+          ? { status: BookingStatus.CONFIRMED }
+          : {}),
         lodgifyRawData: lodgifyData,
       },
     });
+
+    if (current?.status === 'CANCELLED') {
+      await this.prisma.auditLog.create({
+        data: {
+          action: 'BOOKING_STATUS_CHANGED',
+          entityType: 'Booking',
+          entityId: booking.id,
+          performedBy: 'system',
+          performedByRole: 'system',
+          bookingId: booking.id,
+          afterState: {
+            status: 'CONFIRMED',
+            reason: 'Lodgify still holds this reservation — un-cancelled',
+            lodgifyId: String(lodgifyData.id),
+          } as any,
+        },
+      });
+      this.logger.warn(
+        `Restored booking ${booking.id} to CONFIRMED — Lodgify still holds ${lodgifyData.id}`,
+      );
+    }
 
     // Backfill the primary guest's real name when it's still the "Guest"
     // placeholder (Lodgify now provides it, or the linked inquiry does).
