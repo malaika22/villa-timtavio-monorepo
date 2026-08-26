@@ -141,7 +141,8 @@ export interface CreateCatalogItemDto {
   durationMinutes?: number;
   durationLabel?: string;
   photoUrls?: string[];
-  primaryPhotoUrl?: string;
+  /** Null clears the cover. Undefined leaves whatever is stored alone. */
+  primaryPhotoUrl?: string | null;
   isMultiDay?: boolean;
   multiDayDuration?: number;
   availableTimeSlots?: string[];

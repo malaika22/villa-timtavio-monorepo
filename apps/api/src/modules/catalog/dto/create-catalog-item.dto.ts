@@ -1,11 +1,12 @@
 import {
-  IsString,
-  IsEnum,
-  IsBoolean,
-  IsOptional,
-  IsInt,
   IsArray,
+  IsBoolean,
+  IsEnum,
+  IsInt,
   IsNumber,
+  IsOptional,
+  IsString,
+  ValidateIf,
 } from 'class-validator';
 import { CatalogCategory } from '@prisma/client';
 
@@ -43,9 +44,18 @@ export class CreateCatalogItemDto {
   @IsArray()
   photoUrls?: string[];
 
+  /**
+   * Null clears it. `@IsOptional` alone would not: it skips validation for
+   * undefined and null both, but an *absent* field is dropped by
+   * JSON.stringify and never reaches Prisma, so the column keeps whatever it
+   * had. Removing the last photo in the dashboard looked like it worked and
+   * the cover image came back on the next load. Null is the difference
+   * between "I'm not saying" and "there isn't one".
+   */
   @IsOptional()
+  @ValidateIf((_, value) => value !== null)
   @IsString()
-  primaryPhotoUrl?: string;
+  primaryPhotoUrl?: string | null;
 
   @IsOptional()
   @IsBoolean()

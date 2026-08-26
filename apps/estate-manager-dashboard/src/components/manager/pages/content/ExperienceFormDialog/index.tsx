@@ -174,7 +174,10 @@ export const ExperienceFormDialog = ({
   const isIncluded = useWatch({ control: form.control, name: 'isIncluded' });
 
   // Show Rodrigo the rate exactly as a guest will read it while he types.
-  const watchedBasePrice = useWatch({ control: form.control, name: 'basePrice' });
+  const watchedBasePrice = useWatch({
+    control: form.control,
+    name: 'basePrice',
+  });
   const watchedPriceMax = useWatch({ control: form.control, name: 'priceMax' });
   const watchedPriceUnitId = useWatch({
     control: form.control,
@@ -189,7 +192,11 @@ export const ExperienceFormDialog = ({
     });
     if (!estimate) return '';
     return formatEstimateWorking(
-      { basePrice: watchedBasePrice, priceMax: watchedPriceMax, priceUnit: unit },
+      {
+        basePrice: watchedBasePrice,
+        priceMax: watchedPriceMax,
+        priceUnit: unit,
+      },
       estimate,
     );
   }, [priceUnits, watchedPriceUnitId, watchedBasePrice, watchedPriceMax]);
@@ -210,15 +217,24 @@ export const ExperienceFormDialog = ({
       durationLabel,
       basePrice: values.isIncluded ? undefined : values.basePrice,
       priceMax: values.isIncluded ? undefined : values.priceMax,
-      priceUnitId: values.isIncluded ? undefined : values.priceUnitId || undefined,
+      priceUnitId: values.isIncluded
+        ? undefined
+        : values.priceUnitId || undefined,
       isIncluded: values.isIncluded,
       vendorId: values.vendorId || undefined,
       breezeWayTeamId: values.breezeWayTeamId || undefined,
       needsSetupTask: values.needsSetupTask,
       photoUrls: values.photoUrls ?? [],
-      // The primary is always one of the gallery images; fall back to the first.
-      primaryPhotoUrl:
-        values.primaryPhotoUrl || values.photoUrls?.[0] || undefined,
+      /**
+       * Null, not undefined, when every photo has been removed.
+       *
+       * Undefined is dropped by JSON.stringify, so the field never reached
+       * the API and Prisma left the column exactly as it was — you could
+       * remove the last image, save, and watch the cover come back. The
+       * gallery cleared because an empty array does serialise; only the cover
+       * survived, which is the one the guest actually sees.
+       */
+      primaryPhotoUrl: values.primaryPhotoUrl || values.photoUrls?.[0] || null,
       maxGuestCount: values.maxGuestCount,
       included: (values.included ?? '')
         .split('\n')
@@ -240,7 +256,8 @@ export const ExperienceFormDialog = ({
     onOpenChange(false);
   });
 
-  const photoUrls = useWatch({ control: form.control, name: 'photoUrls' }) ?? [];
+  const photoUrls =
+    useWatch({ control: form.control, name: 'photoUrls' }) ?? [];
   const primaryPhotoUrl =
     useWatch({ control: form.control, name: 'primaryPhotoUrl' }) ?? '';
 
@@ -407,8 +424,8 @@ export const ExperienceFormDialog = ({
                 </div>
                 <FormDescription>
                   Upload one or more photos. The image marked{' '}
-                  <span className="font-medium">Primary</span> is the card cover;
-                  the rest form the guest gallery.
+                  <span className="font-medium">Primary</span> is the card
+                  cover; the rest form the guest gallery.
                 </FormDescription>
               </FormItem>
 
@@ -597,9 +614,7 @@ export const ExperienceFormDialog = ({
 
                   <FormDescription>
                     Guests see this as an <strong>estimate</strong> —
-                    {estimatePreview
-                      ? ` “${estimatePreview}”. `
-                      : ' '}
+                    {estimatePreview ? ` “${estimatePreview}”. ` : ' '}
                     Fill in “Up to” to publish a range when pricing varies with
                     season or group size. The hard quote is set when you confirm
                     the request.
