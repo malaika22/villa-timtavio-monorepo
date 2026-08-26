@@ -1,4 +1,6 @@
 import {
+  HttpException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -10,6 +12,7 @@ import { Queue } from 'bull';
 import { JwtService } from '@nestjs/jwt';
 import { Resend } from 'resend';
 import * as crypto from 'crypto';
+import Redis from 'ioredis';
 import { Auth0ManagementService } from './auth0-management.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SendMagicLinkPayload } from './types';
@@ -20,6 +23,27 @@ import { greeting } from '../../commons/utils/name.util';
 export class MagicLinkService {
   private readonly logger = new Logger(MagicLinkService.name);
   private readonly resend = new Resend(process.env.RESEND_API_KEY);
+
+  /**
+   * Wrong guesses allowed against one address before it goes quiet.
+   *
+   * Five in a quarter of an hour is far more than a guest re-typing a code
+   * out of an email will ever need — most get it right first time and nobody
+   * needs a sixth attempt in fifteen minutes. Someone working through nine
+   * hundred thousand codes at that rate needs decades.
+   */
+  private static readonly MAX_FAILURES = 5;
+  private static readonly FAILURE_WINDOW_SECONDS = 15 * 60;
+
+  /**
+   * Shared across instances, unlike the per-process counter behind the route's
+   * IP limit — the API runs on more than one server, so anything held in
+   * memory is really N separate limits and which one you meet is luck.
+   *
+   * Redis is already here for the job queues. Lazily connected so the process
+   * doesn't fail to boot over a limiter.
+   */
+  private failureStore: Redis | null = null;
 
   constructor(
     private config: ConfigService,
@@ -249,6 +273,81 @@ export class MagicLinkService {
   }
 
   /**
+   * How many wrong guesses this address has made lately, and the machinery to
+   * count them.
+   *
+   * Every one of these fails open. A limiter that cannot reach its store must
+   * let the guest in, not lock them out — the whole point of the change that
+   * made this necessary was that guests were being turned away by something
+   * that had nothing to do with them.
+   */
+  private redis(): Redis | null {
+    if (this.failureStore) return this.failureStore;
+    try {
+      this.failureStore = new Redis({
+        host: this.config.get('REDIS_HOST') || 'localhost',
+        port: Number(this.config.get('REDIS_PORT')) || 6379,
+        password: this.config.get('REDIS_PASSWORD') || undefined,
+        lazyConnect: false,
+        maxRetriesPerRequest: 1,
+        enableOfflineQueue: false,
+      });
+      // Without a handler an ECONNREFUSED from ioredis is an unhandled error
+      // event, which takes the process down — over a rate limiter.
+      this.failureStore.on('error', (err) =>
+        this.logger.warn(`OTP attempt store unavailable: ${err.message}`),
+      );
+    } catch (err) {
+      this.logger.warn(`OTP attempt store unavailable: ${String(err)}`);
+      this.failureStore = null;
+    }
+    return this.failureStore;
+  }
+
+  private failureKey(email: string): string {
+    return `magic-otp-fail:${email.trim().toLowerCase()}`;
+  }
+
+  private async isLockedOut(email: string): Promise<boolean> {
+    const store = this.redis();
+    if (!store) return false;
+    try {
+      const count = Number(await store.get(this.failureKey(email))) || 0;
+      return count >= MagicLinkService.MAX_FAILURES;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Only failures are counted, so a guest signing in never spends budget. */
+  private async recordFailure(email: string): Promise<void> {
+    const store = this.redis();
+    if (!store) return;
+    try {
+      const key = this.failureKey(email);
+      const count = await store.incr(key);
+      // Set on the first failure only, so the window runs from that one and a
+      // steady trickle of guesses can't hold it open indefinitely.
+      if (count === 1) {
+        await store.expire(key, MagicLinkService.FAILURE_WINDOW_SECONDS);
+      }
+    } catch {
+      /* counting is best-effort; never block on it */
+    }
+  }
+
+  /** A correct code wipes the slate — fumbling then succeeding is not suspicious. */
+  private async clearFailures(email: string): Promise<void> {
+    const store = this.redis();
+    if (!store) return;
+    try {
+      await store.del(this.failureKey(email));
+    } catch {
+      /* nothing to do */
+    }
+  }
+
+  /**
    * When a code stops working: the same moment the session it mints would be.
    *
    * MAGIC_LINK_TTL_MINUTES still applies as a floor, so the old lever is not
@@ -289,12 +388,33 @@ export class MagicLinkService {
     // Still not one-time. Link-scanners and callback re-renders touch the URL
     // before the guest does, and rejecting a code because something else
     // already used it locks out the person it belongs to.
+    /**
+     * Wrong guesses, counted against the address rather than the caller.
+     *
+     * The route also has an IP limit, and an IP limit is the wrong shape for
+     * this: anyone rotating addresses walks past it, and a family sharing one
+     * hotel connection all count as the same person. What actually needs
+     * protecting is a particular guest's code.
+     *
+     * Checked before the lookup so a locked-out address costs no database
+     * work, and expressed as a wait rather than a refusal — the guest reading
+     * it is far likelier to be someone fumbling a code than someone attacking
+     * one.
+     */
+    if (await this.isLockedOut(email)) {
+      throw new HttpException(
+        'Too many attempts. Wait fifteen minutes and try again, or send yourself a new link.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
     const record = await this.prisma.magicToken.findFirst({
       where: { otp, email },
       orderBy: { createdAt: 'desc' },
     });
 
     if (!record) {
+      await this.recordFailure(email);
       throw new UnauthorizedException(
         'That code didn’t match. Check the six digits, or send yourself a new link.',
       );
@@ -303,6 +423,10 @@ export class MagicLinkService {
     if (record.expiresAt <= new Date()) {
       // A different fact, and worth its own sentence: nothing is wrong with
       // what they typed, it has simply run out.
+      //
+      // Deliberately not counted as a failed attempt. A real code that has
+      // aged out is a guest holding an old email, and locking them out for
+      // being early to it would be the wrong way round.
       throw new UnauthorizedException(
         'That link has expired. Send yourself a new one to get back in.',
       );
@@ -340,6 +464,11 @@ export class MagicLinkService {
       [`${AUTH0_NAMESPACE}/bookingId`]: record.bookingId,
       [`${AUTH0_NAMESPACE}/guestTier`]: record.guestTier,
     };
+
+    // Right code: forget the fumbles. Only wrong guesses accumulate, so a
+    // guest who mistypes twice and then gets it right starts clean, and
+    // signing in can never spend the budget that locks them out.
+    await this.clearFailures(email);
 
     // Sign first — if this throws (e.g. misconfigured JWT_SECRET) the token is
     // NOT consumed, so the guest can retry the same link once the issue is fixed.
