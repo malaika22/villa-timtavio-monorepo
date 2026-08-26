@@ -58,9 +58,22 @@ export class MagicLinkService {
       });
 
       // Step 2: Generate OTP + store in DB
+      //
+      // The code lasts the stay, not half an hour.
+      //
+      // Thirty minutes made sense for a code typed straight off the screen.
+      // It is wrong for a link that lives in an inbox: guests close the tab,
+      // come back that evening, and tap the same email rather than typing the
+      // address — and were told their code didn't match, on an app they were
+      // in fact still signed into.
+      //
+      // Bounded by the moment access is revoked anyway. jwt.strategy refuses a
+      // guest token 24 hours after checkout, so a code alive past that could
+      // only mint one that is rejected on its first request. Nothing is gained
+      // by outliving it, and an unbounded six-digit code is a very different
+      // proposition — see the throttle on the verify route.
       const otp = crypto.randomInt(100000, 999999).toString();
-      const ttlMinutes = Number(this.config.get('MAGIC_LINK_TTL_MINUTES')) || 30;
-      const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+      const expiresAt = await this.magicTokenExpiry(payload.bookingId);
 
       await this.prisma.magicToken.create({
         data: {
@@ -127,8 +140,9 @@ export class MagicLinkService {
                         and shape every detail of your stay before you arrive.
                       </p>
                       <p class="tt-body" style="margin:14px 0 0 0;font-size:13px;line-height:1.7;color:#8c7261;">
-                        Your private link opens the moment you tap below — it rests
-                        for ${ttlMinutes} minutes before it quietly retires.
+                        Your private link opens the moment you tap below, and
+                        stays yours for the length of your visit — come back to
+                        this message whenever you like.
                       </p>
                     </td>
                   </tr>
@@ -234,28 +248,63 @@ export class MagicLinkService {
     }
   }
 
+  /**
+   * When a code stops working: the same moment the session it mints would be.
+   *
+   * MAGIC_LINK_TTL_MINUTES still applies as a floor, so the old lever is not
+   * silently dead — but it can only extend a very short stay, never shorten a
+   * long one, because shortening is the behaviour that caused the complaint.
+   *
+   * A booking that has gone missing falls back to the floor rather than to
+   * forever. Not knowing when a stay ends is not a reason to issue a code that
+   * never stops working.
+   */
+  private async magicTokenExpiry(bookingId: string): Promise<Date> {
+    const floorMinutes =
+      Number(this.config.get('MAGIC_LINK_TTL_MINUTES')) || 30;
+    const floor = new Date(Date.now() + floorMinutes * 60 * 1000);
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: { checkOut: true },
+    });
+    if (!booking) return floor;
+
+    const revoked = new Date(booking.checkOut.getTime() + 24 * 60 * 60 * 1000);
+    return revoked > floor ? revoked : floor;
+  }
+
   // ─── Verify OTP + Issue JWT ───────────────────────────────────────────────────
 
   async verifyOtpAndIssueToken(
     otp: string,
     email: string,
   ): Promise<{ access_token: string; expires_in: number }> {
-    // Valid within its TTL window (not strictly one-time): email link-scanners
-    // and callback re-renders can touch the URL before the guest does, so we
-    // don't reject a token just because it was already exchanged once — the
-    // 30-min expiry bounds the window and the OTP is private to their inbox.
+    // Looked up without the expiry, then judged — the two used to be one
+    // query, so a stale code and a mistyped one were indistinguishable and
+    // both were reported as "that code didn't match". A guest re-reading six
+    // digits that were correct all along is being sent to look for a mistake
+    // that isn't there.
+    //
+    // Still not one-time. Link-scanners and callback re-renders touch the URL
+    // before the guest does, and rejecting a code because something else
+    // already used it locks out the person it belongs to.
     const record = await this.prisma.magicToken.findFirst({
-      where: { otp, email, expiresAt: { gt: new Date() } },
+      where: { otp, email },
+      orderBy: { createdAt: 'desc' },
     });
 
     if (!record) {
-      // Worded for a typed code, because that is now the likelier path and the
-      // likelier cause is a typo — a guest holding a code should be told to
-      // check it, not to throw it away and request another. The link path
-      // reaches the same message via the callback, where "check the six
-      // digits" still reads sensibly next to a failed link.
       throw new UnauthorizedException(
         'That code didn’t match. Check the six digits, or send yourself a new link.',
+      );
+    }
+
+    if (record.expiresAt <= new Date()) {
+      // A different fact, and worth its own sentence: nothing is wrong with
+      // what they typed, it has simply run out.
+      throw new UnauthorizedException(
+        'That link has expired. Send yourself a new one to get back in.',
       );
     }
 
@@ -324,7 +373,8 @@ export class MagicLinkService {
     if (!booking) return;
 
     const auth0Ids: string[] = [];
-    if (booking.primaryGuest.auth0Id) auth0Ids.push(booking.primaryGuest.auth0Id);
+    if (booking.primaryGuest.auth0Id)
+      auth0Ids.push(booking.primaryGuest.auth0Id);
     for (const guest of booking.manifestGuests) {
       if (guest.auth0UserId) auth0Ids.push(guest.auth0UserId);
     }
@@ -351,7 +401,9 @@ export class MagicLinkService {
       },
     });
 
-    this.logger.log(`Revoked ${auth0Ids.length} sessions for booking ${bookingId}`);
+    this.logger.log(
+      `Revoked ${auth0Ids.length} sessions for booking ${bookingId}`,
+    );
   }
 
   // ─── Resend Magic Link ────────────────────────────────────────────────────────

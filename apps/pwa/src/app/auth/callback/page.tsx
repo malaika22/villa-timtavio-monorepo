@@ -2,10 +2,43 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth/useAuthStore';
+import { config } from '@/config';
+import { decodeJwt } from '@/helpers/jwt';
 import {
   applyAccessToken,
   completeOtpSignIn,
 } from '@/lib/auth/completeOtpSignIn';
+
+/**
+ * The stored session, if there is one and it is still good.
+ *
+ * Null for no token, an undecodable one, one already past its expiry, or one
+ * belonging to somebody else — every case where the right answer is to go
+ * ahead and exchange the code in the URL.
+ */
+function liveSessionFor(email: string | null) {
+  if (typeof window === 'undefined') return null;
+
+  const token = localStorage.getItem('access_token');
+  if (!token) return null;
+
+  const payload = decodeJwt(token);
+  if (!payload?.exp || Date.now() / 1000 > payload.exp) return null;
+
+  const tokenEmail = String(payload.email ?? '').toLowerCase();
+  if (email && tokenEmail !== email.toLowerCase()) return null;
+
+  return {
+    auth0Id: payload.sub,
+    email: payload.email || '',
+    firstName: payload.given_name || '',
+    roles: payload[`${config.AUTH_NAMESPACE_URL}/roles`] || [],
+    bookingId: payload[`${config.AUTH_NAMESPACE_URL}/bookingId`] || '',
+    guestTier: payload[`${config.AUTH_NAMESPACE_URL}/guestTier`] || 'secondary',
+    accessToken: token,
+    tokenExpiry: payload.exp,
+  };
+}
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -59,6 +92,27 @@ export default function AuthCallback() {
     const code = searchParams.get('code');
     const otp = searchParams.get('otp');
     const email = searchParams.get('email');
+
+    /**
+     * Already signed in? Then in they go.
+     *
+     * This page used to exchange the code and nothing else, and the auth
+     * provider deliberately stands down while it is open — so a guest with a
+     * perfectly good session who tapped an old link out of their inbox was
+     * shown a sign-in failure by an app they were already signed into. That is
+     * the whole of the reported "we keep getting logged out": nobody was
+     * logged out, they just came back through the email instead of the tab.
+     *
+     * The session has to be for the same person. A second guest tapping their
+     * own link on a shared iPad must not land in the first one's stay, so an
+     * email that doesn't match falls through to the exchange.
+     */
+    const existing = liveSessionFor(email);
+    if (existing) {
+      setUser(existing);
+      router.replace('/');
+      return;
+    }
     const errorParam = searchParams.get('error');
     const errorDesc = searchParams.get('error_description');
 
@@ -142,12 +196,13 @@ export default function AuthCallback() {
               margin: '0 0 28px',
             }}
           >
-            For your privacy, access links expire automatically. Please contact
-            the estate for a new link.
+            Your code is tied to your stay, so it should keep working for the
+            whole visit. If it doesn&rsquo;t, the estate can send you a new
+            link.
           </p>
           <button
             onClick={() => {
-              window.location.href = `tel:+1234567890`;
+              window.location.href = `tel:${config.ESTATE_PHONE}`;
             }}
             style={{
               width: '100%',
@@ -164,7 +219,7 @@ export default function AuthCallback() {
               cursor: 'pointer',
             }}
           >
-            Contact the estate
+            Call {config.ESTATE_PHONE_DISPLAY}
           </button>
         </div>
       </div>
