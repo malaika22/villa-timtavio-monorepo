@@ -38,6 +38,14 @@ export interface BrokerAvailabilityNight {
   /** YYYY-MM-DD — the night begun by this date. */
   date: string;
   status: BrokerNightStatus;
+  /**
+   * When the hold covering this night lapses, ISO.
+   *
+   * Null when the night isn't held, and null when it is held by a *confirmed*
+   * hold — which ignores the 48-hour clock and has no expiry to show. Both
+   * mean the same thing to a reader: there is no countdown here.
+   */
+  heldUntil: string | null;
   /** Null where neither Lodgify nor the estate's season table has a rate. */
   rate: number | null;
   minNights: number;
@@ -89,7 +97,9 @@ export const BROKER_HOLD_STATUS_LABELS: Record<BrokerHoldStatus, string> = {
  * Hours and minutes left, or null once it's gone. Recomputed on render rather
  * than stored — a countdown persisted anywhere is a countdown that goes stale.
  */
-export function holdTimeLeft(expiresAt: string): { hours: number; minutes: number } | null {
+export function holdTimeLeft(
+  expiresAt: string,
+): { hours: number; minutes: number } | null {
   const ms = new Date(expiresAt).getTime() - Date.now();
   if (ms <= 0) return null;
   return {

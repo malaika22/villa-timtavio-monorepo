@@ -149,6 +149,11 @@ export class BrokerService {
         date,
         status,
         rate,
+        // Only where it means something. A night that is taken rather than
+        // held has no hold behind it, and one that is open has nothing to
+        // count down.
+        heldUntil:
+          status === 'HELD' ? (held.get(date)?.toISOString() ?? null) : null,
         arrivalDay: hereOccupied && !beforeOccupied,
         departureDay: !hereOccupied && beforeOccupied,
         // Lodgify's minimum when it has one for this date, ours otherwise.
@@ -423,7 +428,24 @@ export class BrokerService {
   }
 
   /** Nights spoken for by a live hold — PENDING and still inside its window. */
-  private async heldNights(from: Date, to: Date): Promise<Set<string>> {
+  /**
+   * Nights spoken for by a live hold, and when each stops being spoken for.
+   *
+   * A Set until now, which answered "is this held?" and nothing else. The
+   * calendar wants to tell a broker how long a held night has left, so the
+   * value is the moment it frees:
+   *
+   *   Date  — a pending hold, lapsing then
+   *   null  — held, but with no clock to show
+   *
+   * Null covers a confirmed hold, which ignores the 48 hours entirely. A
+   * countdown there would invent a deadline and send a broker back to nights
+   * that were never going to open.
+   */
+  private async heldNights(
+    from: Date,
+    to: Date,
+  ): Promise<Map<string, Date | null>> {
     const holds = await this.prisma.brokerHold.findMany({
       where: {
         status: { in: [BrokerHoldStatus.PENDING, BrokerHoldStatus.CONFIRMED] },
@@ -437,15 +459,39 @@ export class BrokerService {
           { expiresAt: { gt: new Date() } },
         ],
       },
-      select: { checkIn: true, checkOut: true },
+      select: { checkIn: true, checkOut: true, status: true, expiresAt: true },
     });
 
-    const nights = new Set<string>();
+    const nights = new Map<string, Date | null>();
+
     for (const h of holds) {
+      const confirmed = h.status === BrokerHoldStatus.CONFIRMED;
+
       for (let c = new Date(h.checkIn); c < h.checkOut; c = addDays(c, 1)) {
-        nights.add(day(c));
+        const key = day(c);
+
+        // Holds overlap. A night is not sellable until the last of them is
+        // gone, so a confirmed hold wins outright and otherwise the later
+        // expiry does — taking the earlier would count a night down to zero
+        // and leave it dashed with nothing having changed.
+        if (!nights.has(key)) {
+          nights.set(key, confirmed ? null : h.expiresAt);
+          continue;
+        }
+        if (confirmed) {
+          nights.set(key, null);
+          continue;
+        }
+
+        const current = nights.get(key);
+        // Already null: a confirmed hold covers this night, and nothing a
+        // pending one says can put a clock back on it.
+        if (current != null && h.expiresAt > current) {
+          nights.set(key, h.expiresAt);
+        }
       }
     }
+
     return nights;
   }
 }
