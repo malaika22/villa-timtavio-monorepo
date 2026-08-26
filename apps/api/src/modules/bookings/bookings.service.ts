@@ -8,6 +8,19 @@ import { PaymentsService } from '../payments/payments.service';
 import { realFirstName } from '../../commons/utils/name.util';
 
 /** Matches the `size` LodgifyService requests; a full page means truncation. */
+/**
+ * What Lodgify says about one reservation when asked about it directly.
+ *
+ * Structurally identical to LodgifyService's own type and declared here on
+ * purpose: this service takes the answer as a plain function argument, so it
+ * does not depend on the Lodgify module to describe one.
+ */
+export type ReservationPresence =
+  | { state: 'present' }
+  | { state: 'gone' }
+  | { state: 'not-a-stay'; reason: string }
+  | { state: 'unknown' };
+
 const LODGIFY_PAGE_SIZE = 100;
 /** How settled a booking must be before absence counts as deletion. */
 const RECONCILE_GRACE_MS = 10 * 60 * 1000;
@@ -324,9 +337,7 @@ export class BookingsService {
     // Place the 50% deposit hold (best-effort, guarded — never blocks sync).
     await this.paymentsService
       .createDepositHold(booking.id)
-      .catch((err) =>
-        this.logger.error(`Deposit hold failed: ${String(err)}`),
-      );
+      .catch((err) => this.logger.error(`Deposit hold failed: ${String(err)}`));
 
     this.logger.log(
       `Synced booking ${booking.id} from Lodgify ${lodgifyData.id}`,
@@ -535,13 +546,26 @@ export class BookingsService {
     return true;
   }
 
-  async reconcileDeletedFromLodgify(items: any[]): Promise<number> {
+  /**
+   * Cancels bookings Lodgify no longer holds.
+   *
+   * `confirm` is passed in rather than injected. LodgifyModule already imports
+   * BookingsModule, so reaching the other way would need a forwardRef on both
+   * sides to resolve a cycle that only exists because of one call — and the
+   * poller, the sole caller, holds both services already.
+   */
+  async reconcileDeletedFromLodgify(
+    items: any[],
+    confirm: (lodgifyId: string) => Promise<ReservationPresence>,
+  ): Promise<number> {
     if (process.env.LODGIFY_RECONCILE_DELETIONS === 'false') return 0;
 
     // An outage, a bad token, or a filtered query all return zero rows — which
     // looks exactly like "every reservation was deleted". Never act on it.
     if (items.length === 0) {
-      this.logger.warn('Lodgify returned no bookings — skipping reconciliation');
+      this.logger.warn(
+        'Lodgify returned no bookings — skipping reconciliation',
+      );
       return 0;
     }
 
@@ -559,48 +583,78 @@ export class BookingsService {
     );
     if (seen.size === 0) return 0;
 
-    // Only judge bookings inside the window Lodgify actually returned. If the
-    // API ever starts filtering to upcoming stays, past bookings would
-    // otherwise all look deleted.
-    const times = (key: 'arrival' | 'departure') =>
-      items
-        .map((i) => new Date(i?.[key]).getTime())
-        .filter((t) => Number.isFinite(t));
-    const arrivals = times('arrival');
-    const departures = times('departure');
-    if (arrivals.length === 0 || departures.length === 0) return 0;
-
-    const windowStart = new Date(Math.min(...arrivals));
-    const windowEnd = new Date(Math.max(...departures));
-
     // A booking created moments ago (webhook) may post-date the poll's own
     // request, so give it room before treating it as missing.
     const createdBefore = new Date(Date.now() - RECONCILE_GRACE_MS);
 
+    // Every live booking, judged on its own merits.
+    //
+    // This used to be narrowed to a date window inferred from the reservations
+    // Lodgify happened to return — earliest arrival to latest departure. The
+    // guard was meant to survive Lodgify filtering its response, but it was a
+    // ratchet: as old reservations aged off the list, the window closed from
+    // the left, and anything below it became permanently unreachable. A test
+    // booking for 5–11 August sat in Guests as an arriving party for weeks
+    // because the earliest live reservation arrived on the 29th, and no
+    // number of polls could ever consider it.
+    //
+    // Absence from one page is no longer the verdict — it only nominates a
+    // candidate, and the verdict comes from asking Lodgify about that
+    // reservation directly. That is a better guard than the window was, and
+    // it holds against the two things the window was really protecting
+    // against: a filtered response, and a list truncated at one page.
     const candidates = await this.prisma.booking.findMany({
       where: {
         status: { notIn: ['CHECKED_OUT', 'CANCELLED'] },
         createdAt: { lt: createdBefore },
-        checkIn: { gte: windowStart },
-        checkOut: { lte: windowEnd },
       },
       select: { id: true, lodgifyId: true },
     });
 
-    const vanished = candidates.filter(
+    const missing = candidates.filter(
       (b) => b.lodgifyId && !seen.has(b.lodgifyId),
     );
-    if (vanished.length === 0) return 0;
+    if (missing.length === 0) return 0;
+
+    const cancelled: { id: string; lodgifyId: string; reason: string }[] = [];
+
+    // Sequential on purpose. These are rare — a booking absent from the page
+    // is already the exception — and a burst of parallel calls to Lodgify on
+    // every five-minute poll is a worse trade than a few extra seconds.
+    for (const booking of missing) {
+      const presence = await confirm(booking.lodgifyId);
+
+      if (presence.state === 'present') continue;
+      if (presence.state === 'unknown') {
+        // Could not find out. Leaving it alone costs one more poll; guessing
+        // costs a real stay.
+        this.logger.warn(
+          `Booking ${booking.id} absent from the Lodgify page but unconfirmed — left alone`,
+        );
+        continue;
+      }
+
+      cancelled.push({
+        id: booking.id,
+        lodgifyId: booking.lodgifyId,
+        reason:
+          presence.state === 'gone'
+            ? 'no longer exists in Lodgify'
+            : `Lodgify reports it as "${presence.reason}"`,
+      });
+    }
+
+    if (cancelled.length === 0) return 0;
 
     await this.prisma.booking.updateMany({
-      where: { id: { in: vanished.map((b) => b.id) } },
+      where: { id: { in: cancelled.map((b) => b.id) } },
       data: { status: 'CANCELLED' },
     });
 
     // Recorded per booking — this cancels a stay without a human involved, so
     // it needs to be answerable later.
     await this.prisma.auditLog.createMany({
-      data: vanished.map((b) => ({
+      data: cancelled.map((b) => ({
         action: 'BOOKING_STATUS_CHANGED',
         entityType: 'Booking',
         entityId: b.id,
@@ -609,19 +663,19 @@ export class BookingsService {
         bookingId: b.id,
         afterState: {
           status: 'CANCELLED',
-          reason: 'No longer present in Lodgify',
+          reason: b.reason,
           lodgifyId: b.lodgifyId,
         } as any,
       })),
     });
 
     this.logger.warn(
-      `Cancelled ${vanished.length} booking(s) no longer in Lodgify: ${vanished
-        .map((b) => b.lodgifyId)
+      `Cancelled ${cancelled.length} booking(s) confirmed gone from Lodgify: ${cancelled
+        .map((b) => `${b.lodgifyId} (${b.reason})`)
         .join(', ')}`,
     );
 
-    return vanished.length;
+    return cancelled.length;
   }
 
   async cancelFromLodgify(lodgifyData: any) {

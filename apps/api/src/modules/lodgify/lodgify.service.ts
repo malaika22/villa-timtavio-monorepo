@@ -8,6 +8,18 @@ import {
   type LodgifySyncPayload,
 } from './lodgify-booking.mapper';
 
+/**
+ * What Lodgify says about one reservation when asked directly.
+ *
+ * `unknown` means the question could not be answered — an outage, a bad
+ * token, a timeout. It is never grounds to change anything.
+ */
+export type LodgifyPresence =
+  | { state: 'present' }
+  | { state: 'gone' }
+  | { state: 'not-a-stay'; reason: string }
+  | { state: 'unknown' };
+
 @Injectable()
 export class LodgifyService {
   private readonly logger = new Logger(LodgifyService.name);
@@ -40,6 +52,60 @@ export class LodgifyService {
       `/reservations/bookings/${lodgifyId}`,
     );
     return response.data;
+  }
+
+  /**
+   * Whether Lodgify still holds a reservation, asked one id at a time.
+   *
+   * `fetchBookingForSync` cannot answer this: it returns null for a deleted
+   * reservation, a declined one, a malformed payload and a dropped connection
+   * alike. That is fine when the answer only decides whether to sync — it is
+   * not fine when the answer decides whether to cancel a stay, because a
+   * network blip would look exactly like a deletion.
+   *
+   * So the states are kept apart, and only two of them are grounds to act.
+   * `unknown` is deliberately a distinct answer rather than a thrown error:
+   * the caller's correct response to "I could not find out" is to leave the
+   * booking alone and try again on the next poll.
+   */
+  async confirmReservation(lodgifyId: string): Promise<LodgifyPresence> {
+    try {
+      const raw = await this.getBookingById(lodgifyId);
+      const record =
+        raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+
+      if (normalizeLodgifyBooking(record) !== null) return { state: 'present' };
+
+      // It answered, and what it described is not a stay. The reason is worth
+      // carrying: "declined" and "deleted" read very differently in an audit
+      // entry six months later.
+      const status =
+        typeof record.status === 'string' ? record.status.toLowerCase() : null;
+      return {
+        state: 'not-a-stay',
+        reason:
+          record.is_deleted === true
+            ? 'deleted'
+            : record.canceled_at != null
+              ? 'cancelled'
+              : (status ?? 'not a stay'),
+      };
+    } catch (error) {
+      const status = axios.isAxiosError(error)
+        ? error.response?.status
+        : undefined;
+
+      // 404 is the one error that is an answer. 410 too, if Lodgify ever
+      // starts using it.
+      if (status === 404 || status === 410) return { state: 'gone' };
+
+      this.logger.warn(
+        `Could not confirm Lodgify reservation ${lodgifyId}: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
+      );
+      return { state: 'unknown' };
+    }
   }
 
   async fetchBookingForSync(
@@ -144,9 +210,12 @@ export class LodgifyService {
     const end = LodgifyService.day(to);
 
     return this.cached(`avail:${start}:${end}`, async () => {
-      const response = await this.client.get('/availability/' + this.propertyId(), {
-        params: { start, end, includeDetails: false },
-      });
+      const response = await this.client.get(
+        '/availability/' + this.propertyId(),
+        {
+          params: { start, end, includeDetails: false },
+        },
+      );
 
       const blocked = new Set<string>();
 
@@ -163,7 +232,11 @@ export class LodgifyService {
         if (!Array.isArray(periods)) continue;
 
         for (const period of periods) {
-          const p = period as { start?: string; end?: string; available?: number };
+          const p = period as {
+            start?: string;
+            end?: string;
+            available?: number;
+          };
           if (!p.start || !p.end) continue;
           if (Number(p.available) !== 0) continue;
           for (const night of LodgifyService.eachNight(p.start, p.end)) {
@@ -287,7 +360,8 @@ export class LodgifyService {
           const tier = cheapestTier(row['prices']);
           if (!tier) continue;
 
-          const date = typeof row['date'] === 'string' ? row['date'].slice(0, 10) : null;
+          const date =
+            typeof row['date'] === 'string' ? row['date'].slice(0, 10) : null;
           if (!date) {
             if (row['is_default'] === true) fallback = tier;
             continue;

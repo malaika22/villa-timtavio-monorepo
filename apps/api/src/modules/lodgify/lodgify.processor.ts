@@ -69,6 +69,10 @@ export class LodgifyProcessor {
       return;
     }
 
-    await this.bookingsService.reconcileDeletedFromLodgify(bookings);
+    // Absence from this page nominates a candidate; it no longer convicts one.
+    // Each is confirmed against Lodgify directly before anything is cancelled.
+    await this.bookingsService.reconcileDeletedFromLodgify(bookings, (id) =>
+      this.lodgifyService.confirmReservation(id),
+    );
   }
 }
