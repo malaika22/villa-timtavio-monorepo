@@ -15,10 +15,6 @@ import { getErrorMessage } from '../../commons/utils/error.util';
 
 // Placeholder image applied to imported experiences — the EM replaces it per
 // item later. Overridable via env without a code change.
-const DEFAULT_EXPERIENCE_IMAGE =
-  process.env.DEFAULT_EXPERIENCE_IMAGE_URL ||
-  'https://villa-timtavio-monorepo-pwa.vercel.app/images/experience.png';
-
 // Placeholder "What's Included" bullets for imported experiences — the EM edits
 // these per item to reflect what each experience actually includes.
 const DEFAULT_INCLUDED = [
@@ -392,8 +388,19 @@ export class CatalogService {
             durationLabel,
             durationMinutes,
             vendorId,
-            primaryPhotoUrl: DEFAULT_EXPERIENCE_IMAGE,
-            photoUrls: [DEFAULT_EXPERIENCE_IMAGE],
+            // No photograph, rather than a stock one.
+            //
+            // This wrote the same placeholder URL onto every imported row, so
+            // an experience nobody had photographed carried a real
+            // primaryPhotoUrl pointing at a picture of somewhere else. The
+            // estate then had to delete a photo it never added, one experience
+            // at a time, and the guest app had no way to tell the difference
+            // between that and a genuine cover.
+            //
+            // Left empty, the card draws the category's mark and says the
+            // photograph is still to come, which is true.
+            primaryPhotoUrl: null,
+            photoUrls: [],
             included: DEFAULT_INCLUDED,
             createdBy: importedBy,
             sortOrder: results.imported,

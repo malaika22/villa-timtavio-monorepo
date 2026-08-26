@@ -2,10 +2,10 @@
 
 import { Clock, EyeOff, Users } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
+import { ExperienceGlyphMark } from '@repo/ui';
 
 import { ContentStatusPill } from '@/components/manager/pages/content/ContentStatusPill';
 import { ExperienceCardActions } from '@/components/manager/pages/content/ExperienceCardActions';
-import { experienceImageTones } from '@/components/manager/pages/content/experience-image-tones';
 import { ExperienceToggle } from '@/components/manager/pages/content/ExperienceToggle';
 import type { ContentExperience } from '@/types';
 
@@ -17,10 +17,6 @@ type Props = {
   togglePending?: boolean;
 };
 
-function useCategoryPill(experience: ContentExperience) {
-  return !experience.active;
-}
-
 export const ExperienceCard = ({
   experience,
   onToggle,
@@ -28,27 +24,41 @@ export const ExperienceCard = ({
   onDelete,
   togglePending,
 }: Props) => {
-  const tone = experience.imageTone ?? experience.category;
-  const gradient = experienceImageTones[tone] ?? experienceImageTones.dining;
-  const categoryPill = useCategoryPill(experience);
   const muted = !experience.active;
+  const photo = experience.primaryPhotoUrl ?? null;
+  const hasPhoto = photo !== null && photo !== '';
 
   return (
     <article className="flex flex-col overflow-hidden rounded-xl border border-[#e8e4de] bg-white shadow-[0_1px_3px_rgba(26,22,20,0.06)]">
+      {/* The same placeholder the guest app draws, rather than a dark tone
+          per category. The estate should be looking at what the guest is
+          looking at — a tinted panel here and a photograph-shaped gap there
+          made "no photo yet" hard to recognise as the same thing. */}
       <div
         className={cn(
-          'relative flex h-[148px] flex-col justify-between overflow-hidden bg-gradient-to-br p-4',
-          !experience.primaryPhotoUrl && gradient,
+          'relative flex h-[148px] flex-col justify-between overflow-hidden p-4',
+          !hasPhoto && 'bg-gradient-to-br from-[#EAE5DC] to-[#DED7CB]',
         )}
       >
-        {experience.primaryPhotoUrl ? (
+        {hasPhoto ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={experience.primaryPhotoUrl}
+            src={photo}
             alt=""
             className="absolute inset-0 size-full object-cover"
           />
-        ) : null}
+        ) : (
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center">
+            <ExperienceGlyphMark
+              glyph={experience.categoryGlyph}
+              className="size-9 text-[#9E9585] opacity-75"
+            />
+            <span className="h-px w-6 bg-[#B4AC9E] opacity-60" aria-hidden />
+            <span className="text-[8px] tracking-[2.2px] text-[#B4AC9E] uppercase">
+              Photograph to follow
+            </span>
+          </div>
+        )}
         <div className="relative z-10 flex flex-1 flex-col justify-between">
           <div className="flex justify-end">
             <ExperienceToggle
@@ -59,10 +69,13 @@ export const ExperienceCard = ({
           </div>
           <span
             className={cn(
-              'font-inter w-fit text-[10px] font-medium tracking-[0.14em] uppercase',
-              categoryPill || experience.primaryPhotoUrl
-                ? 'rounded-full bg-black/30 px-2.5 py-1 text-white/95 backdrop-blur-[2px]'
-                : 'text-white/80',
+              'font-inter w-fit rounded-full px-2.5 py-1 text-[10px] font-medium tracking-[0.14em] uppercase backdrop-blur-[2px]',
+              // Dark pill over a photograph, light over the placeholder — the
+              // white-on-tint it used before is unreadable now the panel is
+              // no longer dark.
+              hasPhoto
+                ? 'bg-black/30 text-white/95'
+                : 'bg-[#0F1F2E]/85 text-white',
             )}
           >
             {experience.categoryLabel}

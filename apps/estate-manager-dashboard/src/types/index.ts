@@ -331,6 +331,8 @@ export type ContentExperience = {
   category: ContentExperienceCategory;
   categoryLabel: string;
   categorySlug?: string;
+  /** The category's mark, drawn where a photograph would be. */
+  categoryGlyph?: string | null;
   experienceCategoryId?: string | null;
   description?: string;
   pricing: ContentPricingType;
@@ -356,5 +358,4 @@ export type ContentExperience = {
   hostTitle?: string | null;
   hostAvatarUrl?: string | null;
   hostReviewNote?: string | null;
-  imageTone?: 'dining' | 'water' | 'wellness' | 'wine' | 'culture' | 'inactive';
 };
