@@ -402,8 +402,18 @@ export class MagicLinkService {
      * one.
      */
     if (await this.isLockedOut(email)) {
+      // Says wait, and not "send yourself a new link".
+      //
+      // A new link would not help: the check sits before the lookup, so a
+      // freshly issued code is refused too. That is deliberate — evaluating
+      // codes while locked out is exactly what reopens the guessing — but it
+      // makes "send yourself a new link" advice that cannot work, and sending
+      // a guest to do something futile is worse than telling them to wait.
+      //
+      // The call button underneath is the way through in the meantime, and it
+      // now dials a real number.
       throw new HttpException(
-        'Too many attempts. Wait fifteen minutes and try again, or send yourself a new link.',
+        'Too many attempts. Wait fifteen minutes before trying again — a new link won’t open sooner.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
