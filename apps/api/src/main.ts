@@ -2,11 +2,28 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     rawBody: true, // Required for Stripe webhook signature validation
   });
+
+  /**
+   * Read the caller's real address from X-Forwarded-For.
+   *
+   * Render terminates TLS at its own proxy, so without this every request
+   * arrives wearing the proxy's address rather than the guest's. Express then
+   * reports that as `req.ip` — which is what the rate limit on the magic-link
+   * verify route counts by, and it made twelve rapid attempts from one machine
+   * look like twelve separate callers.
+   *
+   * One hop, not `true`. Trusting the whole chain lets a caller prepend
+   * whatever address they like to the header and be counted as a different
+   * person on every attempt — which is the exact thing the limit exists to
+   * stop.
+   */
+  app.set('trust proxy', 1);
 
   app.useGlobalPipes(
     new ValidationPipe({
