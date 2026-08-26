@@ -56,8 +56,11 @@ export function mapCatalogItemToExperience(item: CatalogItem): Experience {
       'all',
     title: item.name,
     durationMinutes: item.durationMinutes ?? undefined,
-    image:
-      item.primaryPhotoUrl ?? item.photoUrls[0] ?? '/images/experience.png',
+    // No stock photograph. The card draws the category's mark instead, which
+    // is honest about not having a picture rather than showing one of
+    // somewhere else.
+    image: item.primaryPhotoUrl ?? item.photoUrls[0] ?? '',
+    glyph: item.experienceCategory?.glyph ?? null,
     status,
     rate: {
       basePrice: item.basePrice ?? null,
@@ -124,6 +127,8 @@ export function mapCatalogItemToDetail(
         name: hostName,
         role: item.hostTitle ?? 'Provider',
         category: CATEGORY_LABEL[item.category] ?? item.category,
+        // The host's avatar keeps its fallback: a face is a different promise
+        // from a scene, and an empty circle beside a name reads as a fault.
         avatar:
           item.hostAvatarUrl ??
           item.primaryPhotoUrl ??

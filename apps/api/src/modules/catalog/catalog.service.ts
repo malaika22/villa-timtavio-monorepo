@@ -51,7 +51,11 @@ export class CatalogService {
       },
       include: {
         priceUnit: true,
-        experienceCategory: { select: { id: true, name: true } },
+        // slug and glyph too: the guest app draws the category's mark on any
+        // experience with no photograph, and this is the endpoint it reads.
+        experienceCategory: {
+          select: { id: true, name: true, slug: true, glyph: true },
+        },
         vendor: {
           select: {
             id: true,

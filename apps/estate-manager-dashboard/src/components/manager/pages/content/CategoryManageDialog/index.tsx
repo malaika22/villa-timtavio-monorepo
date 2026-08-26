@@ -35,6 +35,12 @@ import {
   type CategoryFormValues,
 } from '@/lib/schemas/category';
 import type { ExperienceCategory } from '@repo/api-types';
+import {
+  EXPERIENCE_GLYPHS,
+  EXPERIENCE_GLYPH_LABELS,
+  ExperienceGlyphMark,
+} from '@repo/ui';
+import { cn } from '@repo/ui/lib/utils';
 
 type Props = {
   open: boolean;
@@ -53,12 +59,12 @@ export const CategoryManageDialog = ({ open, onOpenChange }: Props) => {
 
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categoryFormSchema),
-    defaultValues: { name: '', description: '' },
+    defaultValues: { name: '', description: '', glyph: '' },
   });
 
   const resetForm = () => {
     setEditing(null);
-    form.reset({ name: '', description: '' });
+    form.reset({ name: '', description: '', glyph: '' });
   };
 
   const onSubmit = form.handleSubmit(async (values) => {
@@ -68,12 +74,17 @@ export const CategoryManageDialog = ({ open, onOpenChange }: Props) => {
         dto: {
           name: values.name,
           description: values.description,
+          // Null, not undefined: undefined is dropped by JSON.stringify and
+          // would leave the stored mark in place, so clearing one would
+          // silently do nothing.
+          glyph: values.glyph || null,
         },
       });
     } else {
       await createCategory.mutateAsync({
         name: values.name,
         description: values.description,
+        glyph: values.glyph || null,
       });
     }
     resetForm();
@@ -84,6 +95,7 @@ export const CategoryManageDialog = ({ open, onOpenChange }: Props) => {
     form.reset({
       name: category.name,
       description: category.description ?? '',
+      glyph: category.glyph ?? '',
     });
   };
 
@@ -107,7 +119,8 @@ export const CategoryManageDialog = ({ open, onOpenChange }: Props) => {
           return;
         }
         toast.error('Could not delete category', {
-          description: message || 'Categories with experiences cannot be removed.',
+          description:
+            message || 'Categories with experiences cannot be removed.',
         });
       },
     });
@@ -166,6 +179,55 @@ export const CategoryManageDialog = ({ open, onOpenChange }: Props) => {
                     </FormItem>
                   )}
                 />
+
+                {/* Picked, not derived. Nothing infers a boat from "The
+                    Fleet", so the person who names the category is the one
+                    who says what it looks like. */}
+                <FormField
+                  control={form.control}
+                  name="glyph"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mark (optional)</FormLabel>
+                      <p className="-mt-1 text-xs text-manager-text-muted">
+                        Stands in for experiences here that have no photograph
+                        yet.
+                      </p>
+                      <FormControl>
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {EXPERIENCE_GLYPHS.map((g) => {
+                            const on = field.value === g;
+                            return (
+                              <button
+                                key={g}
+                                type="button"
+                                title={EXPERIENCE_GLYPH_LABELS[g]}
+                                aria-label={EXPERIENCE_GLYPH_LABELS[g]}
+                                aria-pressed={on}
+                                // Clicking the chosen one clears it, so there
+                                // is a way back to no mark without a reset.
+                                onClick={() => field.onChange(on ? '' : g)}
+                                className={cn(
+                                  'flex size-9 items-center justify-center rounded-lg border transition-colors',
+                                  on
+                                    ? 'border-manager-accent bg-manager-accent/10 text-manager-accent'
+                                    : 'border-manager-border bg-white text-manager-text-muted hover:border-manager-accent/40 hover:text-manager-text',
+                                )}
+                              >
+                                <ExperienceGlyphMark
+                                  glyph={g}
+                                  className="size-5"
+                                  strokeWidth={1.6}
+                                />
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <div className="flex gap-2">
                   {editing ? (
                     <Button type="button" variant="outline" onClick={resetForm}>
@@ -189,14 +251,39 @@ export const CategoryManageDialog = ({ open, onOpenChange }: Props) => {
                   key={category.id}
                   className="flex items-center justify-between gap-3 rounded-lg border border-manager-border px-3 py-2.5"
                 >
-                  <div>
-                    <p className="text-sm font-medium text-manager-text">
-                      {category.name}
-                    </p>
-                    <p className="text-xs text-manager-text-muted">
-                      {category._count?.catalogItems ?? 0} experiences
-                      {!category.isActive ? ' · inactive' : ''}
-                    </p>
+                  {/* The mark, so which categories still need one is visible
+                      from the list rather than only from opening each. */}
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span
+                      className={cn(
+                        'flex size-8 shrink-0 items-center justify-center rounded-lg border border-manager-border',
+                        category.glyph
+                          ? 'text-manager-text'
+                          : 'text-manager-text-muted/50',
+                      )}
+                      title={
+                        category.glyph
+                          ? EXPERIENCE_GLYPH_LABELS[
+                              category.glyph as keyof typeof EXPERIENCE_GLYPH_LABELS
+                            ]
+                          : 'No mark chosen'
+                      }
+                    >
+                      <ExperienceGlyphMark
+                        glyph={category.glyph}
+                        className="size-4"
+                        strokeWidth={1.6}
+                      />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-manager-text">
+                        {category.name}
+                      </p>
+                      <p className="text-xs text-manager-text-muted">
+                        {category._count?.catalogItems ?? 0} experiences
+                        {!category.isActive ? ' · inactive' : ''}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button

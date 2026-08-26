@@ -38,6 +38,13 @@ export interface ExperienceCategorySummary {
   id: string;
   name: string;
   slug: string;
+  /**
+   * Which line drawing stands in for an experience here that has no photo.
+   *
+   * Null renders a neutral mark. Chosen by the estate rather than derived —
+   * nothing infers a boat from "The Fleet".
+   */
+  glyph?: string | null;
 }
 
 export interface CatalogItem {
