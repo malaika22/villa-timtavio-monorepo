@@ -89,7 +89,6 @@ enum MenuCategory {
 
 /**
  * Where a dish sits on the estate's printed menu.
- *
  * A course belongs to exactly one meal, which is what lets a limit be attached
  * to it without ambiguity: three breakfast mains and one daily suggestion are
  * two different allowances, not one allowance of four. Snacks, beverages and
@@ -184,7 +183,6 @@ model Booking {
   manifestStatus        ManifestStatus     @default(INCOMPLETE)
   /**
    * When the estate last opened the guest brief, and who opened it.
-   *
    * Compared against the manifest's own updatedAt to answer "has anything
    * changed since you forwarded this to the chef?". That question used to be
    * answered by freezing the manifest on approval; guests change plans, so the
@@ -344,6 +342,16 @@ model ExperienceCategory {
   name        String
   slug        String   @unique
   description String?
+  /**
+   * Which line drawing stands in for an experience in this category that has
+   * no photograph yet.
+   * Chosen by the estate, not derived. "The Fleet" and "Raw Pacific" are the
+   * villa's own language and nothing infers a boat or a wave from them — the
+   * only thing that scales is letting whoever names the category also say
+   * what it looks like. Null renders a neutral mark, so a category added and
+   * left alone still looks deliberate.
+   */
+  glyph       String?
   sortOrder   Int      @default(0)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -423,7 +431,6 @@ model CatalogItem {
   breezeWayTemplateId  String?
   /**
    * Whether the estate's own staff have anything to prepare.
-   *
    * A therapist who arrives with her own table needs nothing from the villa,
    * and a Breezeway task nobody actions is a task everybody learns to ignore.
    * Off means the request never reaches READY — nothing was prepared, so
@@ -514,7 +521,9 @@ model MenuSelection {
   bookingId String
   booking   Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
-  /** Date only — a meal belongs to a day, not an instant. */
+  /**
+   * Date only — a meal belongs to a day, not an instant.
+   */
   date     DateTime     @db.Date
   mealType MenuCategory
 
@@ -537,7 +546,6 @@ model MenuSelection {
   amendedAt      DateTime?
   /**
    * The dish names as they stood before the estate's last amendment.
-   *
    * A swap that silently replaces what the kitchen was told is worse than no
    * swap at all — the chef needs to see that tonight's main *was* the ribeye,
    * so this keeps the previous line-up rather than only the current one.
@@ -826,12 +834,18 @@ model ExperienceRequest {
   // vendor is still pending, it's pending on something specific, and the enum
   // feeds every queue, filter and chip across three apps.
 
-  /** The WhatsApp message was opened. The queue reads "with the vendor". */
+  /**
+   * The WhatsApp message was opened. The queue reads "with the vendor".
+   */
   vendorAskedAt      DateTime?
   vendorAskedBy      String?
-  /** An answer was recorded, whichever way it went. */
+  /**
+   * An answer was recorded, whichever way it went.
+   */
   vendorRepliedAt    DateTime?
-  /** They said yes. Nothing reaches the guest as confirmed without this. */
+  /**
+   * They said yes. Nothing reaches the guest as confirmed without this.
+   */
   vendorConfirmedAt  DateTime?
   vendorDeclinedAt   DateTime?
   /**
@@ -839,9 +853,13 @@ model ExperienceRequest {
    * charges the estate, the other what the estate charges the guest.
    */
   vendorQuotedCost   Decimal?  @db.Decimal(10, 2)
-  /** "Ana is away, her brother Luis will take it." Verbatim. */
+  /**
+   * "Ana is away, her brother Luis will take it." Verbatim.
+   */
   vendorNote         String?   @db.Text
-  /** A time they could do instead, for the guest to accept or turn down. */
+  /**
+   * A time they could do instead, for the guest to accept or turn down.
+   */
   vendorProposedDate DateTime?
   vendorProposedTime String?
 
@@ -864,7 +882,7 @@ model ExperienceRequest {
    * who was told, when, or whether the number came from the vendor or from a
    * guess.
    */
-  vendorToldOfCancellationAt DateTime?
+  vendorToldOfCancellationAt  DateTime?
   vendorCancellationRepliedAt DateTime?
   vendorCancellationNote      String?   @db.Text
 
@@ -1222,7 +1240,6 @@ model EstateSettings {
   /**
    * When each meal is served, as a window rather than a list of slots:
    * { "BREAKFAST": { "start": "09:00", "end": "11:00", "lastSeating": "10:30" } }
-   *
    * `lastSeating` is the point of the whole shape. A guest who picked 11:00 off
    * a 9–11 list arrived exactly as the kitchen closed, so the estate needs to
    * say how long before the end it can still take a table.
@@ -1237,8 +1254,7 @@ model EstateSettings {
    * Indicative nightly rates by season, used only where Lodgify has no rate
    * for a night:
    * [{ "name": "Green", "from": "2026-05-01", "to": "2026-10-31",
-   *    "nightly": 4800, "minNights": 4 }]
-   *
+   * "nightly": 4800, "minNights": 4 }]
    * Exists because the estate wanted the broker page live before rates were
    * loaded into Lodgify. A number the estate chose and can defend is safer
    * than an invented placeholder, since a broker will quote whatever is on
@@ -1303,7 +1319,7 @@ enum BrokerHoldStatus {
 /// instead of on Booking — a hold that never converts must leave no trace on
 /// the reservation record.
 model BrokerHold {
-  id         String           @id @default(cuid())
+  id         String @id @default(cuid())
   /// Typed by the broker on the page, not authenticated. One shared link means
   /// this is accountability, not identity — enough to know who to call back.
   brokerName String
@@ -1311,18 +1327,18 @@ model BrokerHold {
   /// How the estate reaches them. Required on new holds; null on the handful
   /// placed before it was asked for, which the dashboard shows as not recorded
   /// rather than pretending to an address it hasn't got.
-  brokerEmail String?
+  brokerEmail  String?
   /// Kept apart from the name so the person stays addressable. Brokers were
   /// typing "Marisol Vega, Aurora Travel" into one box, which is neither a
   /// name you can greet nor a firm you can look up.
   brokerAgency String?
   /// Party size, which Lodgify asks for and the estate cannot guess. Capped at
   /// the villa's 14 on the way in. Null on holds placed before it was asked.
-  guestCount Int?
+  guestCount   Int?
 
-  checkIn    DateTime
-  checkOut   DateTime
-  nights     Int
+  checkIn  DateTime
+  checkOut DateTime
+  nights   Int
 
   /// What the page quoted when the hold was placed. Kept even after Lodgify
   /// rates change, so a disagreement about the number is answerable.

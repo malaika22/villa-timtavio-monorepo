@@ -5,8 +5,9 @@ import type { Experience } from '@/types/experience';
 import { ExperienceStatus } from '@/types/experienceStatus';
 import { ExperienceStatusChip } from '@/components/ExperienceStatusChip';
 import { cn } from '@repo/ui/lib/utils';
+import { ExperienceGlyphMark } from '@repo/ui';
 import Image from 'next/image';
-import { Clock, Lock, ArrowUpRight, ImageIcon } from 'lucide-react';
+import { Clock, Lock, ArrowUpRight } from 'lucide-react';
 import { useState } from 'react';
 
 function durationLabel(experience: Experience): string {
@@ -29,7 +30,7 @@ export const ExperienceCatalogCard = ({
   className?: string;
   onClick?: () => void;
 }) => {
-  const { category, title, image, status } = experience;
+  const { category, title, image, glyph, status } = experience;
   const rateLabel = formatRateRange(
     experience.rate?.basePrice,
     experience.rate?.priceMax,
@@ -78,11 +79,19 @@ export const ExperienceCatalogCard = ({
             onError={() => setImgFailed(true)}
           />
         ) : (
-          <div
-            className="flex h-full w-full items-center justify-center"
-            aria-hidden
-          >
-            <ImageIcon className="size-6 text-[#B4AC9E]" strokeWidth={1.5} />
+          /* Not a missing image — a photograph that hasn't been taken yet.
+             The category's own mark, a hairline, and a caption that says so.
+             This branch existed before and never once ran: the mapper
+             substituted a stock photograph before the card ever saw a gap. */
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2.5 px-4 text-center">
+            <ExperienceGlyphMark
+              glyph={glyph}
+              className="size-10 text-[#9E9585] opacity-75"
+            />
+            <span className="h-px w-6 bg-[#B4AC9E] opacity-60" aria-hidden />
+            <span className="text-[8px] uppercase tracking-[2.2px] text-[#B4AC9E]">
+              Photograph to follow
+            </span>
           </div>
         )}
 

@@ -21,7 +21,16 @@ export interface Experience {
   experienceHours?: number;
   /** When set, meta line uses "N MIN" instead of hours */
   durationMinutes?: number;
+  /**
+   * Empty when the estate hasn't photographed this yet.
+   *
+   * It used to fall back to /images/experience.png — a real photograph of
+   * somewhere else, shown to a guest as if it were this experience. An honest
+   * placeholder beats a picture that lies.
+   */
   image: string;
+  /** The category's mark, drawn when there is no photograph. */
+  glyph?: string | null;
   /**
    * Drives card chrome: Request, status chip, lock overlay, Request again, etc.
    * Use COMPLETED for experiences the guest has finished (shows Request again).
