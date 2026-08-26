@@ -27,6 +27,29 @@ export const GuestDetailHeader = ({
           <p className="mt-0.5 text-sm text-manager-text-muted">
             {profile.summary}
           </p>
+          {/* Both were on the record and neither was drawn, on a screen with a
+              Magic link button that mails an address it would not show you. */}
+          {(profile.email || profile.phone) && (
+            <p className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-manager-text-muted">
+              {profile.email && (
+                <a
+                  href={`mailto:${profile.email}`}
+                  className="underline decoration-[#e5e0d8] underline-offset-2 hover:text-manager-text"
+                >
+                  {profile.email}
+                </a>
+              )}
+              {profile.email && profile.phone && <span>·</span>}
+              {profile.phone && (
+                <a
+                  href={`tel:${profile.phone.replace(/[^+\d]/g, '')}`}
+                  className="underline decoration-[#e5e0d8] underline-offset-2 hover:text-manager-text"
+                >
+                  {profile.phone}
+                </a>
+              )}
+            </p>
+          )}
           <div className="mt-2 flex flex-wrap gap-1.5">
             {profile.tags.map((tag) => (
               <span

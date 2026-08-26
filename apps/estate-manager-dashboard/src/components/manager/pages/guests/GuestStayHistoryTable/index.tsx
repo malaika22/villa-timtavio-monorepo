@@ -18,7 +18,7 @@ export const GuestStayHistoryTable = ({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-[#ebe6df] bg-[#f7f5f2]">
-              {['Visit', 'Villa', 'Duration', 'Experiences', 'Folio Total'].map(
+              {['Visit', 'Villa', 'Duration', 'Outcome', 'Folio Total'].map(
                 (h, i) => (
                   <th
                     key={h}
@@ -54,7 +54,7 @@ export const GuestStayHistoryTable = ({
                   {row.duration}
                 </td>
                 <td className="px-3 py-2.5 text-manager-text-muted">
-                  {row.experiences}
+                  {row.outcome}
                 </td>
                 <td className="px-3 py-2.5 text-right font-medium text-manager-text">
                   {row.folioTotal}

@@ -1,7 +1,16 @@
-import type { GuestProfile, GuestSummary } from '@repo/api-types';
+import type {
+  BookingDetailForGuest,
+  GuestProfile,
+  GuestSummary,
+} from '@repo/api-types';
 
-import { stayRange } from '@/lib/stay-date';
-import type { GuestDNAProfile, GuestListItem, GuestListStatus } from '@/types';
+import { stayDateWithYear, stayRange } from '@/lib/stay-date';
+import type {
+  GuestDNAProfile,
+  GuestListItem,
+  GuestListStatus,
+  GuestStayActivityStatus,
+} from '@/types';
 
 function initials(firstName: string, lastName: string) {
   return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
@@ -75,6 +84,92 @@ export function mapGuestSummaryToListItem(
   };
 }
 
+const ORDINAL_SUFFIX = ['th', 'st', 'nd', 'rd'];
+
+function ordinal(n: number): string {
+  const v = n % 100;
+  return `${n}${ORDINAL_SUFFIX[(v - 20) % 10] ?? ORDINAL_SUFFIX[v] ?? ORDINAL_SUFFIX[0]}`;
+}
+
+/** Whole days from today to a stay date, both taken as calendar dates. */
+function daysAway(iso: string): number {
+  const today = new Date();
+  const todayUtc = Date.UTC(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+  return Math.round((new Date(iso).getTime() - todayUtc) / 86_400_000);
+}
+
+/**
+ * Where the guest is in their stay, in words.
+ *
+ * "0 visits · Lifetime spend $0" was the only line under a first-timer's name,
+ * and it reads as a failed query rather than a fact. What Rodrigo wants from
+ * that line is when they turn up.
+ */
+function stayPhrase(booking: BookingDetailForGuest | undefined): string | null {
+  if (!booking) return null;
+
+  if (booking.status === 'CHECKED_IN' || booking.status === 'SETTLED') {
+    const out = daysAway(booking.checkOut);
+    if (out <= 0) return 'in residence';
+    return out === 1
+      ? 'in residence, leaving tomorrow'
+      : `in residence, ${out} nights left`;
+  }
+  if (booking.status === 'DEPARTURE_TODAY') return 'departing today';
+  if (booking.status === 'CHECKED_OUT') return 'departed';
+  if (booking.status === 'CANCELLED') return 'cancelled';
+
+  const inDays = daysAway(booking.checkIn);
+  if (inDays === 0) return 'arriving today';
+  if (inDays === 1) return 'arriving tomorrow';
+  if (inDays > 1) return `arriving in ${inDays} days`;
+  // Confirmed, but the arrival date has passed. Saying "arriving" would be a
+  // lie the old list told for weeks; saying nothing hides a stay nobody closed.
+  return `arrival was ${Math.abs(inDays)} days ago`;
+}
+
+function summaryLine(
+  visits: number,
+  spend: number,
+  booking: BookingDetailForGuest | undefined,
+): string {
+  const head =
+    visits === 0
+      ? 'First stay'
+      : `${ordinal(visits)} visit · lifetime spend $${spend.toLocaleString()}`;
+  const phrase = stayPhrase(booking);
+  return phrase ? `${head} · ${phrase}` : head;
+}
+
+const folioTotal = (booking: BookingDetailForGuest): number =>
+  (booking.folioItems ?? []).reduce(
+    (sum, item) => sum + Number(item.amount) * item.quantity,
+    0,
+  );
+
+const ACTIVITY_STATUS: Record<string, GuestStayActivityStatus> = {
+  COMPLETED: 'Completed',
+  READY: 'Completed',
+  CONFIRMED: 'Completed',
+  IN_PROGRESS: 'Pending',
+  PENDING: 'Pending',
+  CONFLICT: 'Conflict',
+  CANCELLED: 'Conflict',
+};
+
+const OUTCOME: Record<string, string> = {
+  CHECKED_OUT: 'Checked out',
+  CANCELLED: 'Cancelled',
+  CHECKED_IN: 'In residence',
+  SETTLED: 'In residence',
+  DEPARTURE_TODAY: 'Departing today',
+  CONFIRMED: 'Upcoming',
+};
+
 export function mapGuestProfileToDNA(profile: GuestProfile): GuestDNAProfile {
   const latestNote = profile.crmNotes[0];
   const beverage = profile.beveragePreferences
@@ -89,7 +184,13 @@ export function mapGuestProfileToDNA(profile: GuestProfile): GuestDNAProfile {
     id: profile.id,
     name: `${profile.firstName} ${profile.lastName}`,
     initials: initials(profile.firstName, profile.lastName),
-    summary: `${profile.stats.totalVisits} visits · Lifetime spend $${profile.stats.lifetimeSpend.toLocaleString()}`,
+    summary: summaryLine(
+      profile.stats.totalVisits,
+      profile.stats.lifetimeSpend,
+      activeBooking,
+    ),
+    email: profile.email,
+    phone: profile.phone ?? null,
     tags: profile.favouriteExperiences ?? [],
     dietary: profile.dietaryRestrictions ?? [],
     beverage,
@@ -108,10 +209,44 @@ export function mapGuestProfileToDNA(profile: GuestProfile): GuestDNAProfile {
           }),
         }
       : { text: 'No staff notes yet.', author: '—', date: '—' },
-    stayActivity: [],
-    stayHistory: [],
+    // Both of these were literal empty arrays, so the panel said "no activity
+    // recorded" and "no prior stays on file" to every guest who ever opened
+    // it — including one on their fifth visit. The endpoint has always sent
+    // the bookings, their folio lines and their experience requests.
+    stayActivity: (activeBooking?.experienceRequests ?? []).map((req) => ({
+      id: req.id,
+      experience: req.catalogItem?.name ?? 'Experience',
+      date: stayDateWithYear(req.confirmedDate ?? req.preferredDate),
+      status: ACTIVITY_STATUS[req.status] ?? 'Pending',
+    })),
+    stayHistory: profile.primaryBookings.map((booking) => ({
+      id: booking.id,
+      visit: stayRange(booking.checkIn, booking.checkOut),
+      isCurrent: booking.id === activeBooking?.id,
+      villa: 'Villa TimTavio',
+      duration: `${booking.nights} ${booking.nights === 1 ? 'night' : 'nights'}`,
+      outcome: OUTCOME[booking.status] ?? booking.status,
+      // Dashes rather than $0: a stay with no folio lines has not been
+      // charged, which is a different statement from one that cost nothing.
+      folioTotal:
+        (booking.folioItems ?? []).length === 0
+          ? '—'
+          : `$${folioTotal(booking).toLocaleString()}`,
+    })),
     activeBookingId: activeBooking?.id ?? null,
     bookingStatus: activeBooking?.status,
+    stay: activeBooking
+      ? {
+          id: activeBooking.id,
+          checkIn: activeBooking.checkIn,
+          checkOut: activeBooking.checkOut,
+          nights: activeBooking.nights,
+          totalGuests: activeBooking.totalGuests,
+          roomNumber: activeBooking.primaryRoomNumber ?? null,
+          manifestStatus: activeBooking.manifestStatus,
+          status: activeBooking.status,
+        }
+      : null,
     totalVisits: profile.stats.totalVisits,
     lifetimeSpend: profile.stats.lifetimeSpend,
     specialOccasions: profile.specialOccasions,
