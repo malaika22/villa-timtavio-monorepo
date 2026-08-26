@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { BullModule } from '@nestjs/bull';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -38,6 +39,17 @@ import { HealthController } from './health.controller';
   controllers: [HealthController],
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    /**
+     * Registered for one route in particular.
+     *
+     * A magic-link code now lasts the whole stay rather than half an hour,
+     * which is what the guest needs and what makes six digits worth guessing:
+     * a million combinations and, until this, unlimited attempts and unlimited
+     * time. The limit is declared on the verify route itself; this only makes
+     * the guard available. Nothing else opts in, so no existing endpoint
+     * changes behaviour.
+     */
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }]),
     ScheduleModule.forRoot(),
     BullModule.forRoot({
       redis: {

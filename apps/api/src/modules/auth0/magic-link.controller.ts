@@ -1,10 +1,12 @@
 import {
-  Controller,
-  Post,
-  Param,
-  Body,
   BadRequestException,
+  Body,
+  Controller,
+  Param,
+  Post,
+  UseGuards,
 } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { MagicLinkService } from './magic-link.service';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -101,8 +103,21 @@ export class MagicLinkController {
 
   // ─── Verify OTP + issue JWT (called by PWA callback page) ───────────────
 
+  /**
+   * Ten tries a minute, per caller.
+   *
+   * Six digits is a million combinations, and the code now lives as long as
+   * the stay — so the thing that used to bound a guessing attack was the
+   * half-hour window, and it is gone. Ten a minute is far more than a guest
+   * mistyping a code from an email will ever need and far less than anybody
+   * working through the space would want.
+   *
+   * Deliberately the only throttled route. Nothing else changes behaviour.
+   */
   @Post('verify')
   @Public()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @UseGuards(ThrottlerGuard)
   async verifyOtp(@Body() body: { otp: string; email: string }) {
     if (!body.otp || !body.email) {
       throw new BadRequestException('otp and email are required');

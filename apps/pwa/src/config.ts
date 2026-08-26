@@ -13,4 +13,17 @@ export const config = {
   NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
   NEXT_PUBLIC_PUSHER_KEY: process.env.NEXT_PUBLIC_PUSHER_KEY,
   NEXT_PUBLIC_PUSHER_CLUSTER: process.env.NEXT_PUBLIC_PUSHER_CLUSTER,
+
+  /**
+   * The estate's telephone, for every "contact the estate" the guest can
+   * reach.
+   *
+   * Overridable by environment, with the real number as the default rather
+   * than a placeholder: the button that shipped dialled +1 (234) 567-890, and
+   * the guest most likely to press it is one locked out of the app with no
+   * other way through.
+   */
+  ESTATE_PHONE: process.env.NEXT_PUBLIC_ESTATE_PHONE ?? '+17253401990',
+  ESTATE_PHONE_DISPLAY:
+    process.env.NEXT_PUBLIC_ESTATE_PHONE_DISPLAY ?? '+1 (725) 340-1990',
 };
