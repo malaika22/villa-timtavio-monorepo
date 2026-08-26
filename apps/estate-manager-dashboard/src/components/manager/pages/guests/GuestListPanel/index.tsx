@@ -47,14 +47,17 @@ function matchesFilter(guest: GuestListItem, filter: StatusFilter): boolean {
   }
 }
 
-const metaLine2 = (guest: GuestListItem) => {
-  const party = `Party of ${guest.partySize}`;
-  if (guest.memberSince) {
-    return `${party} · Member since ${guest.memberSince}`;
-  }
-  return party;
-};
-
+/**
+ * Two lines, not three.
+ *
+ * The row used to carry "Villa TimTavio" on every guest of a one-villa estate,
+ * and "Member since 2026" on every guest of a system that has only existed
+ * since 2026. Neither ever differed between two rows, so neither could ever
+ * help anyone choose one — and together they cost a whole line and pushed the
+ * long names onto a fourth.
+ *
+ * What is left is what actually varies: who, when, and how many.
+ */
 const GuestListRow = ({
   guest,
   selected,
@@ -67,24 +70,25 @@ const GuestListRow = ({
   <button
     type="button"
     onClick={onSelect}
+    aria-current={selected ? 'true' : undefined}
     className={cn(
-      'flex w-full items-start gap-2.5 border-b border-[#ebe6df] px-3 py-2.5 text-left transition-colors',
-      selected ? 'bg-[#f5f2eb]' : 'bg-white hover:bg-[#faf9f7]',
+      'flex w-full items-center gap-2.5 border-b border-[#ebe6df] px-3 py-2.5 text-left transition-colors',
+      selected
+        ? 'bg-[#f5f2eb] shadow-[inset_2px_0_0_0_var(--manager-accent)]'
+        : 'bg-white hover:bg-[#faf9f7]',
     )}
   >
-    <GuestAvatar initials={guest.initials} className="size-9 text-[11px]" />
+    <GuestAvatar initials={guest.initials} className="size-8 text-[10px]" />
     <div className="min-w-0 flex-1">
-      <div className="flex items-start justify-between gap-1.5">
-        <p className="text-[13px] font-semibold leading-tight text-manager-text">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="truncate text-[13px] leading-tight font-semibold text-manager-text">
           {guest.name}
         </p>
-        <GuestListStatusBadge status={guest.status} />
+        <GuestListStatusBadge status={guest.status} compact />
       </div>
-      <p className="mt-0.5 text-sm leading-snug text-manager-text-muted">
-        {guest.villa} · {guest.dates}
-      </p>
-      <p className="mt-0.5 text-sm leading-snug text-[#8a8178]">
-        {metaLine2(guest)}
+      <p className="mt-1 truncate text-[12px] leading-snug text-manager-text-muted">
+        {guest.dates}
+        <span className="text-[#a49a91]"> · {guest.partySize} guests</span>
       </p>
     </div>
   </button>

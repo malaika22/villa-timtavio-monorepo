@@ -18,14 +18,28 @@ const dotStyles: Record<GuestStayStatus, string> = {
   Departed: 'bg-[#64748b]',
 };
 
-export const GuestStatusDot = ({ status }: { status: GuestStayStatus }) => (
+export const GuestStatusDot = ({
+  status,
+  compact,
+}: {
+  status: GuestStayStatus;
+  /** For dense lists. The dashboard table keeps the roomier default. */
+  compact?: boolean;
+}) => (
   <span
     className={cn(
-      'inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium',
+      'inline-flex shrink-0 items-center rounded-full font-medium',
+      compact ? 'gap-1 px-1.5 py-0.5 text-[10px]' : 'gap-1.5 px-3 py-1 text-sm',
       styles[status],
     )}
   >
-    <span className={cn('size-2 shrink-0 rounded-full', dotStyles[status])} />
+    <span
+      className={cn(
+        'shrink-0 rounded-full',
+        compact ? 'size-1.5' : 'size-2',
+        dotStyles[status],
+      )}
+    />
     {status}
   </span>
 );

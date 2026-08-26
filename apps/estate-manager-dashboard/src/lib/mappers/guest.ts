@@ -74,6 +74,7 @@ export function mapGuestSummaryToListItem(
     dates: booking
       ? formatDateRange(booking.checkIn, booking.checkOut)
       : 'Dates TBD',
+    checkIn: booking?.checkIn,
     partySize: booking?.totalGuests ?? 1,
     memberSince: guest.createdAt
       ? new Date(guest.createdAt).getFullYear().toString()

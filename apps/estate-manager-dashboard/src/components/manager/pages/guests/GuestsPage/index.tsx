@@ -34,12 +34,26 @@ function GuestDetailEmpty() {
 function filterGuests(items: GuestListItem[], query: string) {
   const q = query.trim().toLowerCase();
   if (!q) return items;
+  // Name and dates — what the row actually shows. It used to search the villa
+  // and the join year as well, which on a one-property estate where everybody
+  // joined in 2026 meant "villa" matched everyone and "2026" matched everyone.
   return items.filter(
     (g) =>
-      g.name.toLowerCase().includes(q) ||
-      g.villa.toLowerCase().includes(q) ||
-      (g.memberSince?.includes(q) ?? false),
+      g.name.toLowerCase().includes(q) || g.dates.toLowerCase().includes(q),
   );
+}
+
+/**
+ * Soonest arrival first.
+ *
+ * The API returns guests in no particular order, so the list read 1 Oct,
+ * 15 Nov, 5 Aug, 12 Oct, 9 Oct — which is no help at all to someone asking
+ * who is next. Guests without a booking sort last rather than to 1970.
+ */
+function byArrival(a: GuestListItem, b: GuestListItem) {
+  if (!a.checkIn) return 1;
+  if (!b.checkIn) return -1;
+  return a.checkIn.localeCompare(b.checkIn);
 }
 
 export const GuestsPage = () => {
@@ -57,10 +71,14 @@ export const GuestsPage = () => {
   const { current: apiCurrent, past: apiPast, loading } = useGuests(search);
 
   const current = useMemo(
-    () => filterGuests(apiCurrent, search),
+    () => filterGuests(apiCurrent, search).sort(byArrival),
     [apiCurrent, search],
   );
-  const past = useMemo(() => filterGuests(apiPast, search), [apiPast, search]);
+  // Past guests read backwards: most recent departure first.
+  const past = useMemo(
+    () => filterGuests(apiPast, search).sort((a, b) => byArrival(b, a)),
+    [apiPast, search],
+  );
 
   const allItems = useMemo(
     () => [...apiCurrent, ...apiPast],

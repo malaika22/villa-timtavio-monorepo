@@ -15,6 +15,8 @@ export type GuestListItem = {
   initials: string;
   villa: string;
   dates: string;
+  /** ISO check-in, for ordering. `dates` is formatted for reading, not sorting. */
+  checkIn?: string;
   partySize: number;
   memberSince?: string;
   status: GuestListStatus;
