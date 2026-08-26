@@ -44,7 +44,21 @@ export const ManagerShell = ({ children }: { children: React.ReactNode }) => {
   const subtitle = isDashboard ? getDashboardSubtitle() : undefined;
 
   return (
-    <div className="flex min-h-screen bg-manager-main">
+    // A full-bleed page manages its own scrolling — the guest list and the
+    // detail pane each scroll independently. That only works against a bounded
+    // height: with min-h-screen the shell grows past the viewport, `flex-1`
+    // inside it never resolves to anything finite, and the document scrolls
+    // instead of the panes. Which is why the guest list had no scrollbar of
+    // its own however long it got.
+    //
+    // dvh rather than vh so a mobile browser's collapsing toolbar doesn't
+    // leave the last row under the chrome.
+    <div
+      className={cn(
+        'flex bg-manager-main',
+        meta.fullBleed ? 'h-dvh overflow-hidden' : 'min-h-screen',
+      )}
+    >
       <ManagerSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
         <ManagerPageHeader
