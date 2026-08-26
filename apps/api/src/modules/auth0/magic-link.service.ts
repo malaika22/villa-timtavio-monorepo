@@ -27,13 +27,15 @@ export class MagicLinkService {
   /**
    * Wrong guesses allowed against one address before it goes quiet.
    *
-   * Five in a quarter of an hour is far more than a guest re-typing a code
-   * out of an email will ever need — most get it right first time and nobody
-   * needs a sixth attempt in fifteen minutes. Someone working through nine
-   * hundred thousand codes at that rate needs decades.
+   * Ten in five minutes is far more than a guest re-typing a code out of an
+   * email will ever need, and short enough that being wrong about that costs
+   * them five minutes rather than a quarter of an hour. Someone working
+   * through nine hundred thousand codes at that rate still needs about eight
+   * months of uninterrupted grinding, against a code that dies with the
+   * booking.
    */
-  private static readonly MAX_FAILURES = 5;
-  private static readonly FAILURE_WINDOW_SECONDS = 15 * 60;
+  private static readonly MAX_FAILURES = 10;
+  private static readonly FAILURE_WINDOW_SECONDS = 5 * 60;
 
   /**
    * Shared across instances, unlike the per-process counter behind the route's
@@ -308,14 +310,27 @@ export class MagicLinkService {
     return `magic-otp-fail:${email.trim().toLowerCase()}`;
   }
 
-  private async isLockedOut(email: string): Promise<boolean> {
+  /**
+   * Null when they're fine, otherwise the minutes left to wait.
+   *
+   * The real remaining time, not the width of the window: a guest who used up
+   * their attempts four minutes ago should be told one minute, not five.
+   * Falls back to the full window if the store won't say, and never rounds
+   * down to zero — "try again in 0 minutes" is not an instruction.
+   */
+  private async lockoutMinutes(email: string): Promise<number | null> {
     const store = this.redis();
-    if (!store) return false;
+    if (!store) return null;
     try {
-      const count = Number(await store.get(this.failureKey(email))) || 0;
-      return count >= MagicLinkService.MAX_FAILURES;
+      const key = this.failureKey(email);
+      const count = Number(await store.get(key)) || 0;
+      if (count < MagicLinkService.MAX_FAILURES) return null;
+
+      const ttl = await store.ttl(key);
+      const seconds = ttl > 0 ? ttl : MagicLinkService.FAILURE_WINDOW_SECONDS;
+      return Math.max(1, Math.ceil(seconds / 60));
     } catch {
-      return false;
+      return null;
     }
   }
 
@@ -401,9 +416,20 @@ export class MagicLinkService {
      * it is far likelier to be someone fumbling a code than someone attacking
      * one.
      */
-    if (await this.isLockedOut(email)) {
+    const waitMinutes = await this.lockoutMinutes(email);
+    if (waitMinutes !== null) {
+      // Says wait, and not "send yourself a new link".
+      //
+      // A new link would not help: the check sits before the lookup, so a
+      // freshly issued code is refused too. That is deliberate — evaluating
+      // codes while locked out is exactly what reopens the guessing — but it
+      // makes "send yourself a new link" advice that cannot work, and sending
+      // a guest to do something futile is worse than telling them to wait.
+      //
+      // The call button underneath is the way through in the meantime, and it
+      // now dials a real number.
       throw new HttpException(
-        'Too many attempts. Wait fifteen minutes and try again, or send yourself a new link.',
+        `Too many attempts. Try again in ${waitMinutes} minute${waitMinutes === 1 ? '' : 's'} — a new link won’t open sooner.`,
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
