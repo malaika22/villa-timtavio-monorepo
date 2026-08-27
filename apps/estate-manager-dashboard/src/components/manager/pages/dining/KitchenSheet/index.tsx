@@ -45,6 +45,7 @@ import {
   useRemoveMeal,
 } from '@/hooks/useDiningRules';
 import { useMenu } from '@/hooks/useMenu';
+import { stayWeekdayDayMonth } from '@/lib/stay-date';
 
 const MEAL_LABEL: Record<string, string> = {
   BREAKFAST: 'Breakfast',
@@ -189,7 +190,7 @@ export const KitchenSheet = () => {
             <section key={day.date} className="space-y-3">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-manager-border pb-1.5">
                 <h3 className="text-sm font-semibold text-manager-text">
-                  {format(parseISO(day.date), 'EEEE d MMMM')}
+                  {stayWeekdayDayMonth(day.date)}
                 </h3>
                 <span
                   className={cn(

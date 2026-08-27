@@ -16,14 +16,19 @@
  * source. Do NOT use it for real timestamps — createdAt, expiresAt, a hold's
  * countdown — which are genuine instants and belong in the reader's own time.
  */
-const opts = (extra: Intl.DateTimeFormatOptions): Intl.DateTimeFormatOptions => ({
+const opts = (
+  extra: Intl.DateTimeFormatOptions,
+): Intl.DateTimeFormatOptions => ({
   timeZone: 'UTC',
   ...extra,
 });
 
 /** "17 Sept" */
 export const stayDate = (iso: string): string =>
-  new Date(iso).toLocaleDateString('en-GB', opts({ day: 'numeric', month: 'short' }));
+  new Date(iso).toLocaleDateString(
+    'en-GB',
+    opts({ day: 'numeric', month: 'short' }),
+  );
 
 /** "Thu 17 Sept 2026" */
 export const stayDateLong = (iso: string): string =>
@@ -37,6 +42,20 @@ export const stayDateWithYear = (iso: string): string =>
   new Date(iso).toLocaleDateString(
     'en-GB',
     opts({ day: 'numeric', month: 'short', year: 'numeric' }),
+  );
+
+/** "18 September 2026" */
+export const stayDateFullMonth = (iso: string): string =>
+  new Date(iso).toLocaleDateString(
+    'en-GB',
+    opts({ day: 'numeric', month: 'long', year: 'numeric' }),
+  );
+
+/** "Thursday 18 September" — the chef's run sheet, which is read by the day. */
+export const stayWeekdayDayMonth = (iso: string): string =>
+  new Date(iso).toLocaleDateString(
+    'en-GB',
+    opts({ weekday: 'long', day: 'numeric', month: 'long' }),
   );
 
 /** "17 Sept – 21 Sept 2026" */

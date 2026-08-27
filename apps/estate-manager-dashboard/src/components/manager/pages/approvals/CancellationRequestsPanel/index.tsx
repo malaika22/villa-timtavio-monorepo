@@ -6,6 +6,7 @@ import { Check, Loader2, MessageCircle, XCircle } from 'lucide-react';
 import { Button, Input } from '@repo/ui';
 import { toast } from 'sonner';
 import { formatPrice, vendorCancellationStage } from '@repo/api-types';
+import { stayDate } from '@/lib/stay-date';
 
 import {
   useCancellationRequests,
@@ -104,7 +105,7 @@ export const CancellationRequestsPanel = () => {
                 <p className="mt-0.5 text-xs text-manager-text-muted">
                   {r.requestedByName}
                   {r.confirmedDate
-                    ? ` · ${format(parseISO(r.confirmedDate), 'MMM d')}`
+                    ? ` · ${stayDate(r.confirmedDate)}`
                     : ''}
                   {r.confirmedCost != null
                     ? ` · ${formatPrice(r.confirmedCost)} on folio`

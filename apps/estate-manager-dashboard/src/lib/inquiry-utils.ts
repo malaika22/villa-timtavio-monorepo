@@ -2,6 +2,7 @@ import type { Inquiry } from '@repo/api-types';
 import { format, parseISO } from 'date-fns';
 
 import { config } from '@/config/config';
+import { stayDateFullMonth } from '@/lib/stay-date';
 
 /** Normalise a pasted social value into a URL — WITHOUT guessing a platform.
  *  Full URLs are kept; a bare "domain/path" gets https prepended; a bare
@@ -35,9 +36,9 @@ export function socialLinkLabel(url?: string | null): string {
 export function formatInquiryDateRange(inquiry: Inquiry): string {
   if (!inquiry.preferredFrom) return 'Dates flexible';
   try {
-    const from = format(parseISO(inquiry.preferredFrom), 'MMMM d, yyyy');
+    const from = stayDateFullMonth(inquiry.preferredFrom);
     const to = inquiry.preferredTo
-      ? format(parseISO(inquiry.preferredTo), 'MMMM d, yyyy')
+      ? stayDateFullMonth(inquiry.preferredTo)
       : from;
     return `${from} – ${to}`;
   } catch {

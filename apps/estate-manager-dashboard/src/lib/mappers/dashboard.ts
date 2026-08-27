@@ -6,6 +6,7 @@ import type {
   GuestWithBookings,
 } from '@repo/api-types';
 import { format, formatDistanceToNow, parseISO } from 'date-fns';
+import { stayDate } from '@/lib/stay-date';
 
 import type {
   ApprovalQueueItem,
@@ -56,7 +57,7 @@ function mapBookingStatusToGuestStatus(
 function formatCheckout(checkOut?: string): string {
   if (!checkOut) return '—';
   try {
-    return format(parseISO(checkOut), 'MMM d');
+    return stayDate(checkOut);
   } catch {
     return checkOut;
   }
