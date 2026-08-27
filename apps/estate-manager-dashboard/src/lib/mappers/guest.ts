@@ -176,10 +176,28 @@ export function mapGuestProfileToDNA(profile: GuestProfile): GuestDNAProfile {
   const beverage = profile.beveragePreferences
     ? profile.beveragePreferences.split('\n').filter(Boolean)
     : [];
-  // The active stay = first booking that hasn't ended.
-  const activeBooking = profile.primaryBookings.find(
+  /**
+   * The stay they are on, or the next one they arrive for.
+   *
+   * The API returns bookings newest check-in first, and this took the first
+   * that had not ended — which is the *furthest* future stay, not the nearest.
+   * A guest with two upcoming bookings had the later one described as "this
+   * stay", and its dates, party size and manifest badge read as though they
+   * belonged to the visit about to happen.
+   *
+   * A stay under way wins over one still to come, and among those still to
+   * come the soonest wins.
+   */
+  const live = profile.primaryBookings.filter(
     (b) => b.status !== 'CHECKED_OUT' && b.status !== 'CANCELLED',
   );
+  const activeBooking =
+    live.find(
+      (b) =>
+        b.status === 'CHECKED_IN' ||
+        b.status === 'SETTLED' ||
+        b.status === 'DEPARTURE_TODAY',
+    ) ?? [...live].sort((a, b) => a.checkIn.localeCompare(b.checkIn))[0];
 
   return {
     id: profile.id,
