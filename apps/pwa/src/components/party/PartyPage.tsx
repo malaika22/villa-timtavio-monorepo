@@ -10,11 +10,17 @@ import { useManifest } from '@/hooks/useManifest';
 import { usePendingApprovalRequests } from '@/hooks/useRequests';
 import { useAuth } from '@/hooks/useAuth';
 import { RequestDetailView } from '@/components/Status/RequestDetailView';
+import { stayDateShort } from '@/lib/stay-date';
 
 function expStatusMeta(status: string) {
   switch (status) {
     case 'READY':
-      return { label: 'Ready', color: 'text-[#3A5E48]', bg: 'bg-[#EEF5F0]', border: 'border-[#3A5E48]/25' };
+      return {
+        label: 'Ready',
+        color: 'text-[#3A5E48]',
+        bg: 'bg-[#EEF5F0]',
+        border: 'border-[#3A5E48]/25',
+      };
     case 'CONFIRMED':
     case 'IN_PROGRESS':
       return {
@@ -24,11 +30,26 @@ function expStatusMeta(status: string) {
         border: 'border-[#3A5E48]/25',
       };
     case 'COMPLETED':
-      return { label: 'Completed', color: 'text-[#797168]', bg: 'bg-[#F0EDE6]', border: 'border-[#E3E0DA]' };
+      return {
+        label: 'Completed',
+        color: 'text-[#797168]',
+        bg: 'bg-[#F0EDE6]',
+        border: 'border-[#E3E0DA]',
+      };
     case 'CANCELLED':
-      return { label: 'Declined', color: 'text-[#B42318]', bg: 'bg-[#FEF6F4]', border: 'border-[#B42318]/25' };
+      return {
+        label: 'Declined',
+        color: 'text-[#B42318]',
+        bg: 'bg-[#FEF6F4]',
+        border: 'border-[#B42318]/25',
+      };
     default:
-      return { label: 'Pending', color: 'text-[#854F0B]', bg: 'bg-[#FAEEDA]', border: 'border-[#854F0B]/25' };
+      return {
+        label: 'Pending',
+        color: 'text-[#854F0B]',
+        bg: 'bg-[#FAEEDA]',
+        border: 'border-[#854F0B]/25',
+      };
   }
 }
 
@@ -41,7 +62,7 @@ function formatExpWhen(exp: {
   const date = exp.confirmedDate ?? exp.preferredDate;
   const time = exp.confirmedTime ?? exp.preferredTime;
   try {
-    return `${format(parseISO(date), 'MMM d')}${time ? ` · ${time}` : ''}`;
+    return `${stayDateShort(date)}${time ? ` · ${time}` : ''}`;
   } catch {
     return time ?? '';
   }
@@ -176,7 +197,9 @@ export const PartyPage = () => {
         <ul className="overflow-hidden rounded-2xl border border-[#E3E0DA] bg-white">
           <li className="flex items-center justify-between border-b border-[#F0EDE8] px-4 py-3.5 last:border-0">
             <div>
-              <p className="text-sm font-medium text-[#2B2824]">{primaryName}</p>
+              <p className="text-sm font-medium text-[#2B2824]">
+                {primaryName}
+              </p>
               <p className="text-[11px] text-[#9A9288]">Primary member</p>
             </div>
           </li>

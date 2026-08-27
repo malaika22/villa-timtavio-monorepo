@@ -1,16 +1,14 @@
 'use client';
 import { useBookingStore } from '@/store/useBookingStore';
 import { ArrivalStatus } from '@/types/arrivalStatus';
+import { stayDaysUntil } from '@/lib/stay-date';
 
 function getDaysUntil(dateStr: string | null): number | null {
   if (!dateStr) return null;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(dateStr);
-  target.setHours(0, 0, 0, 0);
-  return Math.ceil(
-    (target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
-  );
+  // Was local arithmetic on a UTC-midnight value, so it counted to the same
+  // wrong day the header was showing — "arrives in 22 days" agreeing with a
+  // 17 September that was really the 18th.
+  return stayDaysUntil(dateStr);
 }
 
 function getArrivalLabel(days: number): string {
