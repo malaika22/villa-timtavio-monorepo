@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Sheet,
   SheetContent,
@@ -8,15 +8,7 @@ import {
   SheetTitle,
 } from '@repo/ui/components/sheet';
 import { Button, Input } from '@repo/ui';
-import {
-  CheckCircle2,
-  Send,
-  AlertTriangle,
-  Pencil,
-  X,
-  Check,
-  ChevronDown,
-} from 'lucide-react';
+import { Send, Pencil, X, Check, ChevronDown } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
 import type {
   ManifestResponse,
@@ -96,9 +88,105 @@ export function ManifestDetailSheet({
   const roomsInUse = manifest.roomSummary.filter(
     (r) => r.assignedGuests > 0,
   ).length;
-  const roomsAssigned =
-    manifest.primaryGuest.roomNumber != null &&
-    manifest.guests.every((g) => g.roomNumber != null);
+  /**
+   * The party, arranged the way the estate walks the villa.
+   *
+   * Null when nobody has a room — the caller falls back to the flat list. That
+   * is not an edge case: rooms are only assignable once the manifest is
+   * SUBMITTED, so a booking spends its whole first phase with none assigned,
+   * and grouping then means one "No room yet" heading over everybody.
+   *
+   * The primary is folded in rather than kept above the rest. They sleep in a
+   * room like anyone else, and the whole point of this view is that the room
+   * is the thing you scan by — their card still says "Primary guest".
+   *
+   * Rooms in number order, and whoever has no room last. A guest with no room
+   * is the one who causes a problem at check-in, and today they are invisible:
+   * the occupancy panel lists only rooms in use, so they appear nowhere at all.
+   */
+  const roster = useMemo(() => {
+    type Entry =
+      | { kind: 'primary' }
+      | { kind: 'guest'; guest: (typeof manifest.guests)[number] };
+
+    const everyone: { roomNumber: number | null; entry: Entry }[] = [
+      {
+        roomNumber: manifest.primaryGuest.roomNumber ?? null,
+        entry: { kind: 'primary' },
+      },
+      ...manifest.guests.map((guest) => ({
+        roomNumber: guest.roomNumber ?? null,
+        entry: { kind: 'guest' as const, guest },
+      })),
+    ];
+
+    if (!everyone.some((e) => e.roomNumber != null)) return null;
+
+    const byRoom = new Map<number | null, Entry[]>();
+    for (const { roomNumber, entry } of everyone) {
+      byRoom.set(roomNumber, [...(byRoom.get(roomNumber) ?? []), entry]);
+    }
+
+    return [...byRoom.entries()]
+      .sort(([a], [b]) => {
+        if (a === null) return 1;
+        if (b === null) return -1;
+        return a - b;
+      })
+      .map(([roomNumber, entries]) => {
+        const room =
+          roomNumber == null
+            ? undefined
+            : manifest.roomSummary.find((r) => r.roomNumber === roomNumber);
+        return {
+          key: roomNumber == null ? 'unassigned' : String(roomNumber),
+          roomNumber,
+          roomName: room?.roomName ?? null,
+          capacity: room?.capacity ?? null,
+          entries,
+        };
+      });
+  }, [manifest]);
+
+  /**
+   * Rendered through helpers so the grouped and flat branches cannot drift.
+   * Both were a copy of the same twenty lines when this was one list, and the
+   * second copy is where the next prop gets forgotten.
+   */
+  const renderPrimary = () => (
+    <PrimaryGuestCard
+      primary={manifest.primaryGuest}
+      roomSummary={manifest.roomSummary}
+      showPresence={showPresence}
+      onSetArrival={(status) => setPrimaryArrival.mutate(status)}
+    />
+  );
+
+  const renderGuest = (guest: (typeof manifest.guests)[number]) => (
+    // Keyed by id, not by position, so moving a guest between rooms moves
+    // their card rather than remounting it — an expanded card stays expanded
+    // and lands in its new group, which is the feedback you want after
+    // assigning a room.
+    <GuestCard
+      key={guest.id}
+      guest={guest}
+      roomSummary={manifest.roomSummary}
+      onResend={
+        manifest.manifestStatus === 'APPROVED'
+          ? () => handleResend(guest.id, guest.firstName)
+          : undefined
+      }
+      resendPending={resendLink.isPending}
+      canEdit={canEdit}
+      onSave={async (dto) => {
+        await updateGuest.mutateAsync({ guestId: guest.id, dto });
+        toast.success('Guest updated');
+      }}
+      saving={updateGuest.isPending}
+      showPresence={showPresence}
+      onSetArrival={(status) => handleSetArrival(guest.id, status)}
+    />
+  );
 
   const markAllPresence = (status: GuestArrivalStatus) => {
     setPrimaryArrival.mutate(status);
@@ -125,8 +213,8 @@ export function ManifestDetailSheet({
                 Guest Manifest
               </SheetTitle>
               <p className="text-sm text-[#8a8178] mt-0.5">
-                Villa TimTavio · {manifest.addedGuests} of {manifest.totalGuests}{' '}
-                guests
+                Villa TimTavio · {manifest.addedGuests} of{' '}
+                {manifest.totalGuests} guests
               </p>
             </div>
             <StatusBadge status={manifest.manifestStatus} />
@@ -142,35 +230,70 @@ export function ManifestDetailSheet({
             <h3 className="text-[10px] font-semibold uppercase tracking-widest text-[#8a8178] mb-3">
               Party · {manifest.addedGuests} of {manifest.totalGuests}
             </h3>
-            <div className="flex flex-col gap-2.5">
-              <PrimaryGuestCard
-                primary={manifest.primaryGuest}
-                roomSummary={manifest.roomSummary}
-                showPresence={showPresence}
-                onSetArrival={(status) => setPrimaryArrival.mutate(status)}
-              />
-              {manifest.guests.map((guest) => (
-                <GuestCard
-                  key={guest.id}
-                  guest={guest}
-                  roomSummary={manifest.roomSummary}
-                  onResend={
-                    manifest.manifestStatus === 'APPROVED'
-                      ? () => handleResend(guest.id, guest.firstName)
-                      : undefined
-                  }
-                  resendPending={resendLink.isPending}
-                  canEdit={canEdit}
-                  onSave={async (dto) => {
-                    await updateGuest.mutateAsync({ guestId: guest.id, dto });
-                    toast.success('Guest updated');
-                  }}
-                  saving={updateGuest.isPending}
-                  showPresence={showPresence}
-                  onSetArrival={(status) => handleSetArrival(guest.id, status)}
-                />
-              ))}
-            </div>
+            {/* Flat until there is something to group by.
+                Rooms are only assignable once the manifest is SUBMITTED, so
+                for the whole first phase of a booking nobody has one — and
+                grouping then produces a single "No room yet" heading over the
+                entire party, which is worse than the plain list it replaced.
+                Headings appear the moment one guest has a room. */}
+            {roster === null ? (
+              <div className="flex flex-col gap-2.5">
+                {renderPrimary()}
+                {manifest.guests.map((guest) => renderGuest(guest))}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {roster.map((group) => (
+                  <div key={group.key} className="flex flex-col gap-2">
+                    <div className="flex items-baseline justify-between gap-2 px-0.5">
+                      <span
+                        className={cn(
+                          'text-xs font-semibold',
+                          group.roomNumber == null
+                            ? 'text-[#8a6d3b]'
+                            : 'text-[#1a1614]',
+                        )}
+                      >
+                        {group.roomNumber == null ? (
+                          'No room yet'
+                        ) : (
+                          <>
+                            Room {group.roomNumber}
+                            {group.roomName ? (
+                              <span className="font-normal text-[#8a8178]">
+                                {' '}
+                                · {group.roomName}
+                              </span>
+                            ) : null}
+                          </>
+                        )}
+                      </span>
+                      {/* Amber when more people are in a room than it sleeps.
+                          It renders either way — "3 / 2" is not a number to
+                          print quietly next to two guests who have a bed. */}
+                      <span
+                        className={cn(
+                          'shrink-0 text-[11px] tabular-nums',
+                          group.capacity != null &&
+                            group.entries.length > group.capacity
+                            ? 'font-semibold text-[#8a6d3b]'
+                            : 'text-[#a49a91]',
+                        )}
+                      >
+                        {group.capacity == null
+                          ? group.entries.length
+                          : `${group.entries.length} / ${group.capacity}`}
+                      </span>
+                    </div>
+                    {group.entries.map((entry) =>
+                      entry.kind === 'primary'
+                        ? renderPrimary()
+                        : renderGuest(entry.guest),
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* ── Right: summary rail ── */}
@@ -693,7 +816,11 @@ const ARRIVAL_OPTIONS: {
   label: string;
   active: string;
 }[] = [
-  { value: 'EXPECTED', label: 'Expected', active: 'bg-[#efece6] text-[#5b544c]' },
+  {
+    value: 'EXPECTED',
+    label: 'Expected',
+    active: 'bg-[#efece6] text-[#5b544c]',
+  },
   { value: 'IN_VILLA', label: 'In villa', active: 'bg-[#4a7c59] text-white' },
   { value: 'DEPARTED', label: 'Departed', active: 'bg-[#6b6459] text-white' },
 ];
@@ -716,9 +843,7 @@ function ArrivalStatusPills({
             onClick={() => !isActive && onChange(opt.value)}
             className={cn(
               'rounded-full px-3 py-1 text-[11px] font-medium transition-colors',
-              isActive
-                ? opt.active
-                : 'text-[#8a8178] hover:text-[#3d3530]',
+              isActive ? opt.active : 'text-[#8a8178] hover:text-[#3d3530]',
             )}
           >
             {opt.label}
