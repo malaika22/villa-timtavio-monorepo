@@ -441,7 +441,26 @@ export class BookingsService {
    * asked instead; a guest who already has a real name keeps it.
    */
   private async findOrCreateGuest(email: string, lodgifyData: any) {
-    const existing = await this.prisma.guest.findUnique({ where: { email } });
+    /**
+     * Matched without regard to case, and stored lowercased.
+     *
+     * Lodgify sends what somebody typed — BKeith@voitco.com, with capitals —
+     * and an exact match treats that as a different person from
+     * bkeith@voitco.com. The comparison a few lines up in
+     * reconcileGuestFromLodgify already lowercases, so the two disagreed:
+     * re-typing an address in a different case read as "same guest, nothing to
+     * do" there and as "nobody holds this address" here, which built a second
+     * empty record for the same person and moved the booking onto it. Exactly
+     * the loss the re-address rule exists to prevent, through the back door.
+     *
+     * findFirst rather than findUnique because insensitive matching is not
+     * available on a unique lookup. Existing rows keep whatever case they were
+     * written with and are still found.
+     */
+    const existing = await this.prisma.guest.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+    });
+    const normalised = email.trim().toLowerCase();
 
     // A real name from Lodgify, or nothing. Lodgify sends "Guest" as a
     // placeholder on a reservation nobody has filled in, and treating that as
@@ -453,13 +472,13 @@ export class BookingsService {
     if (!existing) {
       if (isPlaceholderEmail(email)) {
         return this.prisma.guest.create({
-          data: { email, ...AWAITING_NAME, role: 'PRIMARY' },
+          data: { email: normalised, ...AWAITING_NAME, role: 'PRIMARY' },
         });
       }
       const inquiry = await this.inquiriesService.findLatestByEmail(email);
       return this.prisma.guest.create({
         data: {
-          email,
+          email: normalised,
           firstName: sentFirst ?? inquiry?.firstName ?? 'Guest',
           lastName: sentLast ?? inquiry?.lastName ?? '',
           phone: sentPhone,
@@ -576,8 +595,8 @@ export class BookingsService {
      */
     if (!sameAddress) {
       const [alreadySomeone, otherStays] = await Promise.all([
-        this.prisma.guest.findUnique({
-          where: { email },
+        this.prisma.guest.findFirst({
+          where: { email: { equals: email, mode: 'insensitive' } },
           select: { id: true },
         }),
         this.prisma.booking.count({
@@ -592,7 +611,9 @@ export class BookingsService {
         try {
           await this.prisma.guest.update({
             where: { id: booking.primaryGuestId },
-            data: { email },
+            // Lowercased on the way in, like every address this path writes,
+            // so the row cannot later fail to match itself.
+            data: { email: email.trim().toLowerCase() },
           });
           await this.prisma.auditLog.create({
             data: {
