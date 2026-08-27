@@ -10,6 +10,7 @@ import {
   useIntelligenceAlerts,
 } from '@/hooks/useAnalytics';
 import { formatRevenueCompact } from '@/lib/mappers/dashboard';
+import { stayDate } from '@/lib/stay-date';
 
 const MONTH_LABELS = [
   'J',
@@ -162,8 +163,8 @@ export const OverviewPage = () => {
                       {s.guestName}
                     </p>
                     <p className="text-xs text-manager-text-muted">
-                      {format(new Date(s.checkIn), 'MMM d')} –{' '}
-                      {format(new Date(s.checkOut), 'MMM d')} · {s.totalGuests}{' '}
+                      {stayDate(s.checkIn)} –{' '}
+                      {stayDate(s.checkOut)} · {s.totalGuests}{' '}
                       guests
                     </p>
                   </div>

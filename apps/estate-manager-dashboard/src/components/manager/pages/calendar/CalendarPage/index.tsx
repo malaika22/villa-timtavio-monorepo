@@ -8,6 +8,7 @@ import { cn } from '@repo/ui/lib/utils';
 import { CalendarLegend } from '@/components/manager/pages/calendar/CalendarLegend';
 import { calendarEventStyles } from '@/components/manager/pages/calendar/calendar-event-styles';
 import { useCalendar } from '@/hooks/useCalendar';
+import { stayDate, stayDateWithYear } from '@/lib/stay-date';
 
 function toISODate(d: Date): string {
   return format(d, 'yyyy-MM-dd');
@@ -20,7 +21,7 @@ export const CalendarPage = () => {
   const days = data?.days ?? [];
   const rangeLabel =
     days.length === 7
-      ? `${format(parseISO(days[0].date), 'MMM d')} – ${format(parseISO(days[6].date), 'MMM d, yyyy')}`
+      ? `${stayDate(days[0].date)} – ${stayDateWithYear(days[6].date)}`
       : '';
 
   const shiftWeek = (delta: number) => {

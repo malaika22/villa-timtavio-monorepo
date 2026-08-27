@@ -11,6 +11,7 @@ import {
 import { format } from 'date-fns';
 import { useDining, useConfirmDining } from '@/hooks/useDining';
 import type { DiningOrderItem, DiningRequest } from '@repo/api-types';
+import { stayDate } from '@/lib/stay-date';
 
 const MEAL_LABEL: Record<string, string> = {
   BREAKFAST: 'Breakfast',
@@ -97,7 +98,7 @@ function DiningRow({
             </p>
             <p className="text-xs text-manager-text-muted">
               {isSitting
-                ? `${r.date ? format(new Date(r.date), 'MMM d') : ''}${r.time ? ` at ${r.time}` : ''}`
+                ? `${r.date ? stayDate(r.date) : ''}${r.time ? ` at ${r.time}` : ''}`
                 : r.requestedFor
                   ? `For ${r.requestedFor}`
                   : 'As soon as possible'}
