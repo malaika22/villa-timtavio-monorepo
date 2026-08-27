@@ -3,7 +3,11 @@
 // let guest-facing copy personalize when a real name exists and degrade
 // gracefully — never showing the impersonal "Guest" placeholder — otherwise.
 
-const PLACEHOLDER_NAMES = new Set(['guest', 'guests', '']);
+// "awaiting guest" is what a reservation Lodgify sent with no guest email is
+// held under until somebody fills it in. It has to count as a placeholder like
+// the rest: without it a promoted reservation keeps that name for ever, and
+// the guest is greeted "Welcome, Awaiting guest."
+const PLACEHOLDER_NAMES = new Set(['guest', 'guests', 'awaiting guest', '']);
 
 /** A trimmed first name if it's a real one, otherwise undefined. */
 export function realFirstName(firstName?: string | null): string | undefined {
