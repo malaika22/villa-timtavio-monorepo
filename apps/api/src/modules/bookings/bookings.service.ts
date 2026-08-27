@@ -261,6 +261,7 @@ export class BookingsService {
       const updated = await this.updateFromLodgify(lodgifyData);
       const guestEmail = lodgifyData.guest?.email;
       if (guestEmail) {
+        await this.relinkToNamedGuest(existing.id, lodgifyData);
         await this.inquiriesService.linkToBooking(guestEmail, existing.id);
       }
       return updated;
@@ -273,35 +274,7 @@ export class BookingsService {
       return;
     }
 
-    let guest = await this.prisma.guest.findUnique({
-      where: { email: guestEmail },
-    });
-
-    // Seed/backfill the guest name. Lodgify often has no name (defaults to the
-    // "Guest" placeholder), so fall back to the linked inquiry's real name.
-    if (!guest || !realFirstName(guest.firstName)) {
-      const inquiry = await this.inquiriesService.findLatestByEmail(guestEmail);
-      const firstName =
-        lodgifyData.guest?.first_name || inquiry?.firstName || 'Guest';
-      const lastName = lodgifyData.guest?.last_name || inquiry?.lastName || '';
-
-      if (!guest) {
-        guest = await this.prisma.guest.create({
-          data: {
-            email: guestEmail,
-            firstName,
-            lastName,
-            phone: lodgifyData.guest?.phone,
-            role: 'PRIMARY',
-          },
-        });
-      } else {
-        guest = await this.prisma.guest.update({
-          where: { id: guest.id },
-          data: { firstName, lastName },
-        });
-      }
-    }
+    const guest = await this.findOrCreateGuest(guestEmail, lodgifyData);
 
     // Snapshot the estate's configured tax/service rates onto the booking at
     // creation. The folio reads the booking's own rates, so this makes the
@@ -386,6 +359,115 @@ export class BookingsService {
     // reservation details and the Stripe link together.
 
     return booking;
+  }
+
+  /**
+   * The guest behind an address, made if they are new.
+   *
+   * Extracted so the creation path and the re-link cannot disagree about what
+   * "the guest on this reservation" means — the re-link exists precisely
+   * because those two answers had drifted apart.
+   *
+   * The name is seeded or backfilled here too. Lodgify often sends none and
+   * defaults to the "Guest" placeholder, in which case a linked inquiry is
+   * asked instead; a guest who already has a real name keeps it.
+   */
+  private async findOrCreateGuest(email: string, lodgifyData: any) {
+    const existing = await this.prisma.guest.findUnique({ where: { email } });
+    if (existing && realFirstName(existing.firstName)) return existing;
+
+    const inquiry = await this.inquiriesService.findLatestByEmail(email);
+    const firstName =
+      lodgifyData.guest?.first_name || inquiry?.firstName || 'Guest';
+    const lastName = lodgifyData.guest?.last_name || inquiry?.lastName || '';
+
+    if (!existing) {
+      return this.prisma.guest.create({
+        data: {
+          email,
+          firstName,
+          lastName,
+          phone: lodgifyData.guest?.phone,
+          role: 'PRIMARY',
+        },
+      });
+    }
+    return this.prisma.guest.update({
+      where: { id: existing.id },
+      data: { firstName, lastName },
+    });
+  }
+
+  /**
+   * Moves a booking onto the guest Lodgify actually names.
+   *
+   * primaryGuestId was written once, at creation, and never revisited — so a
+   * reservation whose guest details were filled in afterwards stayed filed
+   * under whoever it first matched. That is what happened to Brandon Keith:
+   * created by hand in Lodgify on 23 August with no guest of its own, matched
+   * to the account holder, and then given its real guest a day later. Every
+   * poll since re-read the payload, stored Brandon's address in
+   * lodgifyRawData, and left the booking on Tim Haughinberry's record.
+   *
+   * The cost of that is two-sided and neither half is visible: the guest it
+   * belongs to never appears in Guests at all, and the guest it landed on
+   * grows a stay they never made — with its nights, its party size and its
+   * folio total reading as theirs.
+   *
+   * Only ever follows Lodgify. A booking is theirs to describe, and the email
+   * on it is the closest thing to an identity a reservation has.
+   */
+  private async relinkToNamedGuest(
+    bookingId: string,
+    lodgifyData: any,
+  ): Promise<void> {
+    const email = String(lodgifyData.guest?.email ?? '').trim();
+    if (!email) return;
+
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+      select: {
+        primaryGuestId: true,
+        primaryGuest: { select: { email: true } },
+      },
+    });
+    if (!booking) return;
+    if (
+      booking.primaryGuest.email.trim().toLowerCase() === email.toLowerCase()
+    ) {
+      return;
+    }
+
+    const guest = await this.findOrCreateGuest(email, lodgifyData);
+    if (guest.id === booking.primaryGuestId) return;
+
+    await this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { primaryGuestId: guest.id },
+    });
+
+    // A booking changing hands with no human involved has to be answerable
+    // later — not least because the guest it left keeps their other stays and
+    // will look shorter than they did yesterday.
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'BOOKING_UPDATED',
+        entityType: 'Booking',
+        entityId: bookingId,
+        performedBy: 'system',
+        performedByRole: 'system',
+        bookingId,
+        afterState: {
+          reason: 'Re-filed under the guest Lodgify names on the reservation',
+          from: booking.primaryGuest.email,
+          to: email,
+        } as any,
+      },
+    });
+
+    this.logger.warn(
+      `Booking ${bookingId} moved from ${booking.primaryGuest.email} to ${email} — Lodgify names the latter`,
+    );
   }
 
   async updateFromLodgify(lodgifyData: any) {
