@@ -261,7 +261,7 @@ export class BookingsService {
       const updated = await this.updateFromLodgify(lodgifyData);
       const guestEmail = lodgifyData.guest?.email;
       if (guestEmail) {
-        await this.relinkToNamedGuest(existing.id, lodgifyData);
+        await this.reconcileGuestFromLodgify(existing.id, lodgifyData);
         await this.inquiriesService.linkToBooking(guestEmail, existing.id);
       }
       return updated;
@@ -374,32 +374,78 @@ export class BookingsService {
    */
   private async findOrCreateGuest(email: string, lodgifyData: any) {
     const existing = await this.prisma.guest.findUnique({ where: { email } });
-    if (existing && realFirstName(existing.firstName)) return existing;
 
-    const inquiry = await this.inquiriesService.findLatestByEmail(email);
-    const firstName =
-      lodgifyData.guest?.first_name || inquiry?.firstName || 'Guest';
-    const lastName = lodgifyData.guest?.last_name || inquiry?.lastName || '';
+    // A real name from Lodgify, or nothing. Lodgify sends "Guest" as a
+    // placeholder on a reservation nobody has filled in, and treating that as
+    // an answer is how a guest with a proper name loses it.
+    const sentFirst = realFirstName(lodgifyData.guest?.first_name);
+    const sentLast = lodgifyData.guest?.last_name || undefined;
+    const sentPhone = lodgifyData.guest?.phone || undefined;
 
     if (!existing) {
+      const inquiry = await this.inquiriesService.findLatestByEmail(email);
       return this.prisma.guest.create({
         data: {
           email,
-          firstName,
-          lastName,
-          phone: lodgifyData.guest?.phone,
+          firstName: sentFirst ?? inquiry?.firstName ?? 'Guest',
+          lastName: sentLast ?? inquiry?.lastName ?? '',
+          phone: sentPhone,
           role: 'PRIMARY',
         },
       });
     }
+
+    /**
+     * Follow the reservation, not just fill a gap.
+     *
+     * This used to return the moment an existing guest had a real name, which
+     * meant a correction made in Lodgify — a misspelling, a married name, a
+     * new number — never arrived. Only an empty record was ever updated.
+     *
+     * Lodgify wins where Lodgify has something to say. That is the same rule
+     * the email now follows, and Lodgify is where the estate actually edits;
+     * the cost is that a name corrected in our own dashboard is overwritten
+     * on the next poll.
+     */
+    const patch: { firstName?: string; lastName?: string; phone?: string } = {};
+
+    if (sentFirst && sentFirst !== existing.firstName) {
+      patch.firstName = sentFirst;
+    }
+    if (sentLast && sentLast !== existing.lastName) {
+      patch.lastName = sentLast;
+    }
+    if (sentPhone && sentPhone !== existing.phone) {
+      patch.phone = sentPhone;
+    }
+
+    // Still nameless and Lodgify has none either — ask the inquiry that
+    // brought them, which is the only other place a real name lives.
+    if (!sentFirst && !realFirstName(existing.firstName)) {
+      const inquiry = await this.inquiriesService.findLatestByEmail(email);
+      const fromInquiry = realFirstName(inquiry?.firstName ?? undefined);
+      if (fromInquiry) {
+        patch.firstName = fromInquiry;
+        patch.lastName = inquiry?.lastName || existing.lastName;
+      }
+    }
+
+    if (Object.keys(patch).length === 0) return existing;
+
+    this.logger.log(
+      `Guest ${existing.id} updated from Lodgify: ${Object.keys(patch).join(', ')}`,
+    );
     return this.prisma.guest.update({
       where: { id: existing.id },
-      data: { firstName, lastName },
+      data: patch,
     });
   }
 
   /**
-   * Moves a booking onto the guest Lodgify actually names.
+   * Brings a booking's guest into line with the reservation.
+   *
+   * Two jobs: keep their name and number current, and move the booking
+   * altogether when Lodgify names somebody else.
    *
    * primaryGuestId was written once, at creation, and never revisited — so a
    * reservation whose guest details were filled in afterwards stayed filed
@@ -417,7 +463,7 @@ export class BookingsService {
    * Only ever follows Lodgify. A booking is theirs to describe, and the email
    * on it is the closest thing to an identity a reservation has.
    */
-  private async relinkToNamedGuest(
+  private async reconcileGuestFromLodgify(
     bookingId: string,
     lodgifyData: any,
   ): Promise<void> {
@@ -432,12 +478,10 @@ export class BookingsService {
       },
     });
     if (!booking) return;
-    if (
-      booking.primaryGuest.email.trim().toLowerCase() === email.toLowerCase()
-    ) {
-      return;
-    }
 
+    // Resolved on every poll, not only when the address changed. A corrected
+    // name or number arrives under the same email as before, so returning
+    // early on a match would let exactly those through unseen.
     const guest = await this.findOrCreateGuest(email, lodgifyData);
     if (guest.id === booking.primaryGuestId) return;
 
@@ -536,28 +580,11 @@ export class BookingsService {
       );
     }
 
-    // Backfill the primary guest's real name when it's still the "Guest"
-    // placeholder (Lodgify now provides it, or the linked inquiry does).
-    const full = await this.prisma.booking.findUnique({
-      where: { id: booking.id },
-      include: { primaryGuest: true },
-    });
-    const g = full?.primaryGuest;
-    if (g && !realFirstName(g.firstName)) {
-      const inquiry = await this.inquiriesService.findLatestByEmail(g.email);
-      const firstName =
-        realFirstName(lodgifyData.guest?.first_name) ??
-        realFirstName(inquiry?.firstName ?? undefined) ??
-        g.firstName;
-      const lastName =
-        lodgifyData.guest?.last_name || inquiry?.lastName || g.lastName;
-      if (realFirstName(firstName)) {
-        await this.prisma.guest.update({
-          where: { id: g.id },
-          data: { firstName, lastName },
-        });
-      }
-    }
+    // The guest's own details are reconciled by reconcileGuestFromLodgify,
+    // which the caller runs straight after this. There was a name backfill
+    // here too — a second copy of the same rules, reached by a different
+    // route, and the two would have started disagreeing the moment either
+    // learned something the other did not.
 
     // Keep the base-rate folio line in sync with the (possibly changed) total.
     if (baseRate != null) {
