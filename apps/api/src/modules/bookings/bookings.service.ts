@@ -594,6 +594,22 @@ export class BookingsService {
             where: { id: booking.primaryGuestId },
             data: { email },
           });
+          await this.prisma.auditLog.create({
+            data: {
+              action: 'BOOKING_UPDATED',
+              entityType: 'Guest',
+              entityId: booking.primaryGuestId,
+              performedBy: 'system',
+              performedByRole: 'system',
+              bookingId,
+              afterState: {
+                reason:
+                  'Re-addressed from the reservation — their only booking, and nobody held the new address',
+                from: booking.primaryGuest.email,
+                to: email,
+              } as any,
+            },
+          });
           this.logger.warn(
             `Guest ${booking.primaryGuestId} re-addressed ${booking.primaryGuest.email} → ${email} (their only booking, and nobody holds the new address)`,
           );
