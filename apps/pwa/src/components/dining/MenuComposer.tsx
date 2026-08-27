@@ -2,7 +2,14 @@
 
 import { useMemo, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Check, ChevronRight, Clock, Loader2, Lock, Pencil } from 'lucide-react';
+import {
+  Check,
+  ChevronRight,
+  Clock,
+  Loader2,
+  Lock,
+  Pencil,
+} from 'lucide-react';
 import type {
   DiningRequest,
   MealType,
@@ -18,6 +25,13 @@ import { cn } from '@repo/ui/lib/utils';
 
 import { useComposeMeal } from '@/hooks/useDining';
 import { CoursePicker } from './CoursePicker';
+// A menu day is a calendar date; closesAt just below is a real instant and
+// deliberately still rendered in the reader's own time.
+import {
+  stayDayOfMonth,
+  stayWeekdayLong,
+  stayWeekdayShort,
+} from '@/lib/stay-date';
 
 const MEAL_LABEL: Record<string, string> = {
   BREAKFAST: 'Breakfast',
@@ -94,7 +108,8 @@ export const MenuComposer = ({
 
   const sittingFor = (mealType: MealType) =>
     sittings.find(
-      (r) => r.mealType === mealType && (r.date ?? '').slice(0, 10) === day.date,
+      (r) =>
+        r.mealType === mealType && (r.date ?? '').slice(0, 10) === day.date,
     );
 
   /** Everything on the meal, with one course swapped for the draft. */
@@ -164,7 +179,9 @@ export const MenuComposer = ({
       <div className="no-scrollbar -mx-3 mb-3 flex gap-1.5 overflow-x-auto px-3 pb-1">
         {days.map((d) => {
           const isOn = d.date === selected;
-          const decided = d.meals.every((m) => (m.selection?.items.length ?? 0) > 0);
+          const decided = d.meals.every(
+            (m) => (m.selection?.items.length ?? 0) > 0,
+          );
           return (
             <button
               key={d.date}
@@ -173,7 +190,9 @@ export const MenuComposer = ({
               aria-pressed={isOn}
               className={cn(
                 'flex w-[42px] shrink-0 flex-col items-center rounded-[9px] border px-1 py-1.5',
-                isOn ? 'border-[#0F1F2E] bg-[#0F1F2E]' : 'border-[#E3E0DA] bg-white',
+                isOn
+                  ? 'border-[#0F1F2E] bg-[#0F1F2E]'
+                  : 'border-[#E3E0DA] bg-white',
               )}
             >
               <span
@@ -182,7 +201,7 @@ export const MenuComposer = ({
                   isOn ? 'text-[#B9A98C]' : 'text-[#9A9288]',
                 )}
               >
-                {format(parseISO(d.date), 'EEE')}
+                {stayWeekdayShort(d.date)}
               </span>
               <span
                 className={cn(
@@ -190,12 +209,16 @@ export const MenuComposer = ({
                   isOn ? 'text-[#F2E7D2]' : 'text-[#2B2824]',
                 )}
               >
-                {format(parseISO(d.date), 'd')}
+                {stayDayOfMonth(d.date)}
               </span>
               <span
                 className={cn(
                   'mt-1 block size-[3px] rounded-full',
-                  d.isLocked ? 'bg-[#C9C4BC]' : decided ? 'bg-[#3A5E48]' : 'bg-[#B08D57]',
+                  d.isLocked
+                    ? 'bg-[#C9C4BC]'
+                    : decided
+                      ? 'bg-[#3A5E48]'
+                      : 'bg-[#B08D57]',
                 )}
                 aria-hidden
               />
@@ -208,8 +231,8 @@ export const MenuComposer = ({
         <div className="flex items-start gap-2 rounded-[10px] bg-[#F1EEE8] px-3 py-2.5 text-[10px] leading-relaxed text-[#797168]">
           <Lock className="mt-px size-3 shrink-0" aria-hidden />
           <span>
-            {format(parseISO(day.date), 'EEEE')} is with the kitchen now. Your
-            concierge can still change it for you.
+            {stayWeekdayLong(day.date)} is with the kitchen now. Your concierge
+            can still change it for you.
           </span>
         </div>
       ) : canCompose ? (
@@ -267,7 +290,10 @@ export const MenuComposer = ({
                     </button>
                   )}
                   {late && (
-                    <Check className="size-3 shrink-0 text-[#3A5E48]" aria-hidden />
+                    <Check
+                      className="size-3 shrink-0 text-[#3A5E48]"
+                      aria-hidden
+                    />
                   )}
                 </div>
               )}
@@ -357,17 +383,25 @@ export const MenuComposer = ({
                   }}
                   className="flex w-full items-center gap-2.5 border-t border-[#F0EDE6] bg-[#FBFAF8] px-3.5 py-2.5 text-left"
                 >
-                  <Pencil className="size-3 shrink-0 text-[#B08D57]" aria-hidden />
+                  <Pencil
+                    className="size-3 shrink-0 text-[#B08D57]"
+                    aria-hidden
+                  />
                   <span className="min-w-0 flex-1 text-[11px] leading-snug">
                     {meal.selection?.note ? (
                       <span className="italic text-[#8A6D3B]">
                         “{meal.selection.note}”
                       </span>
                     ) : (
-                      <span className="text-[#9A9288]">A note for the kitchen</span>
+                      <span className="text-[#9A9288]">
+                        A note for the kitchen
+                      </span>
                     )}
                   </span>
-                  <ChevronRight className="size-3.5 shrink-0 text-[#B0AAA0]" aria-hidden />
+                  <ChevronRight
+                    className="size-3.5 shrink-0 text-[#B0AAA0]"
+                    aria-hidden
+                  />
                 </button>
               ) : (
                 meal.selection?.note && (
@@ -453,7 +487,8 @@ function NoteSheet({
         <DrawerTitle className="sr-only">A note for the kitchen</DrawerTitle>
         <div className="px-4 pt-2" data-vaul-no-drag>
           <p className="font-cormorant text-[17px] text-[#2B2824]">
-            A note for {meal ? (MEAL_LABEL[meal] ?? meal).toLowerCase() : 'the kitchen'}
+            A note for{' '}
+            {meal ? (MEAL_LABEL[meal] ?? meal).toLowerCase() : 'the kitchen'}
           </p>
           <p className="mt-0.5 text-[11px] leading-snug text-[#797168]">
             Carried to the chef word for word — &ldquo;we&rsquo;re out on the
@@ -474,7 +509,9 @@ function NoteSheet({
             disabled={saving}
             className="mt-3 flex w-full items-center justify-center gap-2 rounded-[10px] bg-[#0F1F2E] py-3 text-[10px] font-semibold uppercase tracking-[2px] text-white disabled:opacity-60"
           >
-            {saving && <Loader2 className="size-3.5 animate-spin" aria-hidden />}
+            {saving && (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            )}
             Save the note
           </button>
         </div>

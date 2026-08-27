@@ -18,6 +18,7 @@ import { formatRateRange } from '@repo/api-types';
 import type { ExperienceRequest } from '@repo/api-types';
 
 import { useAuth } from '@/hooks/useAuth';
+import { stayDateWithWeekday } from '@/lib/stay-date';
 import {
   useApproveQuote,
   useDeclineQuote,
@@ -29,7 +30,7 @@ import {
 
 function formatWhen(req: ExperienceRequest) {
   try {
-    return `${format(parseISO(req.preferredDate), 'EEE, MMM d')}${
+    return `${stayDateWithWeekday(req.preferredDate)}${
       req.preferredTime ? ` · ${req.preferredTime}` : ''
     }`;
   } catch {
@@ -113,8 +114,7 @@ export const PrimaryApprovalsPage = () => {
           {quoteApprovals.map((req) => {
             const busy =
               (approveQuote.isPending && approveQuote.variables === req.id) ||
-              (declineQuote.isPending &&
-                declineQuote.variables?.id === req.id);
+              (declineQuote.isPending && declineQuote.variables?.id === req.id);
             return (
               <article
                 key={req.id}
@@ -358,8 +358,14 @@ export const PrimaryApprovalsPage = () => {
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
     <div className="flex flex-col items-center gap-2 rounded-[14px] border border-dashed border-[#D8D3C9] bg-[#FAF9F7] px-6 py-12 text-center">
-      <ShieldCheck className="size-7 text-[#B0AAA0]" strokeWidth={1.5} aria-hidden />
-      <p className="font-cormorant text-[18px] italic text-[#2B2824]">{title}</p>
+      <ShieldCheck
+        className="size-7 text-[#B0AAA0]"
+        strokeWidth={1.5}
+        aria-hidden
+      />
+      <p className="font-cormorant text-[18px] italic text-[#2B2824]">
+        {title}
+      </p>
       <p className="text-[11px] leading-snug text-[#797168]">{body}</p>
     </div>
   );

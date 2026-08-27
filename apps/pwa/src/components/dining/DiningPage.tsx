@@ -41,6 +41,7 @@ import { ExclusiveAdditions } from './ExclusiveAdditions';
 import { DiningApprovals } from './DiningApprovals';
 import { GuestStepper } from '../RequestExperienceSheet/GuestStepper';
 import { LoadFailed } from '@/components/LoadFailed';
+import { stayDateShort } from '@/lib/stay-date';
 import {
   TimePicker,
   firstRecommended,
@@ -59,11 +60,27 @@ const ORDER_CATEGORIES: { value: MenuCategory; label: string }[] = [
 ];
 
 const DIET_BADGES: { key: keyof MenuItem; label: string; tone: string }[] = [
-  { key: 'isVegetarian', label: 'Vegetarian', tone: 'bg-[#EAF3E0] text-[#3A5E1E]' },
+  {
+    key: 'isVegetarian',
+    label: 'Vegetarian',
+    tone: 'bg-[#EAF3E0] text-[#3A5E1E]',
+  },
   { key: 'isVegan', label: 'Vegan', tone: 'bg-[#EAF3E0] text-[#3A5E1E]' },
-  { key: 'isGlutenFree', label: 'Gluten free', tone: 'bg-[#E8ECF5] text-[#2E3F66]' },
-  { key: 'containsNuts', label: 'Contains nuts', tone: 'bg-[#FBEEEA] text-[#9A3A30]' },
-  { key: 'containsShellfish', label: 'Contains shellfish', tone: 'bg-[#FBEEEA] text-[#9A3A30]' },
+  {
+    key: 'isGlutenFree',
+    label: 'Gluten free',
+    tone: 'bg-[#E8ECF5] text-[#2E3F66]',
+  },
+  {
+    key: 'containsNuts',
+    label: 'Contains nuts',
+    tone: 'bg-[#FBEEEA] text-[#9A3A30]',
+  },
+  {
+    key: 'containsShellfish',
+    label: 'Contains shellfish',
+    tone: 'bg-[#FBEEEA] text-[#9A3A30]',
+  },
 ];
 
 function DietBadges({ item }: { item: MenuItem }) {
@@ -74,7 +91,10 @@ function DietBadges({ item }: { item: MenuItem }) {
       {badges.map((b) => (
         <span
           key={b.label}
-          className={cn('rounded-full px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.5px]', b.tone)}
+          className={cn(
+            'rounded-full px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.5px]',
+            b.tone,
+          )}
         >
           {b.label}
         </span>
@@ -97,9 +117,12 @@ export const DiningPage = () => {
 
   const [sittingOpen, setSittingOpen] = useState(false);
   const [lateFor, setLateFor] = useState<DiningRequest | null>(null);
-  const [cart, setCart] = useState<Record<string, { item: MenuItem; qty: number }>>({});
+  const [cart, setCart] = useState<
+    Record<string, { item: MenuItem; qty: number }>
+  >({});
   const [orderOpen, setOrderOpen] = useState(false);
-  const [libraryCategory, setLibraryCategory] = useState<MenuCategory>('SNACKS');
+  const [libraryCategory, setLibraryCategory] =
+    useState<MenuCategory>('SNACKS');
   // Planning the week and asking for a drink now are different jobs, and they
   // were sharing a page purely because both involve food.
   const [tab, setTab] = useState<'menu' | 'order'>('menu');
@@ -160,7 +183,9 @@ export const DiningPage = () => {
           <ArrowLeft className="size-3.5" aria-hidden />
           Back
         </button>
-        <h1 className="font-cormorant text-[22px] italic text-[#2B2824]">Dining</h1>
+        <h1 className="font-cormorant text-[22px] italic text-[#2B2824]">
+          Dining
+        </h1>
         <span className="w-9" />
       </div>
 
@@ -177,12 +202,10 @@ export const DiningPage = () => {
       )}
 
       <div className="mb-4 flex rounded-[10px] border border-[#E3E0DA] bg-white p-0.5">
-        {(
-          [
-            { key: 'menu' as const, label: 'Your menu' },
-            { key: 'order' as const, label: 'Order now' },
-          ]
-        ).map((t) => (
+        {[
+          { key: 'menu' as const, label: 'Your menu' },
+          { key: 'order' as const, label: 'Order now' },
+        ].map((t) => (
           <button
             key={t.key}
             type="button"
@@ -190,9 +213,7 @@ export const DiningPage = () => {
             aria-pressed={tab === t.key}
             className={cn(
               'flex-1 rounded-[8px] py-2 text-[11px] font-medium transition-colors',
-              tab === t.key
-                ? 'bg-[#0F1F2E] text-white'
-                : 'text-[#797168]',
+              tab === t.key ? 'bg-[#0F1F2E] text-white' : 'text-[#797168]',
             )}
           >
             {t.label}
@@ -237,18 +258,18 @@ export const DiningPage = () => {
 
       {/* Reserve a sitting — primary member only */}
       {tab === 'menu' && isPrimary && (
-      <button
-        onClick={() => setSittingOpen(true)}
-        className="mb-6 flex items-center justify-between rounded-[12px] border border-[#0F1F2E] bg-[#0F1F2E] px-4 py-3.5 text-left text-white"
-      >
-        <span className="flex items-center gap-2.5">
-          <UtensilsCrossed className="size-4" aria-hidden />
-          <span className="text-[12px] font-medium">Reserve a sitting</span>
-        </span>
-        <span className="text-[9px] uppercase tracking-[1.5px] text-white/60">
-          Breakfast · Lunch · Dinner
-        </span>
-      </button>
+        <button
+          onClick={() => setSittingOpen(true)}
+          className="mb-6 flex items-center justify-between rounded-[12px] border border-[#0F1F2E] bg-[#0F1F2E] px-4 py-3.5 text-left text-white"
+        >
+          <span className="flex items-center gap-2.5">
+            <UtensilsCrossed className="size-4" aria-hidden />
+            <span className="text-[12px] font-medium">Reserve a sitting</span>
+          </span>
+          <span className="text-[9px] uppercase tracking-[1.5px] text-white/60">
+            Breakfast · Lunch · Dinner
+          </span>
+        </button>
       )}
 
       {/* What the party is eating, day by day — and, until each day closes,
@@ -277,7 +298,10 @@ export const DiningPage = () => {
       {tab !== 'order' ? null : isLoading ? (
         <div className="flex flex-col gap-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-20 skeleton rounded-[12px] bg-[#E3E0DA]" />
+            <div
+              key={i}
+              className="h-20 skeleton rounded-[12px] bg-[#E3E0DA]"
+            />
           ))}
         </div>
       ) : ORDER_CATEGORIES.every(
@@ -285,8 +309,8 @@ export const DiningPage = () => {
         ) ? null : (
         <div className="flex flex-col gap-4">
           <p className="text-[10px] leading-relaxed text-[#797168]">
-            <span className="font-medium text-[#2B2824]">Any hour.</span>{' '}
-            Snacks and drinks, brought to wherever you are.
+            <span className="font-medium text-[#2B2824]">Any hour.</span> Snacks
+            and drinks, brought to wherever you are.
           </p>
 
           {/* A category at a time. Rendering all five in full meant scrolling
@@ -295,28 +319,28 @@ export const DiningPage = () => {
           <div className="no-scrollbar -mx-3 flex gap-2 overflow-x-auto px-3">
             {ORDER_CATEGORIES.filter(
               (cat) => (byCategory[cat.value] ?? []).length > 0,
-            )
-              .map((cat) => (
-                <button
-                  key={cat.value}
-                  type="button"
-                  onClick={() => setLibraryCategory(cat.value as MenuCategory)}
-                  aria-pressed={libraryCategory === cat.value}
-                  className={cn(
-                    'shrink-0 rounded-full border px-3 py-1.5 text-[11px] transition-colors',
-                    libraryCategory === cat.value
-                      ? 'border-[#0F1F2E] bg-[#0F1F2E] text-white'
-                      : 'border-[#E3E0DA] bg-white text-[#797168]',
-                  )}
-                >
-                  {cat.label}
-                </button>
-              ))}
+            ).map((cat) => (
+              <button
+                key={cat.value}
+                type="button"
+                onClick={() => setLibraryCategory(cat.value as MenuCategory)}
+                aria-pressed={libraryCategory === cat.value}
+                className={cn(
+                  'shrink-0 rounded-full border px-3 py-1.5 text-[11px] transition-colors',
+                  libraryCategory === cat.value
+                    ? 'border-[#0F1F2E] bg-[#0F1F2E] text-white'
+                    : 'border-[#E3E0DA] bg-white text-[#797168]',
+                )}
+              >
+                {cat.label}
+              </button>
+            ))}
           </div>
 
           {ORDER_CATEGORIES.map((cat) => {
             const items = byCategory[cat.value] ?? [];
-            if (items.length === 0 || cat.value !== libraryCategory) return null;
+            if (items.length === 0 || cat.value !== libraryCategory)
+              return null;
             return (
               <section key={cat.value}>
                 <div className="flex flex-col gap-2">
@@ -327,7 +351,9 @@ export const DiningPage = () => {
                     >
                       <DishThumb photoUrl={item.photoUrl} name={item.name} />
                       <div className="min-w-0 flex-1">
-                        <p className="text-[13px] font-medium text-[#2B2824]">{item.name}</p>
+                        <p className="text-[13px] font-medium text-[#2B2824]">
+                          {item.name}
+                        </p>
                         {item.description && (
                           <p className="mt-0.5 text-[10.5px] leading-snug text-[#797168]">
                             {item.description}
@@ -336,33 +362,33 @@ export const DiningPage = () => {
                         <DietBadges item={item} />
                       </div>
                       <div className="shrink-0">
-                          {cart[item.id] ? (
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => removeFromCart(item.id)}
-                                className="flex size-7 items-center justify-center rounded-full border border-[#E3E0DA] text-[#2B2824]"
-                                aria-label="Remove one"
-                              >
-                                <Minus className="size-3.5" />
-                              </button>
-                              <span className="min-w-[1ch] text-center text-[13px] font-medium text-[#2B2824]">
-                                {cart[item.id].qty}
-                              </span>
-                              <button
-                                onClick={() => addToCart(item)}
-                                className="flex size-7 items-center justify-center rounded-full bg-[#0F1F2E] text-white"
-                                aria-label="Add one"
-                              >
-                                <Plus className="size-3.5" />
-                              </button>
-                            </div>
-                          ) : (
+                        {cart[item.id] ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => removeFromCart(item.id)}
+                              className="flex size-7 items-center justify-center rounded-full border border-[#E3E0DA] text-[#2B2824]"
+                              aria-label="Remove one"
+                            >
+                              <Minus className="size-3.5" />
+                            </button>
+                            <span className="min-w-[1ch] text-center text-[13px] font-medium text-[#2B2824]">
+                              {cart[item.id].qty}
+                            </span>
                             <button
                               onClick={() => addToCart(item)}
-                              className="flex items-center gap-1 rounded-full border border-[#0F1F2E] px-2.5 py-1 text-[10px] font-medium text-[#0F1F2E]"
+                              className="flex size-7 items-center justify-center rounded-full bg-[#0F1F2E] text-white"
+                              aria-label="Add one"
                             >
-                              <Plus className="size-3" /> Order
+                              <Plus className="size-3.5" />
                             </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => addToCart(item)}
+                            className="flex items-center gap-1 rounded-full border border-[#0F1F2E] px-2.5 py-1 text-[10px] font-medium text-[#0F1F2E]"
+                          >
+                            <Plus className="size-3" /> Order
+                          </button>
                         )}
                       </div>
                     </div>
@@ -398,10 +424,7 @@ export const DiningPage = () => {
         stayCheckIn={checkIn}
         stayCheckOut={checkOut}
       />
-      <LateArrivalSheet
-        sitting={lateFor}
-        onClose={() => setLateFor(null)}
-      />
+      <LateArrivalSheet sitting={lateFor} onClose={() => setLateFor(null)} />
       <OrderSheet
         open={orderOpen}
         onClose={() => setOrderOpen(false)}
@@ -462,7 +485,7 @@ function RequestRow({
             </p>
             <p className="text-[10px] text-[#797168]">
               {isSitting
-                ? `${r.date ? format(new Date(r.date), 'MMM d') : ''}${r.time ? ` · ${formatTimeLabel(r.time)}` : ''}`
+                ? `${r.date ? stayDateShort(r.date) : ''}${r.time ? ` · ${formatTimeLabel(r.time)}` : ''}`
                 : items.map((i) => `${i.quantity}× ${i.name}`).join(', ')}
             </p>
           </div>
@@ -578,7 +601,9 @@ function SittingSheet({
     await create.mutateAsync({
       kind: 'SITTING',
       mealType: meal,
-      date: date ? format(date, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
+      date: date
+        ? format(date, 'yyyy-MM-dd')
+        : format(new Date(), 'yyyy-MM-dd'),
       time,
       partySize: party,
       allergies: allergies || undefined,
@@ -610,7 +635,9 @@ function SittingSheet({
             <div className="flex size-14 items-center justify-center rounded-full bg-[#EAF3E8]">
               <Check className="size-6 text-[#3A5E48]" strokeWidth={2.5} />
             </div>
-            <h2 className="font-cormorant text-[26px] italic text-[#2B2824]">Your table is set</h2>
+            <h2 className="font-cormorant text-[26px] italic text-[#2B2824]">
+              Your table is set
+            </h2>
             <p className="text-[12px] text-[#797168]">
               It’s on the kitchen’s sheet. Change or cancel it from Dining
               whenever you like.
@@ -693,7 +720,9 @@ function SittingSheet({
                 disabled={create.isPending}
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#0F1F2E] py-4 text-[11px] font-semibold uppercase tracking-[2px] text-white disabled:opacity-60"
               >
-                {create.isPending && <Loader2 className="size-4 animate-spin" />}
+                {create.isPending && (
+                  <Loader2 className="size-4 animate-spin" />
+                )}
                 {create.isPending ? 'Reserving…' : 'Reserve the table'}
               </button>
             </div>
@@ -744,7 +773,11 @@ function LateArrivalSheet({
   };
 
   return (
-    <Drawer open={!!sitting} onOpenChange={(v) => !v && close()} direction="right">
+    <Drawer
+      open={!!sitting}
+      onOpenChange={(v) => !v && close()}
+      direction="right"
+    >
       <DrawerContent className="flex h-[100dvh] w-full flex-col border-0 bg-[#FAF8F4] p-0 data-[vaul-drawer-direction=right]:w-full data-[vaul-drawer-direction=right]:rounded-none">
         <DrawerTitle className="sr-only">Flag a late arrival</DrawerTitle>
         <div className="flex shrink-0 items-center gap-3 border-b border-[#E3E0DA] px-5 pb-4 pt-5">
@@ -884,7 +917,9 @@ function OrderSheet({
             <div className="flex size-14 items-center justify-center rounded-full bg-[#EAF3E8]">
               <Check className="size-6 text-[#3A5E48]" strokeWidth={2.5} />
             </div>
-            <h2 className="font-cormorant text-[26px] italic text-[#2B2824]">Order placed</h2>
+            <h2 className="font-cormorant text-[26px] italic text-[#2B2824]">
+              Order placed
+            </h2>
             <p className="text-[12px] text-[#797168]">
               The estate will bring it over shortly.
             </p>
@@ -908,7 +943,9 @@ function OrderSheet({
                     key={item.id}
                     className="flex items-center justify-between gap-3 rounded-[12px] border border-[#E3E0DA] bg-white px-3.5 py-2.5"
                   >
-                    <span className="text-[13px] font-medium text-[#2B2824]">{item.name}</span>
+                    <span className="text-[13px] font-medium text-[#2B2824]">
+                      {item.name}
+                    </span>
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => onRemove(item.id)}
@@ -917,7 +954,9 @@ function OrderSheet({
                       >
                         <Minus className="size-3.5" />
                       </button>
-                      <span className="min-w-[1ch] text-center text-[13px] font-medium">{qty}</span>
+                      <span className="min-w-[1ch] text-center text-[13px] font-medium">
+                        {qty}
+                      </span>
                       <button
                         onClick={() => onAdd(item)}
                         className="flex size-7 items-center justify-center rounded-full bg-[#0F1F2E] text-white"
@@ -983,7 +1022,13 @@ function OrderSheet({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
   return (
     <section>
       <p className="mb-3 text-[9px] font-medium uppercase tracking-[2.8px] text-[#B0AAA0]">

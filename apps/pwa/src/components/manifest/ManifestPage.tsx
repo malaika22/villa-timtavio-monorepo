@@ -33,6 +33,7 @@ import type { GuestManifestFormValues } from '@/components/GuestManifestForm';
 import { GuestAddedSheet } from './GuestAddedSheet';
 import { YourDetailsSheet } from './YourDetailsSheet';
 import { PrimaryDetailsCard } from './PrimaryDetailsCard';
+import { stayDateShort } from '@/lib/stay-date';
 import type {
   CreateManifestGuestDto,
   ManifestGuest,
@@ -172,8 +173,7 @@ export const ManifestPage = () => {
   // nowhere to sleep. The API refuses it now; this stops them reaching that
   // refusal in the first place.
   const primaryComplete = manifest?.primaryComplete ?? true;
-  const canSubmit =
-    isPrimary && addedGuests > 0 && primaryComplete;
+  const canSubmit = isPrimary && addedGuests > 0 && primaryComplete;
   // The party counter includes the primary (+1), so it's full once the added
   // count reaches the reservation headcount — stop offering "Add guest" then.
   const secondaryCount = manifest?.guests?.length ?? 0;
@@ -267,7 +267,10 @@ export const ManifestPage = () => {
               className="font-cormorant text-[22px] italic text-[#2B2824] leading-none"
             >
               {addedGuests}
-              <span className="text-[#B0AAA0] text-[16px]"> / {totalGuests}</span>
+              <span className="text-[#B0AAA0] text-[16px]">
+                {' '}
+                / {totalGuests}
+              </span>
             </motion.span>
           )}
         </div>
@@ -447,9 +450,7 @@ export const ManifestPage = () => {
                 key={guest.id}
                 guest={guest}
                 rooms={rooms ?? []}
-                onEdit={
-                  !isPrimary ? undefined : () => openEditForm(guest)
-                }
+                onEdit={!isPrimary ? undefined : () => openEditForm(guest)}
               />
             ))}
           </motion.div>
@@ -460,20 +461,24 @@ export const ManifestPage = () => {
       {!isLoading && (manifest?.guests?.length ?? 0) === 0 && (
         <div className="mt-8 flex flex-col items-center justify-center rounded-[16px] border border-dashed border-[#E3D9CD] bg-[#FAF8F4] px-6 py-10 text-center">
           <span className="mb-3 flex size-12 items-center justify-center rounded-full border border-[#E3D9CD] bg-[#F3EDE4]">
-            <Users className="size-5 text-[#8C7261]" strokeWidth={2} aria-hidden />
+            <Users
+              className="size-5 text-[#8C7261]"
+              strokeWidth={2}
+              aria-hidden
+            />
           </span>
           <p className="font-cormorant text-[18px] text-[#2B2824]">
             No guests added yet
           </p>
           <p className="mt-1.5 max-w-[240px] text-[11px] leading-snug text-[#797168]">
-            Add your party so we can prepare rooms, dietary preferences, and each
-            guest&apos;s access link.
+            Add your party so we can prepare rooms, dietary preferences, and
+            each guest&apos;s access link.
           </p>
         </div>
       )}
 
       {/* ─── Allergy reminder ───────────────────────────────────── */}
-      {(
+      {
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -488,10 +493,10 @@ export const ManifestPage = () => {
             Include severity and emergency medications when adding guests.
           </p>
         </motion.div>
-      )}
+      }
 
       {/* ─── Sticky action bar (only when there's an action) ────── */}
-      {(
+      {
         <div className="fixed bottom-[72px] left-0 right-0 z-20 px-4 pb-3 pt-4 bg-gradient-to-t from-[#F0EDE6] via-[#F0EDE6]/95 to-transparent">
           {submitError && (
             <p className="mb-2 rounded-[10px] border border-[#E4B7B2] bg-[#FBEEEA] px-3 py-2 text-center text-[11px] font-medium text-[#9A3A30]">
@@ -500,7 +505,9 @@ export const ManifestPage = () => {
           )}
           {isPrimary && !primaryComplete && addedGuests > 0 && (
             <p className="mb-2 rounded-[10px] border border-[#D9C79A] bg-[#FBF3DF] px-3 py-2 text-[11px] leading-snug text-[#8A6D3B]">
-              <span className="font-medium">Your own details are still to come.</span>{' '}
+              <span className="font-medium">
+                Your own details are still to come.
+              </span>{' '}
               Choose your room above, then you can send the list to the estate.
             </p>
           )}
@@ -545,7 +552,7 @@ export const ManifestPage = () => {
             </p>
           )}
         </div>
-      )}
+      }
 
       {/* ─── Add / edit drawer ──────────────────────────────────── */}
       <GuestManifestForm
@@ -830,7 +837,7 @@ function formatExperienceWhen(exp: {
   const dateStr = exp.confirmedDate ?? exp.preferredDate;
   const time = exp.confirmedTime ?? exp.preferredTime;
   try {
-    return `${format(parseISO(dateStr), 'MMM d')}${time ? ` · ${time}` : ''}`;
+    return `${stayDateShort(dateStr)}${time ? ` · ${time}` : ''}`;
   } catch {
     return time ?? '';
   }
