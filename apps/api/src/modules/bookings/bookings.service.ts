@@ -26,6 +26,22 @@ const LODGIFY_PAGE_SIZE = 100;
 const RECONCILE_GRACE_MS = 10 * 60 * 1000;
 
 /**
+ * The address a reservation gets when Lodgify has none for it.
+ *
+ * Domain-scoped so it can never collide with a real one, and carrying the
+ * reservation id so a row in the guest table can be traced back to the
+ * booking that produced it. Nothing is ever sent here — see AWAITING_NAME.
+ */
+const PLACEHOLDER_DOMAIN = 'unassigned.villatimtavio.com';
+const placeholderEmail = (lodgifyId: unknown) =>
+  `lodgify-${String(lodgifyId)}@${PLACEHOLDER_DOMAIN}`;
+const isPlaceholderEmail = (email: string) =>
+  email.toLowerCase().endsWith(`@${PLACEHOLDER_DOMAIN}`);
+
+/** Reads as a state rather than a person, because that is what it is. */
+const AWAITING_NAME = { firstName: 'Awaiting guest', lastName: 'details' };
+
+/**
  * Which of several competing bookings the estate manager actually needs to see:
  * the one with real activity on it. Manifest progress first, then party size,
  * then the latest check-in.
@@ -267,11 +283,31 @@ export class BookingsService {
       return updated;
     }
 
-    // Find or create primary guest
-    const guestEmail = lodgifyData.guest?.email;
-    if (!guestEmail) {
-      this.logger.warn(`Lodgify booking ${lodgifyData.id} has no guest email`);
-      return;
+    /**
+     * A reservation with nobody on it still occupies the villa.
+     *
+     * This used to return, so a booking created by hand in Lodgify with the
+     * guest left blank simply never existed here — absent from Bookings, from
+     * Guests, from the folio — and the only trace was a line in the Render
+     * log. The estate would find out when somebody arrived.
+     *
+     * Guest.email is unique and required and a booking must have a primary,
+     * so it is given a placeholder tied to the reservation id: unique,
+     * traceable, and impossible to mistake for a person. The stay shows up
+     * with its real dates and party size, and an alert says what is missing.
+     *
+     * When the address is filled in, the placeholder holds exactly one booking
+     * and the new address belongs to nobody — the rename case above — so it
+     * quietly becomes the real guest. The booking never moves.
+     */
+    const realEmail = lodgifyData.guest?.email;
+    const guestEmail = realEmail || placeholderEmail(lodgifyData.id);
+    const awaitingDetails = !realEmail;
+
+    if (awaitingDetails) {
+      this.logger.warn(
+        `Lodgify booking ${lodgifyData.id} has no guest email — holding it against a placeholder`,
+      );
     }
 
     const guest = await this.findOrCreateGuest(guestEmail, lodgifyData);
@@ -308,13 +344,43 @@ export class BookingsService {
     }
 
     // Place the 50% deposit hold (best-effort, guarded — never blocks sync).
-    await this.paymentsService
-      .createDepositHold(booking.id)
-      .catch((err) => this.logger.error(`Deposit hold failed: ${String(err)}`));
+    // Not for a reservation with nobody on it: there is no customer to hold
+    // against, and the failure would look like a payment problem rather than a
+    // missing address.
+    if (!awaitingDetails) {
+      await this.paymentsService
+        .createDepositHold(booking.id)
+        .catch((err) =>
+          this.logger.error(`Deposit hold failed: ${String(err)}`),
+        );
+    }
 
     this.logger.log(
       `Synced booking ${booking.id} from Lodgify ${lodgifyData.id}`,
     );
+
+    // A log line is not telling anybody. SystemAlert already reaches the
+    // dashboard, the notifications page and the bell.
+    if (awaitingDetails) {
+      await this.prisma.systemAlert
+        .create({
+          data: {
+            severity: 'WARNING',
+            title: 'Reservation has no guest email',
+            message:
+              `${booking.checkIn.toISOString().slice(0, 10)} → ${booking.checkOut
+                .toISOString()
+                .slice(0, 10)} · ${booking.totalGuests} guests. ` +
+              'Add an email on the reservation in Lodgify — until then the guest cannot be sent the app.',
+            category: 'BOOKING',
+            entityType: 'Booking',
+            entityId: booking.id,
+          },
+        })
+        .catch((err) =>
+          this.logger.error(`Alert failed for ${booking.id}: ${String(err)}`),
+        );
+    }
 
     // Add base rate folio item
     await this.prisma.folioItem.create({
@@ -342,7 +408,9 @@ export class BookingsService {
     const stayIsImminentOrActive =
       booking.checkIn.getTime() <= in24h && booking.checkOut.getTime() > now;
 
-    if (stayIsImminentOrActive) {
+    // Never to a placeholder. The address is ours, not a guest's, and mail to
+    // it would bounce off a domain that does not accept any.
+    if (stayIsImminentOrActive && !awaitingDetails) {
       await this.magicLinkService.sendMagicLink({
         email: guest.email,
         firstName: guest.firstName,
@@ -383,6 +451,11 @@ export class BookingsService {
     const sentPhone = lodgifyData.guest?.phone || undefined;
 
     if (!existing) {
+      if (isPlaceholderEmail(email)) {
+        return this.prisma.guest.create({
+          data: { email, ...AWAITING_NAME, role: 'PRIMARY' },
+        });
+      }
       const inquiry = await this.inquiriesService.findLatestByEmail(email);
       return this.prisma.guest.create({
         data: {
@@ -478,6 +551,64 @@ export class BookingsService {
       },
     });
     if (!booking) return;
+
+    const sameAddress =
+      booking.primaryGuest.email.trim().toLowerCase() === email.toLowerCase();
+
+    /**
+     * A corrected spelling, or a different person?
+     *
+     * Moving the booking is right for a different person and quietly
+     * destructive for a typo: the new record starts blank, and the allergies,
+     * beverage notes, staff notes and lifetime spend stay behind on a guest
+     * with no stays, invisible and unreachable. The estate would enter them
+     * all again.
+     *
+     * Two questions separate the cases, and each is evidence of a second
+     * person existing. Somebody already holding the new address is a real
+     * guest with a record of their own. A current guest with other bookings is
+     * a real guest too — they simply are not the one on this reservation, and
+     * their email is not ours to rewrite.
+     *
+     * Neither true means nobody else is involved at all: one booking, one
+     * guest, one corrected address. Renaming keeps everything attached and
+     * leaves no orphan.
+     */
+    if (!sameAddress) {
+      const [alreadySomeone, otherStays] = await Promise.all([
+        this.prisma.guest.findUnique({
+          where: { email },
+          select: { id: true },
+        }),
+        this.prisma.booking.count({
+          where: {
+            primaryGuestId: booking.primaryGuestId,
+            id: { not: bookingId },
+          },
+        }),
+      ]);
+
+      if (!alreadySomeone && otherStays === 0) {
+        try {
+          await this.prisma.guest.update({
+            where: { id: booking.primaryGuestId },
+            data: { email },
+          });
+          this.logger.warn(
+            `Guest ${booking.primaryGuestId} re-addressed ${booking.primaryGuest.email} → ${email} (their only booking, and nobody holds the new address)`,
+          );
+          // Name and number still want reconciling, and the guest now answers
+          // to the new address, so the ordinary path below does it.
+        } catch {
+          // Somebody claimed the address between the check and the write.
+          // Rare, and not worth failing a sync over — fall through and move
+          // the booking to them instead, which is what they now are.
+          this.logger.warn(
+            `Re-address to ${email} collided; moving the booking instead`,
+          );
+        }
+      }
+    }
 
     // Resolved on every poll, not only when the address changed. A corrected
     // name or number arrives under the same email as before, so returning
