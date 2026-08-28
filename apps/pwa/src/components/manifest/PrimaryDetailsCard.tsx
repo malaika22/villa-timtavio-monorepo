@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Pencil, Check, X, Star } from 'lucide-react';
+import { Pencil, Check, X, Star, ChevronRight } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
 import { Button } from '@repo/ui/components/button';
 import { useUpdatePrimaryDetails } from '@/hooks/useManifest';
@@ -47,6 +47,11 @@ export function PrimaryDetailsCard({
     totalBeds: (r.beds ?? []).reduce((sum, b) => sum + b.count, 0),
     bathrooms: r.bathrooms,
   }));
+
+  // The room is what `primaryComplete` turns on and what holds up submission,
+  // so it is the one thing this card has to ask for out loud.
+  const needsRoom = primary.roomNumber == null;
+  const outstanding = isPrimary && needsRoom;
 
   const roomName = primary.roomNumber
     ? (rooms.find((r) => r.number === primary.roomNumber)?.name ??
@@ -98,7 +103,14 @@ export function PrimaryDetailsCard({
   const tags = [...dietaryTags, ...allergyTag];
 
   return (
-    <div className="rounded-[14px] border border-[#0F1F2E]/15 bg-[#FBFAF8] px-4 py-3.5 flex flex-col gap-2.5 shadow-[0_1px_3px_rgba(15,31,46,0.05)]">
+    <div
+      className={cn(
+        'rounded-[14px] border px-4 py-3.5 flex flex-col gap-2.5 shadow-[0_1px_3px_rgba(15,31,46,0.05)]',
+        outstanding && !isEditing
+          ? 'border-[#D9C79A] bg-[#FDF9EF]'
+          : 'border-[#0F1F2E]/15 bg-[#FBFAF8]',
+      )}
+    >
       {/* Name row */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5">
@@ -163,18 +175,25 @@ export function PrimaryDetailsCard({
               {primary.beveragePreferences}
             </p>
           )}
-          {tags.length === 0 &&
-            !primary.beveragePreferences &&
-            !roomName &&
-            isPrimary &&
-            (
-              <button
-                onClick={openEditor}
-                className="text-left text-[10px] text-[#B08A2E] underline underline-offset-2"
-              >
-                Add your room, dietary needs &amp; preferences
-              </button>
-            )}
+          {outstanding && (
+            <button
+              onClick={openEditor}
+              className="flex w-full items-center justify-between gap-3 rounded-[10px] border border-[#D9C79A] bg-white px-3 py-2.5 text-left transition-colors hover:bg-[#FDFBF6]"
+            >
+              <span className="min-w-0">
+                <span className="block text-[11px] font-medium text-[#8A6D17]">
+                  Room and details still to add
+                </span>
+                <span className="mt-0.5 block text-[10px] leading-snug text-[#9A8B62]">
+                  Choose your room, and anything the kitchen should know.
+                </span>
+              </span>
+              <ChevronRight
+                className="size-4 shrink-0 text-[#B08A2E]"
+                aria-hidden
+              />
+            </button>
+          )}
         </>
       )}
 

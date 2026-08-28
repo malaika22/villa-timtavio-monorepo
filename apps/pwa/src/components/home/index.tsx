@@ -1,6 +1,4 @@
 'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { ArrivalStatusChip } from '../ArrivalStatusChip';
 import { ArrivalStatus } from '@/types/arrivalStatus';
 import { HeroCard } from './hero-card';
@@ -9,9 +7,6 @@ import { GuestManifestPrompt } from './guest-manifest/GuestManifestPrompt';
 import { GuestDetailsCard } from './guest-manifest/GuestDetailsCard';
 import { ApprovalsPromptCard } from './ApprovalsPromptCard';
 import { PartyCard } from './PartyCard';
-import { GuestManifestForm } from '@/components/GuestManifestForm';
-import type { GuestManifestFormValues } from '@/components/GuestManifestForm';
-import { GuestAddedSheet } from '@/components/manifest/GuestAddedSheet';
 import { TodaySchedule } from './today-schedule';
 import { FeaturedExperiences } from '../featured-experiences';
 import { RoomsExploreCard } from './rooms-explore/RoomsExploreCard';
@@ -19,42 +14,15 @@ import { DiningCard } from './dining/DiningCard';
 import { useBookingStore } from '@/store/useBookingStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useCurrentBooking } from '@/hooks/useBooking';
-import { useManifest, useAddManifestGuest } from '@/hooks/useManifest';
+import { useManifest } from '@/hooks/useManifest';
 import {
   usePendingApprovalRequests,
   usePendingQuoteApprovals,
 } from '@/hooks/useRequests';
 import { useRoomAvailability } from '@/hooks/useRoomAvailability';
-import { useQueryClient } from '@tanstack/react-query';
-import type { CreateManifestGuestDto } from '@repo/api-types';
-
-function mapFormToDto(data: GuestManifestFormValues): CreateManifestGuestDto {
-  const parts = data.fullName.trim().split(/\s+/);
-  return {
-    firstName: parts[0] ?? '',
-    lastName: (parts.slice(1).join(' ') || parts[0]) ?? '',
-    email: data.email,
-    phone: data.phone || undefined,
-    dateOfBirth: data.dateOfBirth || undefined,
-    relationship: data.relationship,
-    roomNumber: data.roomId ? parseInt(data.roomId, 10) : undefined,
-    dietaryRestrictions: data.dietaryRestrictions,
-    dietaryOtherDetails: data.dietaryRestrictions.includes('other')
-      ? data.dietaryOtherDetails || undefined
-      : undefined,
-    allergies: data.foodAllergies || undefined,
-    beveragePreferences: data.beveragePreferences || undefined,
-    specialNotes: data.specialNotes || undefined,
-  };
-}
 
 export const Home = () => {
-  const { isAuthenticated, isPrimary, firstName, bookingId } = useAuth();
-  const queryClient = useQueryClient();
-  const router = useRouter();
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [showAddedSheet, setShowAddedSheet] = useState(false);
-  const [addedGuestName, setAddedGuestName] = useState('');
+  const { isAuthenticated, isPrimary, firstName } = useAuth();
 
   useCurrentBooking();
   // Real-time is now subscribed globally in AppLayout (PushRegistrar).
@@ -67,7 +35,6 @@ export const Home = () => {
   const { data: pendingApprovals = [] } = usePendingApprovalRequests();
   // Revised quotes need the primary too, so the nudge counts both kinds.
   const { data: pendingQuotes = [] } = usePendingQuoteApprovals();
-  const addGuest = useAddManifestGuest();
 
   const displayArrivalStatus = arrivalStatus ?? ArrivalStatus.PRE_ARRIVAL;
 
@@ -86,17 +53,6 @@ export const Home = () => {
     displayArrivalStatus === ArrivalStatus.SETTLED ||
     displayArrivalStatus === ArrivalStatus.DEPARTURE_TODAY ||
     displayArrivalStatus === ArrivalStatus.CHECKOUT_OUT;
-
-  const handleSave = async (data: GuestManifestFormValues) => {
-    const dto = mapFormToDto(data);
-    await addGuest.mutateAsync(dto);
-    void queryClient.invalidateQueries({
-      queryKey: ['rooms', 'availability', bookingId],
-    });
-    setAddedGuestName(dto.firstName);
-    setIsAddOpen(false);
-    setShowAddedSheet(true);
-  };
 
   return (
     <div className="space-y-4">
@@ -129,7 +85,6 @@ export const Home = () => {
             primaryComplete={manifest?.primaryComplete ?? true}
             maxGuests={maxGuests}
             roomsUsed={roomsUsed}
-            onAddGuest={() => setIsAddOpen(true)}
           />
         ))}
       {isAuthenticated && isPrimary && (
@@ -146,32 +101,6 @@ export const Home = () => {
       <div className="bg-[#E3E0DA] h-[1px]" />
       <TodaySchedule />
       <FeaturedExperiences />
-
-      <GuestManifestForm
-        open={isAddOpen}
-        onClose={() => setIsAddOpen(false)}
-        onCancel={() => setIsAddOpen(false)}
-        onSave={handleSave}
-        onRemoveGuest={() => setIsAddOpen(false)}
-        rooms={rooms}
-        bookingId={bookingId ?? undefined}
-      />
-
-      <GuestAddedSheet
-        open={showAddedSheet}
-        onClose={() => setShowAddedSheet(false)}
-        guestFirstName={addedGuestName}
-        addedGuests={manifest?.addedGuests ?? 0}
-        totalGuests={totalGuests ?? 16}
-        onAddAnother={() => {
-          setShowAddedSheet(false);
-          setTimeout(() => setIsAddOpen(true), 150);
-        }}
-        onViewManifest={() => {
-          setShowAddedSheet(false);
-          router.push('/manifest');
-        }}
-      />
     </div>
   );
 };

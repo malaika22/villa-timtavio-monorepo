@@ -11,7 +11,6 @@ type GuestManifestPromptProps = {
   /** False while the primary still owes their own room and details. */
   primaryComplete?: boolean;
   loading?: boolean;
-  onAddGuest?: () => void;
   /** @deprecated submission now happens on the manifest screen */
   onSubmit?: () => void;
   submitting?: boolean;
@@ -25,7 +24,6 @@ export const GuestManifestPrompt = ({
   maxGuests = 16,
   roomsUsed,
   loading = false,
-  onAddGuest,
   primaryComplete = true,
 }: GuestManifestPromptProps) => {
   const pct =
@@ -152,14 +150,13 @@ export const GuestManifestPrompt = ({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onAddGuest}
+        <Link
+          href="/manifest"
           className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#0F1F2E] text-[12px] font-semibold uppercase tracking-[2px] text-white transition-colors hover:bg-[#1A3040]"
         >
           Add Guests
           <ArrowRight className="size-3.5 shrink-0" aria-hidden />
-        </button>
+        </Link>
       </article>
     );
   }
@@ -203,16 +200,13 @@ export const GuestManifestPrompt = ({
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onAddGuest}
+      <Link
+        href="/manifest"
         className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#8A6D17] text-[12px] font-semibold uppercase tracking-[2px] text-white transition-colors hover:bg-[#9C7C1E]"
       >
-        {primaryComplete ? 'Continue' : 'Complete your details'}
+        Continue
         <ArrowRight className="size-3.5 shrink-0" aria-hidden />
-      </button>
-
-      <ViewManifestLink />
+      </Link>
     </article>
   );
 };
@@ -240,20 +234,6 @@ function StatusPill({
       />
       {label}
     </span>
-  );
-}
-
-function ViewManifestLink() {
-  return (
-    <div className="mt-3 flex justify-center">
-      <Link
-        href="/manifest"
-        className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[2px] text-[#797168] transition-colors hover:text-[#2B2824]"
-      >
-        View Manifest
-        <ArrowRight className="size-3 shrink-0" aria-hidden />
-      </Link>
-    </div>
   );
 }
 
