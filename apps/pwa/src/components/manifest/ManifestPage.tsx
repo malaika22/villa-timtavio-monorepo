@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -11,13 +11,13 @@ import {
   ChevronRight,
   Pencil,
   Check,
+  Star,
   Clock,
   Users,
 } from 'lucide-react';
 import { Button } from '@repo/ui/components/button';
 import { Progress } from '@repo/ui/components/progress';
 import { cn } from '@repo/ui/lib/utils';
-import { format, parseISO } from 'date-fns';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   useManifest,
@@ -27,6 +27,7 @@ import {
   useSubmitManifest,
 } from '@/hooks/useManifest';
 import { useRoomAvailability } from '@/hooks/useRoomAvailability';
+import { useStickyBar } from '@/store/useStickyBar';
 import { useAuth } from '@/hooks/useAuth';
 import { GuestManifestForm } from '@/components/GuestManifestForm';
 import type { GuestManifestFormValues } from '@/components/GuestManifestForm';
@@ -137,6 +138,36 @@ export const ManifestPage = () => {
   const [addedGuestName, setAddedGuestName] = useState('');
   const [showAddedSheet, setShowAddedSheet] = useState(false);
   const [showOwnDetails, setShowOwnDetails] = useState(false);
+  const [editingPrimary, setEditingPrimary] = useState(false);
+  const primaryCardRef = useRef<HTMLDivElement>(null);
+
+  // Tells the install pill how far to step up so it stops covering the bar.
+  const actionBarRef = useRef<HTMLDivElement>(null);
+  const setStickyBarHeight = useStickyBar((st) => st.setHeight);
+  useEffect(() => {
+    const el = actionBarRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) =>
+      setStickyBarHeight(entry?.contentRect.height ?? 0),
+    );
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      setStickyBarHeight(0);
+    };
+  }, [setStickyBarHeight]);
+
+  // Opened from the action bar, the editor is off screen — expanding it where
+  // nobody is looking reads as the button having done nothing.
+  const openPrimaryEditor = () => {
+    setEditingPrimary(true);
+    requestAnimationFrame(() =>
+      primaryCardRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      }),
+    );
+  };
 
   // A secondary guest's own row. The manifest is unique on (booking, email),
   // so their token's email is enough to find it.
@@ -322,78 +353,21 @@ export const ManifestPage = () => {
           </div>
         ))}
 
-      {/* ─── Room availability (compact) ────────────────────────── */}
-      <div className="mb-1 flex items-center justify-between">
-        <p className="text-[8px] uppercase tracking-[2.5px] text-[#9A9288]">
-          Room availability
-        </p>
-        <Link
-          href="/rooms"
-          className="flex items-center gap-1 text-[8px] font-medium uppercase tracking-[2px] text-[#0F1F2E]"
-        >
-          View rooms
-          <ArrowRight className="size-3" aria-hidden />
-        </Link>
-      </div>
-
-      {isLoading ? (
-        <div className="h-[52px] skeleton rounded-[12px] bg-[#E8E5E0]" />
-      ) : (rooms?.length ?? 0) === 0 ? (
-        <Link
-          href="/rooms"
-          className="block rounded-[12px] border border-dashed border-[#C9C4BC] bg-[#F7F5F2] px-4 py-4 text-center text-[10px] text-[#797168]"
-        >
-          View room details
-        </Link>
-      ) : (
-        <Link
-          href="/rooms"
-          className="flex flex-wrap gap-1.5 rounded-[12px] border border-[#E3E0DA] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(15,31,46,0.04)]"
-        >
-          {(rooms ?? []).map((room) => {
-            const filled = room.assignedGuests.length;
-            const full = filled >= room.capacity;
-            return (
-              <span
-                key={room.number}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full border px-2 py-1',
-                  full
-                    ? 'border-[#854F0B]/25 bg-[#FAEEDA]'
-                    : 'border-[#E3E0DA] bg-[#FAF9F7]',
-                )}
-              >
-                <span className="text-[9px] font-semibold text-[#2B2824]">
-                  R{room.number}
-                </span>
-                <span className="flex gap-[2px]">
-                  {Array.from({ length: room.capacity }).map((_, i) => (
-                    <span
-                      key={i}
-                      className={cn(
-                        'size-[5px] rounded-full',
-                        i < filled ? 'bg-[#0F1F2E]' : 'bg-[#DDD9D3]',
-                      )}
-                    />
-                  ))}
-                </span>
-              </span>
-            );
-          })}
-        </Link>
-      )}
-
       {/* ─── Your details (primary member) ──────────────────────── */}
       {manifest?.primaryGuest && (
         <div className="mt-6">
           <p className="text-[8px] uppercase tracking-[2.5px] text-[#9A9288] mb-3">
             Your details
           </p>
-          <PrimaryDetailsCard
-            primary={manifest.primaryGuest}
-            rooms={rooms ?? []}
-            isPrimary={isPrimary}
-          />
+          <div ref={primaryCardRef}>
+            <PrimaryDetailsCard
+              primary={manifest.primaryGuest}
+              rooms={rooms ?? []}
+              isPrimary={isPrimary}
+              isEditing={editingPrimary}
+              onEditingChange={setEditingPrimary}
+            />
+          </div>
         </div>
       )}
 
@@ -477,6 +451,72 @@ export const ManifestPage = () => {
         </div>
       )}
 
+      {/* Reference, not a task — so it sits after the people it describes.
+          Above them it pushed the one outstanding item off the first
+          screen. */}
+      <div className="mt-6">
+        {/* ─── Room availability (compact) ────────────────────────── */}
+        <div className="mb-1 flex items-center justify-between">
+          <p className="text-[8px] uppercase tracking-[2.5px] text-[#9A9288]">
+            Room availability
+          </p>
+          <Link
+            href="/rooms"
+            className="flex items-center gap-1 text-[8px] font-medium uppercase tracking-[2px] text-[#0F1F2E]"
+          >
+            View rooms
+            <ArrowRight className="size-3" aria-hidden />
+          </Link>
+        </div>
+
+        {isLoading ? (
+          <div className="h-[52px] skeleton rounded-[12px] bg-[#E8E5E0]" />
+        ) : (rooms?.length ?? 0) === 0 ? (
+          <Link
+            href="/rooms"
+            className="block rounded-[12px] border border-dashed border-[#C9C4BC] bg-[#F7F5F2] px-4 py-4 text-center text-[10px] text-[#797168]"
+          >
+            View room details
+          </Link>
+        ) : (
+          <Link
+            href="/rooms"
+            className="flex flex-wrap gap-1.5 rounded-[12px] border border-[#E3E0DA] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(15,31,46,0.04)]"
+          >
+            {(rooms ?? []).map((room) => {
+              const filled = room.assignedGuests.length;
+              const full = filled >= room.capacity;
+              return (
+                <span
+                  key={room.number}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-full border px-2 py-1',
+                    full
+                      ? 'border-[#854F0B]/25 bg-[#FAEEDA]'
+                      : 'border-[#E3E0DA] bg-[#FAF9F7]',
+                  )}
+                >
+                  <span className="text-[9px] font-semibold text-[#2B2824]">
+                    R{room.number}
+                  </span>
+                  <span className="flex gap-[2px]">
+                    {Array.from({ length: room.capacity }).map((_, i) => (
+                      <span
+                        key={i}
+                        className={cn(
+                          'size-[5px] rounded-full',
+                          i < filled ? 'bg-[#0F1F2E]' : 'bg-[#DDD9D3]',
+                        )}
+                      />
+                    ))}
+                  </span>
+                </span>
+              );
+            })}
+          </Link>
+        )}
+      </div>
+
       {/* ─── Allergy reminder ───────────────────────────────────── */}
       {
         <motion.div
@@ -497,19 +537,23 @@ export const ManifestPage = () => {
 
       {/* ─── Sticky action bar (only when there's an action) ────── */}
       {
-        <div className="fixed bottom-[72px] left-0 right-0 z-20 px-4 pb-3 pt-4 bg-gradient-to-t from-[#F0EDE6] via-[#F0EDE6]/95 to-transparent">
+        <div
+          ref={actionBarRef}
+          className="fixed bottom-[72px] left-0 right-0 z-20 px-4 pb-3 pt-4 bg-gradient-to-t from-[#F0EDE6] via-[#F0EDE6]/95 to-transparent"
+        >
           {submitError && (
             <p className="mb-2 rounded-[10px] border border-[#E4B7B2] bg-[#FBEEEA] px-3 py-2 text-center text-[11px] font-medium text-[#9A3A30]">
               {submitError}
             </p>
           )}
-          {isPrimary && !primaryComplete && addedGuests > 0 && (
-            <p className="mb-2 rounded-[10px] border border-[#D9C79A] bg-[#FBF3DF] px-3 py-2 text-[11px] leading-snug text-[#8A6D3B]">
-              <span className="font-medium">
-                Your own details are still to come.
-              </span>{' '}
-              Choose your room above, then you can send the list to the estate.
-            </p>
+          {isPrimary && !primaryComplete && (
+            <Button
+              onClick={openPrimaryEditor}
+              className="mb-2 h-12 w-full gap-2 rounded-[12px] bg-[#8A6D17] text-[10px] font-semibold uppercase tracking-[2px] text-white hover:bg-[#9C7C1E]"
+            >
+              <Star className="size-4" aria-hidden />
+              Add your room &amp; details
+            </Button>
           )}
 
           <AnimatePresence>
@@ -534,10 +578,12 @@ export const ManifestPage = () => {
           {isPrimary && !partyFull && (
             <Button
               onClick={openAddForm}
-              variant={secondaryCount === 0 ? 'default' : 'outline'}
+              variant={
+                secondaryCount === 0 && primaryComplete ? 'default' : 'outline'
+              }
               className={cn(
                 'w-full h-12 rounded-[12px] text-[10px] font-semibold uppercase tracking-[2px] gap-2',
-                secondaryCount === 0
+                secondaryCount === 0 && primaryComplete
                   ? 'bg-[#0F1F2E] text-white hover:bg-[#1A3040]'
                   : 'border-[#0F1F2E] bg-white text-[#0F1F2E] hover:bg-[#F5F3F0]',
               )}

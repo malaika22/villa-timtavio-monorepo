@@ -5,9 +5,9 @@ import { Drawer, DrawerContent, DrawerTitle } from '@repo/ui/components/drawer';
 
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { useInstallSheet } from '@/store/install/useInstallSheet';
+import { useStickyBar } from '@/store/useStickyBar';
 
-const SHEET_COPY =
-  'Opens straight to your stay — no link to find each time.';
+const SHEET_COPY = 'Opens straight to your stay — no link to find each time.';
 
 /**
  * Adding the app to the home screen, offered twice over and never insisted on.
@@ -34,6 +34,7 @@ export const InstallPrompt = () => {
   } = useInstallPrompt();
 
   const { open: sheetOpen, setOpen: setSheetOpen } = useInstallSheet();
+  const stickyBarHeight = useStickyBar((s) => s.height);
 
   if (!eligible) return null;
 
@@ -81,7 +82,10 @@ export const InstallPrompt = () => {
       )}
 
       {showPill && !sheetOpen && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-[76px] z-40 flex justify-center px-4">
+        <div
+          className="pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4 transition-[bottom] duration-200"
+          style={{ bottom: 76 + stickyBarHeight }}
+        >
           <div className="pointer-events-auto flex items-center gap-2 rounded-full bg-[#0F1F2E] py-2 pr-2 pl-3 shadow-[0_4px_16px_rgba(0,0,0,0.28)]">
             <button
               type="button"
