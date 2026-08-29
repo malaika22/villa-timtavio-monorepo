@@ -370,6 +370,67 @@ export const ManifestPage = () => {
           </div>
         ))}
 
+      {/* ─── Room availability (compact) ────────────────────────── */}
+      <div className="mb-1 flex items-center justify-between">
+        <p className="text-[8px] uppercase tracking-[2.5px] text-[#9A9288]">
+          Room availability
+        </p>
+        <Link
+          href="/rooms"
+          className="flex items-center gap-1 text-[8px] font-medium uppercase tracking-[2px] text-[#0F1F2E]"
+        >
+          View rooms
+          <ArrowRight className="size-3" aria-hidden />
+        </Link>
+      </div>
+
+      {isLoading ? (
+        <div className="h-[52px] skeleton rounded-[12px] bg-[#E8E5E0]" />
+      ) : (rooms?.length ?? 0) === 0 ? (
+        <Link
+          href="/rooms"
+          className="block rounded-[12px] border border-dashed border-[#C9C4BC] bg-[#F7F5F2] px-4 py-4 text-center text-[10px] text-[#797168]"
+        >
+          View room details
+        </Link>
+      ) : (
+        <Link
+          href="/rooms"
+          className="flex flex-wrap gap-1.5 rounded-[12px] border border-[#E3E0DA] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(15,31,46,0.04)]"
+        >
+          {(rooms ?? []).map((room) => {
+            const filled = room.assignedGuests.length;
+            const full = filled >= room.capacity;
+            return (
+              <span
+                key={room.number}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full border px-2 py-1',
+                  full
+                    ? 'border-[#854F0B]/25 bg-[#FAEEDA]'
+                    : 'border-[#E3E0DA] bg-[#FAF9F7]',
+                )}
+              >
+                <span className="text-[9px] font-semibold text-[#2B2824]">
+                  R{room.number}
+                </span>
+                <span className="flex gap-[2px]">
+                  {Array.from({ length: room.capacity }).map((_, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        'size-[5px] rounded-full',
+                        i < filled ? 'bg-[#0F1F2E]' : 'bg-[#DDD9D3]',
+                      )}
+                    />
+                  ))}
+                </span>
+              </span>
+            );
+          })}
+        </Link>
+      )}
+
       {/* Loading stood the page down to two grey slivers and a void: the
           primary's card and the whole list are keyed off data that isn't
           there yet, so nothing rendered between the progress bar and the
@@ -504,72 +565,6 @@ export const ManifestPage = () => {
           </p>
         </div>
       )}
-
-      {/* Reference, not a task — so it sits after the people it describes.
-          Above them it pushed the one outstanding item off the first
-          screen. */}
-      <div className="mt-6">
-        {/* ─── Room availability (compact) ────────────────────────── */}
-        <div className="mb-1 flex items-center justify-between">
-          <p className="text-[8px] uppercase tracking-[2.5px] text-[#9A9288]">
-            Room availability
-          </p>
-          <Link
-            href="/rooms"
-            className="flex items-center gap-1 text-[8px] font-medium uppercase tracking-[2px] text-[#0F1F2E]"
-          >
-            View rooms
-            <ArrowRight className="size-3" aria-hidden />
-          </Link>
-        </div>
-
-        {isLoading ? (
-          <div className="h-[52px] skeleton rounded-[12px] bg-[#E8E5E0]" />
-        ) : (rooms?.length ?? 0) === 0 ? (
-          <Link
-            href="/rooms"
-            className="block rounded-[12px] border border-dashed border-[#C9C4BC] bg-[#F7F5F2] px-4 py-4 text-center text-[10px] text-[#797168]"
-          >
-            View room details
-          </Link>
-        ) : (
-          <Link
-            href="/rooms"
-            className="flex flex-wrap gap-1.5 rounded-[12px] border border-[#E3E0DA] bg-white px-3 py-3 shadow-[0_1px_2px_rgba(15,31,46,0.04)]"
-          >
-            {(rooms ?? []).map((room) => {
-              const filled = room.assignedGuests.length;
-              const full = filled >= room.capacity;
-              return (
-                <span
-                  key={room.number}
-                  className={cn(
-                    'inline-flex items-center gap-1.5 rounded-full border px-2 py-1',
-                    full
-                      ? 'border-[#854F0B]/25 bg-[#FAEEDA]'
-                      : 'border-[#E3E0DA] bg-[#FAF9F7]',
-                  )}
-                >
-                  <span className="text-[9px] font-semibold text-[#2B2824]">
-                    R{room.number}
-                  </span>
-                  <span className="flex gap-[2px]">
-                    {Array.from({ length: room.capacity }).map((_, i) => (
-                      <span
-                        key={i}
-                        className={cn(
-                          'size-[5px] rounded-full',
-                          i < filled ? 'bg-[#0F1F2E]' : 'bg-[#DDD9D3]',
-                        )}
-                      />
-                    ))}
-                  </span>
-                </span>
-              );
-            })}
-          </Link>
-        )}
-      </div>
 
       {/* ─── Allergy reminder ───────────────────────────────────── */}
       {!manifestLoading && (
