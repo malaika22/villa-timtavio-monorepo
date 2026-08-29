@@ -144,6 +144,7 @@ export const ManifestPage = () => {
   // Tells the install pill how far to step up so it stops covering the bar.
   const actionBarRef = useRef<HTMLDivElement>(null);
   const setStickyBarHeight = useStickyBar((st) => st.setHeight);
+  const stickyBarHeight = useStickyBar((st) => st.height);
   useEffect(() => {
     const el = actionBarRef.current;
     if (!el) return;
@@ -255,7 +256,14 @@ export const ManifestPage = () => {
   };
 
   return (
-    <div className={'flex flex-col pb-52'}>
+    <div
+      className="flex flex-col"
+      // The bar is fixed 72px up (clearing the footer), so the page has to
+      // clear both. It was a flat pb-52 — 208px — which left a half-screen of
+      // nothing under a short list and still guessed wrong when the bar
+      // carried two rows. We already measure the bar for the install pill.
+      style={{ paddingBottom: 72 + stickyBarHeight + 16 }}
+    >
       {/* ─── Header ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-5">
         <button
@@ -268,17 +276,26 @@ export const ManifestPage = () => {
         <h1 className="font-cormorant italic text-[22px] text-[#2B2824]">
           Guest Manifest
         </h1>
-        <motion.div
-          layout
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[8.5px] font-semibold uppercase tracking-[1px]',
-            meta.ring,
-            meta.text,
-          )}
-        >
-          <span className={cn('size-[4px] shrink-0 rounded-full', meta.dot)} />
-          {meta.label}
-        </motion.div>
+        {manifestLoading ? (
+          // "Not started" is a claim, and it was being made before the answer
+          // arrived — a returning guest saw their finished manifest labelled
+          // untouched for as long as the request took.
+          <div className="skeleton h-[22px] w-[86px] rounded-full bg-[#E3E0DA]" />
+        ) : (
+          <motion.div
+            layout
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[8.5px] font-semibold uppercase tracking-[1px]',
+              meta.ring,
+              meta.text,
+            )}
+          >
+            <span
+              className={cn('size-[4px] shrink-0 rounded-full', meta.dot)}
+            />
+            {meta.label}
+          </motion.div>
+        )}
       </div>
 
       {/* ─── Stats row ──────────────────────────────────────────── */}
@@ -352,6 +369,43 @@ export const ManifestPage = () => {
             </div>
           </div>
         ))}
+
+      {/* Loading stood the page down to two grey slivers and a void: the
+          primary's card and the whole list are keyed off data that isn't
+          there yet, so nothing rendered between the progress bar and the
+          room pips. Standing in for both keeps the shape of the page while
+          it arrives, and stops everything below jumping when it does. */}
+      {manifestLoading && (
+        <div className="mt-6" aria-busy="true" aria-label="Loading your party">
+          <div className="skeleton mb-3 h-[9px] w-[64px] rounded bg-[#E3E0DA]" />
+          <div className="rounded-[14px] border border-[#E3E0DA] bg-white px-4 py-3.5">
+            <div className="flex items-center gap-2.5">
+              <div className="skeleton size-[30px] shrink-0 rounded-full bg-[#ECE7DF]" />
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="skeleton h-3 w-2/5 rounded bg-[#ECE7DF]" />
+                <div className="skeleton h-2 w-1/4 rounded bg-[#F0ECE5]" />
+              </div>
+            </div>
+            <div className="skeleton mt-3 h-2.5 w-3/5 rounded bg-[#F0ECE5]" />
+          </div>
+
+          <div className="skeleton mb-3 mt-6 h-[9px] w-[58px] rounded bg-[#E3E0DA]" />
+          <div className="space-y-2">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2.5 rounded-[14px] border border-[#E3E0DA] bg-white px-4 py-3.5"
+              >
+                <div className="skeleton size-[30px] shrink-0 rounded-full bg-[#ECE7DF]" />
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="skeleton h-3 w-1/2 rounded bg-[#ECE7DF]" />
+                  <div className="skeleton h-2 w-1/3 rounded bg-[#F0ECE5]" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ─── Your details (primary member) ──────────────────────── */}
       {manifest?.primaryGuest && (
@@ -518,7 +572,7 @@ export const ManifestPage = () => {
       </div>
 
       {/* ─── Allergy reminder ───────────────────────────────────── */}
-      {
+      {!manifestLoading && (
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -533,13 +587,13 @@ export const ManifestPage = () => {
             Include severity and emergency medications when adding guests.
           </p>
         </motion.div>
-      }
+      )}
 
       {/* ─── Sticky action bar (only when there's an action) ────── */}
       {
         <div
           ref={actionBarRef}
-          className="fixed bottom-[72px] left-0 right-0 z-20 px-4 pb-3 pt-4 bg-gradient-to-t from-[#F0EDE6] via-[#F0EDE6]/95 to-transparent"
+          className="fixed bottom-[72px] left-0 right-0 z-20 px-4 pb-3 pt-4 bg-gradient-to-t from-timtavio-background via-timtavio-background/95 to-transparent"
         >
           {submitError && (
             <p className="mb-2 rounded-[10px] border border-[#E4B7B2] bg-[#FBEEEA] px-3 py-2 text-center text-[11px] font-medium text-[#9A3A30]">
@@ -553,66 +607,79 @@ export const ManifestPage = () => {
 
               Below 360px there isn't room for two, and a cramped pair of
               truncated labels is worse than a tall bar. */}
-          {isPrimary && !primaryComplete && (
-            <div className="mb-2 flex flex-col gap-2 min-[360px]:flex-row">
-              <Button
-                onClick={openPrimaryEditor}
-                className="h-12 w-full gap-1.5 rounded-[12px] bg-[#8A6D17] min-[360px]:flex-1 px-2 text-[10px] font-semibold uppercase tracking-[1.5px] text-white hover:bg-[#9C7C1E]"
-              >
-                <Star className="size-3.5 shrink-0" aria-hidden />
-                Your details
-              </Button>
-              {!partyFull && (
+          {/* `primaryComplete` falls back to true until the answer lands, so
+              the bar spent every load offering Add guest full width — the one
+              action a primary with their own room outstanding should not be
+              handed first, and then it swapped under their thumb. */}
+          {manifestLoading ? (
+            <div className="flex gap-2" aria-hidden>
+              <div className="skeleton h-12 w-full rounded-[12px] bg-[#E3E0DA]" />
+              <div className="skeleton h-12 w-full rounded-[12px] bg-[#E8E5E0]" />
+            </div>
+          ) : (
+            <>
+              {isPrimary && !primaryComplete && (
+                <div className="mb-2 flex flex-col gap-2 min-[360px]:flex-row">
+                  <Button
+                    onClick={openPrimaryEditor}
+                    className="h-12 w-full gap-1.5 rounded-[12px] bg-[#8A6D17] min-[360px]:flex-1 px-2 text-[10px] font-semibold uppercase tracking-[1.5px] text-white hover:bg-[#9C7C1E]"
+                  >
+                    <Star className="size-3.5 shrink-0" aria-hidden />
+                    Your details
+                  </Button>
+                  {!partyFull && (
+                    <Button
+                      onClick={openAddForm}
+                      variant="outline"
+                      className="h-12 w-full gap-1.5 rounded-[12px] border-[#0F1F2E] min-[360px]:flex-1 bg-white px-2 text-[10px] font-semibold uppercase tracking-[1.5px] text-[#0F1F2E] hover:bg-[#F5F3F0]"
+                    >
+                      <Plus className="size-3.5 shrink-0" aria-hidden />
+                      Add guest
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              <AnimatePresence>
+                {canSubmit && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    className="mb-2"
+                  >
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                      className="w-full h-12 rounded-[12px] bg-[#1A3040] text-white text-[10px] font-semibold uppercase tracking-[2px] hover:bg-[#0F1F2E] disabled:opacity-60"
+                    >
+                      {isSubmitting ? 'Submitting…' : 'Submit guest list'}
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {isPrimary && primaryComplete && !partyFull && (
                 <Button
                   onClick={openAddForm}
-                  variant="outline"
-                  className="h-12 w-full gap-1.5 rounded-[12px] border-[#0F1F2E] min-[360px]:flex-1 bg-white px-2 text-[10px] font-semibold uppercase tracking-[1.5px] text-[#0F1F2E] hover:bg-[#F5F3F0]"
+                  variant={secondaryCount === 0 ? 'default' : 'outline'}
+                  className={cn(
+                    'w-full h-12 rounded-[12px] text-[10px] font-semibold uppercase tracking-[2px] gap-2',
+                    secondaryCount === 0
+                      ? 'bg-[#0F1F2E] text-white hover:bg-[#1A3040]'
+                      : 'border-[#0F1F2E] bg-white text-[#0F1F2E] hover:bg-[#F5F3F0]',
+                  )}
                 >
-                  <Plus className="size-3.5 shrink-0" aria-hidden />
+                  <Plus className="size-4" aria-hidden />
                   Add guest
                 </Button>
               )}
-            </div>
-          )}
-
-          <AnimatePresence>
-            {canSubmit && (
-              <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 8 }}
-                className="mb-2"
-              >
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                  className="w-full h-12 rounded-[12px] bg-[#1A3040] text-white text-[10px] font-semibold uppercase tracking-[2px] hover:bg-[#0F1F2E] disabled:opacity-60"
-                >
-                  {isSubmitting ? 'Submitting…' : 'Submit guest list'}
-                </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {isPrimary && primaryComplete && !partyFull && (
-            <Button
-              onClick={openAddForm}
-              variant={secondaryCount === 0 ? 'default' : 'outline'}
-              className={cn(
-                'w-full h-12 rounded-[12px] text-[10px] font-semibold uppercase tracking-[2px] gap-2',
-                secondaryCount === 0
-                  ? 'bg-[#0F1F2E] text-white hover:bg-[#1A3040]'
-                  : 'border-[#0F1F2E] bg-white text-[#0F1F2E] hover:bg-[#F5F3F0]',
+              {isPrimary && partyFull && primaryComplete && (
+                <p className="text-center text-[10px] text-[#797168]">
+                  Everyone in your party has been added.
+                </p>
               )}
-            >
-              <Plus className="size-4" aria-hidden />
-              Add guest
-            </Button>
-          )}
-          {isPrimary && partyFull && primaryComplete && (
-            <p className="text-center text-[10px] text-[#797168]">
-              Everyone in your party has been added.
-            </p>
+            </>
           )}
         </div>
       }
