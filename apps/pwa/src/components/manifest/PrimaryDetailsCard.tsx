@@ -21,21 +21,15 @@ export function PrimaryDetailsCard({
   primary,
   rooms,
   isPrimary,
+  isEditing,
+  onEditingChange,
 }: {
   primary: Primary;
   rooms: RoomWithAvailability[];
   isPrimary: boolean;
+  isEditing: boolean;
+  onEditingChange: (open: boolean) => void;
 }) {
-  const [isEditing, setIsEditing] = useState(false);
-  const updateDetails = useUpdatePrimaryDetails();
-
-  const [roomId, setRoomId] = useState(primary.roomNumber?.toString() ?? '');
-  const [dietary, setDietary] = useState<string[]>(
-    primary.dietaryRestrictions ?? [],
-  );
-  const [allergies, setAllergies] = useState(primary.allergies ?? '');
-  const [beverages, setBeverages] = useState(primary.beveragePreferences ?? '');
-
   // Same shape the guest manifest form feeds its RoomPicker.
   const roomOptions: RoomOption[] = rooms.map((r) => ({
     id: r.number.toString(),
@@ -58,31 +52,7 @@ export function PrimaryDetailsCard({
       `Room ${primary.roomNumber}`)
     : null;
 
-  const openEditor = () => {
-    setRoomId(primary.roomNumber?.toString() ?? '');
-    setDietary(primary.dietaryRestrictions ?? []);
-    setAllergies(primary.allergies ?? '');
-    setBeverages(primary.beveragePreferences ?? '');
-    setIsEditing(true);
-  };
-
-  const toggleDietary = (value: string) => {
-    setDietary((prev) =>
-      prev.includes(value)
-        ? prev.filter((v) => v !== value)
-        : [...prev, value],
-    );
-  };
-
-  const handleSave = async () => {
-    await updateDetails.mutateAsync({
-      roomNumber: roomId ? parseInt(roomId, 10) : null,
-      dietaryRestrictions: dietary,
-      allergies: allergies.trim() || null,
-      beveragePreferences: beverages.trim() || null,
-    });
-    setIsEditing(false);
-  };
+  const openEditor = () => onEditingChange(true);
 
   const dietaryTags = (primary.dietaryRestrictions ?? []).map((d) => ({
     label: dietaryLabel(d),
@@ -200,108 +170,152 @@ export function PrimaryDetailsCard({
       {/* ─── Edit mode ────────────────────────────────────────────── */}
       <AnimatePresence initial={false}>
         {isEditing && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="flex flex-col gap-3 border-t border-[#F0EDE6] pt-3">
-              {/* Room — same picker guests use, for a consistent experience */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[8px] uppercase tracking-[2px] text-[#9A9288]">
-                  Your room
-                </label>
-                {roomOptions.length === 0 ? (
-                  <p className="rounded-[10px] border border-dashed border-[#D8D3C9] bg-[#F7F5F2] px-3 py-3 text-[10px] text-[#797168]">
-                    Rooms haven&apos;t been configured yet.
-                  </p>
-                ) : (
-                  <RoomPicker
-                    rooms={roomOptions}
-                    value={roomId}
-                    onChange={setRoomId}
-                  />
-                )}
-              </div>
-
-              {/* Dietary */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[8px] uppercase tracking-[2px] text-[#9A9288]">
-                  Dietary preferences
-                </label>
-                <div className="flex flex-wrap gap-1.5">
-                  {DIETARY_VALUES.filter((v) => v !== 'other').map((value) => {
-                    const active = dietary.includes(value);
-                    return (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => toggleDietary(value)}
-                        className={cn(
-                          'rounded-full border px-2.5 py-1 text-[9px] font-medium capitalize transition-colors',
-                          active
-                            ? 'border-[#3A5E48] bg-[#EEF5F0] text-[#3A5E48]'
-                            : 'border-[#E3E0DA] bg-white text-[#797168]',
-                        )}
-                      >
-                        {dietaryLabel(value)}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Allergies */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[8px] uppercase tracking-[2px] text-[#9A9288]">
-                  Allergies
-                </label>
-                <input
-                  value={allergies}
-                  onChange={(e) => setAllergies(e.target.value)}
-                  placeholder="e.g. Severe peanut allergy"
-                  className="h-10 rounded-[10px] border border-[#E3E0DA] bg-white px-3 text-[12px] text-[#2B2824] outline-none placeholder:text-[#B0AAA0] focus:border-[#0F1F2E]"
-                />
-              </div>
-
-              {/* Beverages */}
-              <div className="flex flex-col gap-1">
-                <label className="text-[8px] uppercase tracking-[2px] text-[#9A9288]">
-                  Beverage preferences
-                </label>
-                <input
-                  value={beverages}
-                  onChange={(e) => setBeverages(e.target.value)}
-                  placeholder="e.g. Still water, no alcohol"
-                  className="h-10 rounded-[10px] border border-[#E3E0DA] bg-white px-3 text-[12px] text-[#2B2824] outline-none placeholder:text-[#B0AAA0] focus:border-[#0F1F2E]"
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-2 pt-1">
-                <Button
-                  onClick={handleSave}
-                  disabled={updateDetails.isPending}
-                  className="flex-1 h-10 rounded-[10px] bg-[#0F1F2E] text-white text-[10px] font-semibold uppercase tracking-[1.5px] gap-1.5 hover:bg-[#1A3040] disabled:opacity-60"
-                >
-                  <Check className="size-3.5" aria-hidden />
-                  {updateDetails.isPending ? 'Saving…' : 'Save'}
-                </Button>
-                <Button
-                  onClick={() => setIsEditing(false)}
-                  variant="outline"
-                  disabled={updateDetails.isPending}
-                  className="h-10 rounded-[10px] border-[#E3E0DA] bg-white text-[#797168] text-[10px] font-semibold uppercase tracking-[1.5px] gap-1.5"
-                >
-                  <X className="size-3.5" aria-hidden />
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </motion.div>
+          <PrimaryEditor
+            primary={primary}
+            roomOptions={roomOptions}
+            onDone={() => onEditingChange(false)}
+          />
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function PrimaryEditor({
+  primary,
+  roomOptions,
+  onDone,
+}: {
+  primary: Primary;
+  roomOptions: RoomOption[];
+  onDone: () => void;
+}) {
+  const updateDetails = useUpdatePrimaryDetails();
+
+  // Seeded once, on mount. The card unmounts this on close, so an abandoned
+  // half-typed change never comes back looking like it was saved.
+  const [roomId, setRoomId] = useState(primary.roomNumber?.toString() ?? '');
+  const [dietary, setDietary] = useState<string[]>(
+    primary.dietaryRestrictions ?? [],
+  );
+  const [allergies, setAllergies] = useState(primary.allergies ?? '');
+  const [beverages, setBeverages] = useState(primary.beveragePreferences ?? '');
+
+  const toggleDietary = (value: string) =>
+    setDietary((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
+    );
+
+  const handleSave = async () => {
+    await updateDetails.mutateAsync({
+      roomNumber: roomId ? parseInt(roomId, 10) : null,
+      dietaryRestrictions: dietary,
+      allergies: allergies.trim() || null,
+      beveragePreferences: beverages.trim() || null,
+    });
+    onDone();
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      className="overflow-hidden"
+    >
+      <div className="flex flex-col gap-3 border-t border-[#F0EDE6] pt-3">
+        {/* Room — same picker guests use, for a consistent experience */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[8px] uppercase tracking-[2px] text-[#9A9288]">
+            Your room
+          </label>
+          {roomOptions.length === 0 ? (
+            <p className="rounded-[10px] border border-dashed border-[#D8D3C9] bg-[#F7F5F2] px-3 py-3 text-[10px] text-[#797168]">
+              Rooms haven&apos;t been configured yet.
+            </p>
+          ) : (
+            <RoomPicker
+              rooms={roomOptions}
+              value={roomId}
+              onChange={setRoomId}
+            />
+          )}
+        </div>
+
+        {/* Dietary */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[8px] uppercase tracking-[2px] text-[#9A9288]">
+            Dietary preferences
+          </label>
+          <div className="flex flex-wrap gap-1.5">
+            {DIETARY_VALUES.filter((v) => v !== 'other').map((value) => {
+              const active = dietary.includes(value);
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => toggleDietary(value)}
+                  className={cn(
+                    'rounded-full border px-2.5 py-1 text-[9px] font-medium capitalize transition-colors',
+                    active
+                      ? 'border-[#3A5E48] bg-[#EEF5F0] text-[#3A5E48]'
+                      : 'border-[#E3E0DA] bg-white text-[#797168]',
+                  )}
+                >
+                  {dietaryLabel(value)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Allergies */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[8px] uppercase tracking-[2px] text-[#9A9288]">
+            Allergies
+          </label>
+          <input
+            value={allergies}
+            onChange={(e) => setAllergies(e.target.value)}
+            placeholder="e.g. Severe peanut allergy"
+            className="h-10 rounded-[10px] border border-[#E3E0DA] bg-white px-3 text-[12px] text-[#2B2824] outline-none placeholder:text-[#B0AAA0] focus:border-[#0F1F2E]"
+          />
+        </div>
+
+        {/* Beverages */}
+        <div className="flex flex-col gap-1">
+          <label className="text-[8px] uppercase tracking-[2px] text-[#9A9288]">
+            Beverage preferences
+          </label>
+          <input
+            value={beverages}
+            onChange={(e) => setBeverages(e.target.value)}
+            placeholder="e.g. Still water, no alcohol"
+            className="h-10 rounded-[10px] border border-[#E3E0DA] bg-white px-3 text-[12px] text-[#2B2824] outline-none placeholder:text-[#B0AAA0] focus:border-[#0F1F2E]"
+          />
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2 pt-1">
+          <Button
+            onClick={handleSave}
+            disabled={updateDetails.isPending}
+            className="flex-1 h-10 rounded-[10px] bg-[#0F1F2E] text-white text-[10px] font-semibold uppercase tracking-[1.5px] gap-1.5 hover:bg-[#1A3040] disabled:opacity-60"
+          >
+            <Check className="size-3.5" aria-hidden />
+            {updateDetails.isPending ? 'Saving…' : 'Save'}
+          </Button>
+          <Button
+            onClick={onDone}
+            variant="outline"
+            disabled={updateDetails.isPending}
+            className="h-10 rounded-[10px] border-[#E3E0DA] bg-white text-[#797168] text-[10px] font-semibold uppercase tracking-[1.5px] gap-1.5"
+          >
+            <X className="size-3.5" aria-hidden />
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </motion.div>
   );
 }
