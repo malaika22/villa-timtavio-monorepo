@@ -546,14 +546,33 @@ export const ManifestPage = () => {
               {submitError}
             </p>
           )}
+          {/* Both jobs, side by side, while both are open — half the height
+              of a stack, and neither is the one you have to look for. Labels
+              carry the whole distinction at this width, so they say whose
+              details rather than which fields: yours, or somebody else's.
+
+              Below 360px there isn't room for two, and a cramped pair of
+              truncated labels is worse than a tall bar. */}
           {isPrimary && !primaryComplete && (
-            <Button
-              onClick={openPrimaryEditor}
-              className="mb-2 h-12 w-full gap-2 rounded-[12px] bg-[#8A6D17] text-[10px] font-semibold uppercase tracking-[2px] text-white hover:bg-[#9C7C1E]"
-            >
-              <Star className="size-4" aria-hidden />
-              Add your room &amp; details
-            </Button>
+            <div className="mb-2 flex flex-col gap-2 min-[360px]:flex-row">
+              <Button
+                onClick={openPrimaryEditor}
+                className="h-12 w-full gap-1.5 rounded-[12px] bg-[#8A6D17] min-[360px]:flex-1 px-2 text-[10px] font-semibold uppercase tracking-[1.5px] text-white hover:bg-[#9C7C1E]"
+              >
+                <Star className="size-3.5 shrink-0" aria-hidden />
+                Your details
+              </Button>
+              {!partyFull && (
+                <Button
+                  onClick={openAddForm}
+                  variant="outline"
+                  className="h-12 w-full gap-1.5 rounded-[12px] border-[#0F1F2E] min-[360px]:flex-1 bg-white px-2 text-[10px] font-semibold uppercase tracking-[1.5px] text-[#0F1F2E] hover:bg-[#F5F3F0]"
+                >
+                  <Plus className="size-3.5 shrink-0" aria-hidden />
+                  Add guest
+                </Button>
+              )}
+            </div>
           )}
 
           <AnimatePresence>
@@ -575,15 +594,13 @@ export const ManifestPage = () => {
             )}
           </AnimatePresence>
 
-          {isPrimary && !partyFull && (
+          {isPrimary && primaryComplete && !partyFull && (
             <Button
               onClick={openAddForm}
-              variant={
-                secondaryCount === 0 && primaryComplete ? 'default' : 'outline'
-              }
+              variant={secondaryCount === 0 ? 'default' : 'outline'}
               className={cn(
                 'w-full h-12 rounded-[12px] text-[10px] font-semibold uppercase tracking-[2px] gap-2',
-                secondaryCount === 0 && primaryComplete
+                secondaryCount === 0
                   ? 'bg-[#0F1F2E] text-white hover:bg-[#1A3040]'
                   : 'border-[#0F1F2E] bg-white text-[#0F1F2E] hover:bg-[#F5F3F0]',
               )}
@@ -592,7 +609,7 @@ export const ManifestPage = () => {
               Add guest
             </Button>
           )}
-          {isPrimary && partyFull && (
+          {isPrimary && partyFull && primaryComplete && (
             <p className="text-center text-[10px] text-[#797168]">
               Everyone in your party has been added.
             </p>
