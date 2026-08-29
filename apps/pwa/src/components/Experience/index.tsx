@@ -1,7 +1,9 @@
 import type { Experience } from '@/types/experience';
 import { ExperienceStatus } from '@/types/experienceStatus';
 import { cn } from '@repo/ui/lib/utils';
+import { useState } from 'react';
 import Image from 'next/image';
+import { ExperiencePhotoPlaceholder } from '@repo/ui';
 import { Lock } from 'lucide-react';
 
 import { ExperienceBadge } from '../featured-experiences/ExperienceBadge';
@@ -27,7 +29,13 @@ export const ExperienceCard = ({
   onClick?: () => void;
 }) => {
   const isLocked = experience.status === ExperienceStatus.LOCKED_PRE_ARRIVAL;
-  const { category, title, image } = experience;
+  const { category, title, image, glyph } = experience;
+
+  // src="" renders the browser's broken-image icon, which is what a guest
+  // saw on the home screen for every experience the estate hasn't
+  // photographed yet.
+  const [imgFailed, setImgFailed] = useState(false);
+  const showImage = !!image && !imgFailed;
 
   const imageHeight =
     density === 'compact' ? 'h-[58px]' : 'h-[112px] sm:h-[118px]';
@@ -47,7 +55,8 @@ export const ExperienceCard = ({
       }
       className={cn(
         'group flex flex-1 flex-col overflow-hidden rounded-[14px] border border-[#E3E0DA] bg-white shadow-[0_1px_6px_rgba(15,31,46,0.06)] transition-shadow',
-        onClick && 'cursor-pointer hover:shadow-[0_4px_16px_rgba(15,31,46,0.10)]',
+        onClick &&
+          'cursor-pointer hover:shadow-[0_4px_16px_rgba(15,31,46,0.10)]',
         className,
       )}
     >
@@ -57,12 +66,20 @@ export const ExperienceCard = ({
           imageHeight,
         )}
       >
-        <Image
-          src={image}
-          alt={title}
-          fill
-          className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-        />
+        {showImage ? (
+          <Image
+            src={image}
+            alt={title}
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          <ExperiencePhotoPlaceholder
+            glyph={glyph}
+            scale={density === 'compact' ? 'compact' : 'card'}
+          />
+        )}
         {/* Bottom scrim for depth + legibility */}
         <div
           className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/35 to-transparent"

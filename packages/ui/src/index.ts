@@ -16,4 +16,5 @@ export * from './components/table';
 export * from './components/tabs';
 export * from './components/textarea';
 export * from './components/experience-glyph';
+export * from './components/experience-photo';
 export * from './components/tooltip';

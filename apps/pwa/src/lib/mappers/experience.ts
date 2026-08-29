@@ -130,10 +130,7 @@ export function mapCatalogItemToDetail(
         // The host's avatar keeps its fallback: a face is a different promise
         // from a scene, and an empty circle beside a name reads as a fault.
         avatar:
-          item.hostAvatarUrl ??
-          item.primaryPhotoUrl ??
-          item.photoUrls[0] ??
-          '/images/experience.png',
+          item.hostAvatarUrl ?? item.primaryPhotoUrl ?? item.photoUrls[0] ?? '',
         reviewNote: item.hostReviewNote ?? undefined,
       }
     : undefined;

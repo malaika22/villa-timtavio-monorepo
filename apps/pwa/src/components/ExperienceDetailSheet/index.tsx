@@ -9,6 +9,7 @@ import { cn } from '@repo/ui/lib/utils';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowLeft, Info, Lock } from 'lucide-react';
 import Image from 'next/image';
+import { ExperiencePhotoPlaceholder } from '@repo/ui';
 import { useState } from 'react';
 import { RequestExperienceSheet } from '@/components/RequestExperienceSheet';
 import { Button } from '@repo/ui/components/button';
@@ -67,11 +68,13 @@ export function ExperienceDetailSheet({ open, experience, onClose }: Props) {
   const detail = catalogItem
     ? mapCatalogItemToDetail(catalogItem)
     : DEFAULT_EXPERIENCE_DETAIL;
-  const images = exp
-    ? detail.images && detail.images.length > 0
-      ? detail.images
-      : [exp.image]
-    : [];
+  const images = (
+    exp
+      ? detail.images && detail.images.length > 0
+        ? detail.images
+        : [exp.image]
+      : []
+  ).filter((src): src is string => !!src && src.trim() !== '');
 
   const isLocked = exp?.status === ExperienceStatus.LOCKED_PRE_ARRIVAL;
   const isAvailable = exp?.status === ExperienceStatus.AVAILABLE;
@@ -129,45 +132,52 @@ export function ExperienceDetailSheet({ open, experience, onClose }: Props) {
               <div className="flex-1 overflow-y-auto overscroll-contain">
                 {/* Image carousel */}
                 <div className="relative h-[260px] overflow-hidden bg-neutral-200">
-                  <AnimatePresence
-                    initial={false}
-                    custom={sheet?.direction ?? 0}
-                  >
-                    <motion.div
-                      key={sheet?.activeImage ?? 0}
+                  {images.length === 0 ? (
+                    <ExperiencePhotoPlaceholder
+                      glyph={exp.glyph}
+                      scale="hero"
+                    />
+                  ) : (
+                    <AnimatePresence
+                      initial={false}
                       custom={sheet?.direction ?? 0}
-                      variants={imageSlideVariants}
-                      initial="enter"
-                      animate="center"
-                      exit="exit"
-                      transition={{
-                        type: 'spring',
-                        stiffness: 300,
-                        damping: 30,
-                        mass: 0.85,
-                      }}
-                      drag="x"
-                      dragConstraints={{ left: 0, right: 0 }}
-                      dragElastic={0.15}
-                      onDragEnd={(_, info) => {
-                        const cur = sheet?.activeImage ?? 0;
-                        if (info.offset.x < -60 && cur < images.length - 1) {
-                          goToImage(cur + 1);
-                        } else if (info.offset.x > 60 && cur > 0) {
-                          goToImage(cur - 1);
-                        }
-                      }}
-                      className="absolute inset-0"
                     >
-                      <Image
-                        src={images[sheet?.activeImage ?? 0]}
-                        alt={exp.title}
-                        fill
-                        className="object-cover"
-                        priority
-                      />
-                    </motion.div>
-                  </AnimatePresence>
+                      <motion.div
+                        key={sheet?.activeImage ?? 0}
+                        custom={sheet?.direction ?? 0}
+                        variants={imageSlideVariants}
+                        initial="enter"
+                        animate="center"
+                        exit="exit"
+                        transition={{
+                          type: 'spring',
+                          stiffness: 300,
+                          damping: 30,
+                          mass: 0.85,
+                        }}
+                        drag="x"
+                        dragConstraints={{ left: 0, right: 0 }}
+                        dragElastic={0.15}
+                        onDragEnd={(_, info) => {
+                          const cur = sheet?.activeImage ?? 0;
+                          if (info.offset.x < -60 && cur < images.length - 1) {
+                            goToImage(cur + 1);
+                          } else if (info.offset.x > 60 && cur > 0) {
+                            goToImage(cur - 1);
+                          }
+                        }}
+                        className="absolute inset-0"
+                      >
+                        <Image
+                          src={images[sheet?.activeImage ?? 0]}
+                          alt={exp.title}
+                          fill
+                          className="object-cover"
+                          priority
+                        />
+                      </motion.div>
+                    </AnimatePresence>
+                  )}
 
                   {images.length > 1 && (
                     <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
@@ -258,13 +268,28 @@ export function ExperienceDetailSheet({ open, experience, onClose }: Props) {
                           Your Host
                         </p>
                         <div className="mt-3 flex items-center gap-3">
-                          <div className="relative size-11 shrink-0 overflow-hidden rounded-full bg-neutral-200">
-                            <Image
-                              src={detail.host.avatar}
-                              alt={detail.host.name}
-                              fill
-                              className="object-cover"
-                            />
+                          <div className="relative flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#E8E3DA]">
+                            {detail.host.avatar ? (
+                              <Image
+                                src={detail.host.avatar}
+                                alt={detail.host.name}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              /* A face is a different promise from a scene, so
+                                 this never borrows the experience's own
+                                 photograph the way it used to. Initials are
+                                 the honest stand-in for a person. */
+                              <span className="text-[13px] font-medium text-[#8C7261]">
+                                {detail.host.name
+                                  .split(/\s+/)
+                                  .filter(Boolean)
+                                  .slice(0, 2)
+                                  .map((w) => w[0]?.toUpperCase() ?? '')
+                                  .join('')}
+                              </span>
+                            )}
                           </div>
                           <div>
                             <p className="text-[14px] font-medium text-[#2B2824]">
