@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { MagicLinkService } from '../auth0/magic-link.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateManifestGuestDto } from './dto/create-manifest-guest.dto';
@@ -353,7 +354,9 @@ export class ManifestService {
 
     // If room is being changed, validate new room capacity
     if (dto.roomNumber && dto.roomNumber !== guest.roomNumber) {
-      await this.validateRoomCapacity(bookingId, dto.roomNumber, guestId);
+      await this.validateRoomCapacity(bookingId, dto.roomNumber, {
+        excludeGuestId: guestId,
+      });
     }
 
     const updated = await this.prisma.manifestGuest.update({
@@ -806,14 +809,35 @@ export class ManifestService {
 
   // ─── Private: Validate room capacity ─────────────────────────────────────
 
+  /**
+   * Whether one more person fits in a room.
+   *
+   * The primary sleeps somewhere too, and they are not a manifestGuest row —
+   * so counting only that table left their bed invisible to this check. The
+   * room summary has always counted it (`getRoomSummary` adds the primary's
+   * own room), which meant the picker greyed a room out while the API would
+   * still have accepted a guest into it. Only the PWA calls this today, so
+   * the disagreement never surfaced; it was still the API trusting a screen
+   * to enforce its own rule.
+   *
+   * `forPrimary` is the primary moving in. They must not be counted as an
+   * occupant of the room they are trying to occupy, or the last bed in the
+   * house is one they can never take.
+   */
   private async validateRoomCapacity(
     bookingId: string,
     roomNumber: number,
-    excludeGuestId?: string,
+    opts: { excludeGuestId?: string; forPrimary?: boolean } = {},
   ) {
-    const room = await this.prisma.room.findUnique({
-      where: { number: roomNumber },
-    });
+    const { excludeGuestId, forPrimary = false } = opts;
+
+    const [room, booking] = await Promise.all([
+      this.prisma.room.findUnique({ where: { number: roomNumber } }),
+      this.prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { primaryRoomNumber: true },
+      }),
+    ]);
 
     if (!room) {
       throw new NotFoundException(`Room ${roomNumber} not found`);
@@ -823,14 +847,16 @@ export class ManifestService {
       throw new BadRequestException(`Room ${roomNumber} is not available`);
     }
 
-    const where: any = { bookingId, roomNumber };
+    const where: Prisma.ManifestGuestWhereInput = { bookingId, roomNumber };
     if (excludeGuestId) {
       where.id = { not: excludeGuestId };
     }
 
-    const assignedCount = await this.prisma.manifestGuest.count({ where });
+    const guestCount = await this.prisma.manifestGuest.count({ where });
+    const primaryHere =
+      !forPrimary && booking?.primaryRoomNumber === roomNumber ? 1 : 0;
 
-    if (assignedCount >= room.capacity) {
+    if (guestCount + primaryHere >= room.capacity) {
       throw new BadRequestException(
         `Room ${roomNumber} (${room.name}) is at full capacity (${room.capacity} guests max)`,
       );
@@ -871,6 +897,14 @@ export class ManifestService {
       throw new ForbiddenException(
         'You can only update your own manifest details',
       );
+    }
+
+    // Clearing a room is always allowed; taking one has to fit. `forPrimary`
+    // keeps them from being counted against the very room they are claiming.
+    if (dto.roomNumber != null) {
+      await this.validateRoomCapacity(bookingId, dto.roomNumber, {
+        forPrimary: true,
+      });
     }
 
     // Room is per-stay → Booking. Dietary/allergies/beverage are guest-intrinsic
