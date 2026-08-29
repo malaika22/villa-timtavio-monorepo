@@ -11,7 +11,6 @@ import {
   ChevronRight,
   Pencil,
   Check,
-  Star,
   Clock,
   Users,
 } from 'lucide-react';
@@ -139,7 +138,6 @@ export const ManifestPage = () => {
   const [showAddedSheet, setShowAddedSheet] = useState(false);
   const [showOwnDetails, setShowOwnDetails] = useState(false);
   const [editingPrimary, setEditingPrimary] = useState(false);
-  const primaryCardRef = useRef<HTMLDivElement>(null);
 
   // Tells the install pill how far to step up so it stops covering the bar.
   const actionBarRef = useRef<HTMLDivElement>(null);
@@ -157,18 +155,6 @@ export const ManifestPage = () => {
       setStickyBarHeight(0);
     };
   }, [setStickyBarHeight]);
-
-  // Opened from the action bar, the editor is off screen — expanding it where
-  // nobody is looking reads as the button having done nothing.
-  const openPrimaryEditor = () => {
-    setEditingPrimary(true);
-    requestAnimationFrame(() =>
-      primaryCardRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      }),
-    );
-  };
 
   // A secondary guest's own row. The manifest is unique on (booking, email),
   // so their token's email is enough to find it.
@@ -474,7 +460,7 @@ export const ManifestPage = () => {
           <p className="text-[8px] uppercase tracking-[2.5px] text-[#9A9288] mb-3">
             Your details
           </p>
-          <div ref={primaryCardRef}>
+          <div>
             <PrimaryDetailsCard
               primary={manifest.primaryGuest}
               rooms={rooms ?? []}
@@ -595,46 +581,17 @@ export const ManifestPage = () => {
               {submitError}
             </p>
           )}
-          {/* Both jobs, side by side, while both are open — half the height
-              of a stack, and neither is the one you have to look for. Labels
-              carry the whole distinction at this width, so they say whose
-              details rather than which fields: yours, or somebody else's.
-
-              Below 360px there isn't room for two, and a cramped pair of
-              truncated labels is worse than a tall bar. */}
-          {/* `primaryComplete` falls back to true until the answer lands, so
-              the bar spent every load offering Add guest full width — the one
-              action a primary with their own room outstanding should not be
-              handed first, and then it swapped under their thumb. */}
+          {/* One meaning. Adding a guest is the action repeated for every
+              person in the party, and the only one that wants to be under the
+              thumb; the primary's own entry happens once and now lives on
+              their own card. */}
           {manifestLoading ? (
-            <div className="flex gap-2" aria-hidden>
-              <div className="skeleton h-12 w-full rounded-[12px] bg-[#E3E0DA]" />
-              <div className="skeleton h-12 w-full rounded-[12px] bg-[#E8E5E0]" />
-            </div>
+            <div
+              className="skeleton h-12 w-full rounded-[12px] bg-[#E3E0DA]"
+              aria-hidden
+            />
           ) : (
             <>
-              {isPrimary && !primaryComplete && (
-                <div className="mb-2 flex flex-col gap-2 min-[360px]:flex-row">
-                  <Button
-                    onClick={openPrimaryEditor}
-                    className="h-12 w-full gap-1.5 rounded-[12px] bg-[#8A6D17] min-[360px]:flex-1 px-2 text-[10px] font-semibold uppercase tracking-[1.5px] text-white hover:bg-[#9C7C1E]"
-                  >
-                    <Star className="size-3.5 shrink-0" aria-hidden />
-                    Your details
-                  </Button>
-                  {!partyFull && (
-                    <Button
-                      onClick={openAddForm}
-                      variant="outline"
-                      className="h-12 w-full gap-1.5 rounded-[12px] border-[#0F1F2E] min-[360px]:flex-1 bg-white px-2 text-[10px] font-semibold uppercase tracking-[1.5px] text-[#0F1F2E] hover:bg-[#F5F3F0]"
-                    >
-                      <Plus className="size-3.5 shrink-0" aria-hidden />
-                      Add guest
-                    </Button>
-                  )}
-                </div>
-              )}
-
               <AnimatePresence>
                 {canSubmit && (
                   <motion.div
@@ -654,7 +611,7 @@ export const ManifestPage = () => {
                 )}
               </AnimatePresence>
 
-              {isPrimary && primaryComplete && !partyFull && (
+              {isPrimary && !partyFull && (
                 <Button
                   onClick={openAddForm}
                   variant={secondaryCount === 0 ? 'default' : 'outline'}
@@ -666,7 +623,7 @@ export const ManifestPage = () => {
                   )}
                 >
                   <Plus className="size-4" aria-hidden />
-                  Add guest
+                  Add a guest
                 </Button>
               )}
               {isPrimary && partyFull && primaryComplete && (

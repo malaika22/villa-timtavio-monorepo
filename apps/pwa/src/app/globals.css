@@ -85,14 +85,23 @@
  *
  * The page arriving, and the bar that says one is on its way.
  */
+/*
+ * Opacity only. The 4px rise cost more than it was worth: an element with an
+ * animated transform becomes the containing block for every `position: fixed`
+ * inside it, and this class wraps every page. So `bottom: 72px` on the
+ * manifest's action bar meant 72px above the end of the page — 764px below
+ * the fold on a 760px screen — and the bar nobody could find had never once
+ * been pinned. Anything fixed inside any page had the same problem; only
+ * AppLayout's own chrome, which sits outside this wrapper, escaped it.
+ *
+ * The fade was always the part that mattered.
+ */
 @keyframes route-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
   }
   to {
     opacity: 1;
-    transform: none;
   }
 }
 .animate-route-in {
