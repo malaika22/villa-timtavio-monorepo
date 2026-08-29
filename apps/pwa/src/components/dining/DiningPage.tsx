@@ -110,7 +110,7 @@ export const DiningPage = () => {
   const { data: rules } = useDiningRules();
   const checkIn = useBookingStore((b) => b.checkIn);
   const checkOut = useBookingStore((b) => b.checkOut);
-  const { data: plan } = useMenuPlan();
+  const { data: plan, isLoading: planLoading } = useMenuPlan();
   // Only the primary member sets the main sitting times; secondaries view them
   // read-only and can flag a late arrival instead.
   const { isPrimary, email } = useAuth();
@@ -274,6 +274,50 @@ export const DiningPage = () => {
 
       {/* What the party is eating, day by day — and, until each day closes,
           what they'd like to be. */}
+      {/* The menu tab rendered nothing at all until the plan arrived — tabs,
+          a Reserve button, and then a blank screen for as long as the request
+          took. The order tab has had a skeleton all along; this is the same
+          courtesy for the tab that opens by default. */}
+      {tab === 'menu' && planLoading && (
+        <section
+          className="mb-6"
+          aria-busy="true"
+          aria-label="Loading your menu"
+        >
+          <div className="skeleton mb-2 h-[9px] w-[70px] rounded bg-[#E3E0DA]" />
+          <div className="no-scrollbar -mx-3 mb-3 flex gap-1.5 overflow-x-auto px-3 pb-1">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="skeleton h-[46px] w-[54px] shrink-0 rounded-[10px] bg-[#E8E5E0]"
+              />
+            ))}
+          </div>
+          <div className="mt-3 flex flex-col gap-3">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="overflow-hidden rounded-[12px] border border-[#E3E0DA] bg-white"
+              >
+                <div className="flex items-baseline justify-between gap-2 border-b border-[#E3E0DA] bg-[#F7F5F2] px-3.5 py-2.5">
+                  <div className="skeleton h-3 w-20 rounded bg-[#E3E0DA]" />
+                  <div className="skeleton h-2.5 w-12 rounded bg-[#E8E5E0]" />
+                </div>
+                <div className="flex flex-col gap-2.5 px-3.5 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="skeleton size-14 shrink-0 rounded-[10px] bg-[#ECE7DF]" />
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="skeleton h-3 w-1/2 rounded bg-[#ECE7DF]" />
+                      <div className="skeleton h-2 w-1/3 rounded bg-[#F0ECE5]" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       {tab === 'menu' && plan && (
         <MenuComposer
           days={plan.days}
