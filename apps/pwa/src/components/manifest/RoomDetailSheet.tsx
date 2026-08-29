@@ -56,7 +56,7 @@ export function RoomDetailSheet({ open, onClose, room }: RoomDetailSheetProps) {
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-10">
           {/* Hero image */}
           {room.imageUrl ? (
-            <div className="relative mb-5 h-44 w-full overflow-hidden">
+            <div className="relative mb-5 h-[260px] w-full overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={room.imageUrl}
