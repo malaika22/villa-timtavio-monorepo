@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Pencil, Check, X, Star, ChevronRight } from 'lucide-react';
+import { Pencil, Check, X, Star } from 'lucide-react';
 import { cn } from '@repo/ui/lib/utils';
 import { Button } from '@repo/ui/components/button';
 import { useUpdatePrimaryDetails } from '@/hooks/useManifest';
@@ -145,24 +145,26 @@ export function PrimaryDetailsCard({
               {primary.beveragePreferences}
             </p>
           )}
+          {/* The primary's own entry happens once, so it belongs on their own
+              card rather than in a bar shared with the action they repeat for
+              every guest. It was a chevron row here and a gold button down
+              there, competing to be the same thing. */}
           {outstanding && (
-            <button
-              onClick={openEditor}
-              className="flex w-full items-center justify-between gap-3 rounded-[10px] border border-[#D9C79A] bg-white px-3 py-2.5 text-left transition-colors hover:bg-[#FDFBF6]"
-            >
-              <span className="min-w-0">
-                <span className="block text-[11px] font-medium text-[#8A6D17]">
-                  Room and details still to add
-                </span>
-                <span className="mt-0.5 block text-[10px] leading-snug text-[#9A8B62]">
-                  Choose your room, and anything the kitchen should know.
-                </span>
-              </span>
-              <ChevronRight
-                className="size-4 shrink-0 text-[#B08A2E]"
-                aria-hidden
-              />
-            </button>
+            <div className="flex flex-col gap-2.5 pt-0.5">
+              <p className="text-[10.5px] leading-snug text-[#9A8B62]">
+                <span className="font-medium text-[#8A6D17]">
+                  Room and details still to add.
+                </span>{' '}
+                Choose your room, and anything the kitchen should know.
+              </p>
+              <Button
+                onClick={openEditor}
+                className="h-11 w-full gap-2 rounded-[10px] bg-[#8A6D17] text-[10px] font-semibold uppercase tracking-[1.8px] text-white hover:bg-[#9C7C1E]"
+              >
+                <Star className="size-3.5" aria-hidden />
+                Add your details
+              </Button>
+            </div>
           )}
         </>
       )}
