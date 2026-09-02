@@ -171,11 +171,12 @@ export function ManifestDetailSheet({
       key={guest.id}
       guest={guest}
       roomSummary={manifest.roomSummary}
-      onResend={
-        manifest.manifestStatus === 'APPROVED'
-          ? () => handleResend(guest.id, guest.firstName)
-          : undefined
-      }
+      // Links go out the moment a guest is added, so gating the resend on
+      // approval hid the button from the only person who needs it: the estate,
+      // talking to the guest who says nothing arrived. The API dropped this
+      // check for exactly that reason; the dashboard kept it, so the endpoint
+      // has been reachable and invisible.
+      onResend={() => handleResend(guest.id, guest.firstName)}
       resendPending={resendLink.isPending}
       canEdit={canEdit}
       onSave={async (dto) => {
