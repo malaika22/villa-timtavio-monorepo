@@ -454,11 +454,14 @@ export const ManifestPage = () => {
         </div>
       )}
 
-      {/* ─── Your details (primary member) ──────────────────────── */}
+      {/* ─── The primary member's card ───────────────────────────
+          The heading said "Your details" to everyone, so a secondary guest
+          met it twice on one screen: once over the lead guest's card and
+          once over their own. */}
       {manifest?.primaryGuest && (
         <div className="mt-6">
           <p className="text-[8px] uppercase tracking-[2.5px] text-[#9A9288] mb-3">
-            Your details
+            {isPrimary ? 'Your details' : 'Lead guest'}
           </p>
           <div>
             <PrimaryDetailsCard
@@ -520,14 +523,19 @@ export const ManifestPage = () => {
               },
             }}
           >
-            {manifest!.guests.map((guest) => (
-              <GuestDetailCard
-                key={guest.id}
-                guest={guest}
-                rooms={rooms ?? []}
-                onEdit={!isPrimary ? undefined : () => openEditForm(guest)}
-              />
-            ))}
+            {/* Their own row is already above, under "Your details" — listing
+                it again here showed a secondary guest their own name twice,
+                the second time in a card they cannot edit. */}
+            {manifest!.guests
+              .filter((guest) => guest.id !== ownRecord?.id)
+              .map((guest) => (
+                <GuestDetailCard
+                  key={guest.id}
+                  guest={guest}
+                  rooms={rooms ?? []}
+                  onEdit={!isPrimary ? undefined : () => openEditForm(guest)}
+                />
+              ))}
           </motion.div>
         </div>
       )}
@@ -713,9 +721,15 @@ function GuestDetailCard({
   rooms: RoomWithAvailability[];
   onEdit?: () => void;
 }) {
+  // Same reason as the primary's card: the estate has two King Master Suites,
+  // so a party could not tell sharing from coincidence by the name alone.
   const roomName = guest.roomNumber
-    ? (rooms.find((r) => r.number === guest.roomNumber)?.name ??
-      `Room ${guest.roomNumber}`)
+    ? (() => {
+        const match = rooms.find((r) => r.number === guest.roomNumber);
+        return match
+          ? `Room ${match.number} · ${match.name}`
+          : `Room ${guest.roomNumber}`;
+      })()
     : null;
 
   const dietaryTags = (guest.dietaryRestrictions ?? []).map((d) => ({
@@ -770,7 +784,7 @@ function GuestDetailCard({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {roomName && (
-            <span className="text-[8.5px] font-medium text-[#2B2824] bg-[#F0EDE6] border border-[#E3E0DA] rounded-full px-2.5 py-1 leading-none">
+            <span className="max-w-[54%] truncate text-[8.5px] font-medium text-[#2B2824] bg-[#F0EDE6] border border-[#E3E0DA] rounded-full px-2.5 py-1 leading-none">
               {roomName}
             </span>
           )}

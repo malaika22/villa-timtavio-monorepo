@@ -47,9 +47,16 @@ export function PrimaryDetailsCard({
   const needsRoom = primary.roomNumber == null;
   const outstanding = isPrimary && needsRoom;
 
+  // The estate has two rooms called "King Master Suite", so the name on its
+  // own left a party unable to tell whether two of them were sharing or in
+  // separate rooms with the same name. The number is the part that answers it.
   const roomName = primary.roomNumber
-    ? (rooms.find((r) => r.number === primary.roomNumber)?.name ??
-      `Room ${primary.roomNumber}`)
+    ? (() => {
+        const match = rooms.find((r) => r.number === primary.roomNumber);
+        return match
+          ? `Room ${match.number} · ${match.name}`
+          : `Room ${primary.roomNumber}`;
+      })()
     : null;
 
   const openEditor = () => onEditingChange(true);
@@ -92,13 +99,14 @@ export function PrimaryDetailsCard({
               {primary.firstName} {primary.lastName}
             </p>
             <p className="text-[9px] uppercase tracking-[1.5px] text-[#B08A2E] mt-0.5">
-              You · Primary guest
+              {/* Read by the whole party, not only the person it describes. */}
+              {isPrimary ? 'You · Primary guest' : 'Primary guest'}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {!isEditing && roomName && (
-            <span className="text-[8.5px] font-medium text-[#2B2824] bg-[#F0EDE6] border border-[#E3E0DA] rounded-full px-2.5 py-1 leading-none">
+            <span className="max-w-[54%] truncate text-[8.5px] font-medium text-[#2B2824] bg-[#F0EDE6] border border-[#E3E0DA] rounded-full px-2.5 py-1 leading-none">
               {roomName}
             </span>
           )}
