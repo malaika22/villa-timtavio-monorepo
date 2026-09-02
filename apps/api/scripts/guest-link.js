@@ -47,7 +47,9 @@ const LIVE = ['CONFIRMED', 'CHECKED_IN', 'SETTLED', 'DEPARTURE_TODAY'];
   }
 
   if (REVOKE) {
-    const { count } = await prisma.magicToken.deleteMany({ where: { email } });
+    const { count } = await prisma.magicToken.deleteMany({
+      where: { email: { equals: email, mode: 'insensitive' } },
+    });
     console.log(`\n  Revoked ${count} token(s) for ${email}.\n`);
     return;
   }
@@ -55,11 +57,17 @@ const LIVE = ['CONFIRMED', 'CHECKED_IN', 'SETTLED', 'DEPARTURE_TODAY'];
   // Primary first. A primary member's bookings hang off their Guest row; a
   // secondary's come from the manifest they were added to, and the two land in
   // different halves of the app.
-  const guest = await prisma.guest.findUnique({
-    where: { email },
+  // Guest.email is case-sensitive in Postgres and holds whatever Lodgify sent
+  // — "BKeith@voitco.com". Looking it up by the lowercased argument missed
+  // every primary whose address carries a capital, fell through to the
+  // manifest (where a primary never is), and reported no booking at all. The
+  // same trap as #104, one script later.
+  const guest = await prisma.guest.findFirst({
+    where: { email: { equals: email, mode: 'insensitive' } },
     select: {
       firstName: true,
       lastName: true,
+      email: true,
       primaryBookings: {
         where: { status: { in: LIVE } },
         orderBy: { checkIn: 'asc' },
@@ -71,6 +79,9 @@ const LIVE = ['CONFIRMED', 'CHECKED_IN', 'SETTLED', 'DEPARTURE_TODAY'];
   let tier = 'primary';
   let who = guest ? `${guest.firstName} ${guest.lastName}` : null;
   let bookings = guest?.primaryBookings ?? [];
+  // Mint against the address as it is actually stored, so the token matches
+  // what the ordinary flow would have written.
+  let address = guest?.email ?? email;
 
   if (bookings.length === 0) {
     const onManifest = await prisma.manifestGuest.findMany({
@@ -78,6 +89,7 @@ const LIVE = ['CONFIRMED', 'CHECKED_IN', 'SETTLED', 'DEPARTURE_TODAY'];
       select: {
         firstName: true,
         lastName: true,
+        email: true,
         booking: {
           select: { id: true, checkIn: true, checkOut: true, nights: true, status: true },
         },
@@ -87,6 +99,7 @@ const LIVE = ['CONFIRMED', 'CHECKED_IN', 'SETTLED', 'DEPARTURE_TODAY'];
     if (live.length > 0) {
       tier = 'secondary';
       who = `${live[0].firstName} ${live[0].lastName}`;
+      address = live[0].email ?? email;
       bookings = live
         .map((m) => m.booking)
         .sort((a, b) => +a.checkIn - +b.checkIn);
@@ -106,7 +119,7 @@ const LIVE = ['CONFIRMED', 'CHECKED_IN', 'SETTLED', 'DEPARTURE_TODAY'];
   // reason for looking is usually that the wrong stay is on screen.
   const pick = Number(arg('booking'));
   if (bookings.length > 1 && !pick) {
-    console.log(`\n  ${who} <${email}> has ${bookings.length} live stays:\n`);
+    console.log(`\n  ${who} <${address}> has ${bookings.length} live stays:\n`);
     bookings.forEach((b, i) => {
       console.log(
         `    ${i + 1}.  ${day(b.checkIn)} → ${day(b.checkOut)}  ${b.nights}n  ${b.status}`,
@@ -131,7 +144,7 @@ const LIVE = ['CONFIRMED', 'CHECKED_IN', 'SETTLED', 'DEPARTURE_TODAY'];
   const otp = crypto.randomInt(100000, 999999).toString();
   await prisma.magicToken.create({
     data: {
-      email,
+      email: address,
       otp,
       bookingId: booking.id,
       guestTier: tier,
@@ -142,13 +155,13 @@ const LIVE = ['CONFIRMED', 'CHECKED_IN', 'SETTLED', 'DEPARTURE_TODAY'];
   console.log(
     [
       '',
-      `  ${who} <${email}> — ${tier}`,
+      `  ${who} <${address}> — ${tier}`,
       `  ${day(booking.checkIn)} → ${day(booking.checkOut)}  ${booking.nights} nights  ${booking.status}`,
       '',
-      `  ${pwa}/auth/callback?otp=${otp}&email=${encodeURIComponent(email)}`,
+      `  ${pwa}/auth/callback?otp=${otp}&email=${encodeURIComponent(address)}`,
       '',
       `  Code: ${otp}    Valid ${TTL_HOURS}h`,
-      `  When you are done:  node scripts/guest-link.js --email=${email} --revoke`,
+      `  When you are done:  node scripts/guest-link.js --email=${address} --revoke`,
       '',
     ].join('\n'),
   );
