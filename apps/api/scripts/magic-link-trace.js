@@ -122,8 +122,30 @@ const LIVE = ['CONFIRMED', 'CHECKED_IN', 'SETTLED', 'DEPARTURE_TODAY'];
           a.action === 'MAGIC_LINK_RESENT',
       );
 
+      // A token that ran out before anybody used it is its own answer, and
+      // the common one: links minted before 2026-08-26 lived thirty minutes
+      // rather than the length of the stay, so every one of them is dead now
+      // and no amount of staring at Resend will explain it.
+      const latest = tokens[0];
+      const diedUnused =
+        latest && !latest.used && new Date(latest.expiresAt) <= new Date();
+      const lifeMins = latest
+        ? Math.round(
+            (new Date(latest.expiresAt).getTime() -
+              new Date(latest.createdAt).getTime()) /
+              60000,
+          )
+        : 0;
+
       let verdict;
-      if (mine.length > 0)
+      if (diedUnused && lifeMins < 120)
+        verdict =
+          `the mail was fine — this token EXPIRED UNUSED after ${lifeMins}min ` +
+          '(minted before the stay-long expiry shipped). Send a new link.';
+      else if (diedUnused)
+        verdict =
+          'delivered, but the token EXPIRED before it was opened. Send a new link.';
+      else if (mine.length > 0)
         verdict = 'Resend ACCEPTED it — check the Resend dashboard for delivery/bounce/spam';
       else if (tokens.length > 0)
         verdict = 'token written but no audit row → the EMAIL SEND THREW (Resend)';
@@ -149,9 +171,10 @@ const LIVE = ['CONFIRMED', 'CHECKED_IN', 'SETTLED', 'DEPARTURE_TODAY'];
   }
 
   console.log(
-    '  A link that Resend accepted and the guest never opened is almost always\n' +
-      '  spam filtering. Check the Resend dashboard for that address before\n' +
-      '  resending — a second copy lands in the same folder.\n',
+    '  A link that Resend accepted, has NOT expired, and the guest never opened\n' +
+      '  is almost always spam filtering — check the Resend dashboard for that\n' +
+      '  address before resending, because a second copy lands in the same\n' +
+      '  folder. An expired one just needs a new link.\n',
   );
 })()
   .catch((err) => {
