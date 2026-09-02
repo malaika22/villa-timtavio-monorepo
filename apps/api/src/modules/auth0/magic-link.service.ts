@@ -10,6 +10,7 @@ import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
 import { JwtService } from '@nestjs/jwt';
+import { realFirstName } from '../../commons/utils/name.util';
 import { Resend } from 'resend';
 import * as crypto from 'crypto';
 import Redis from 'ioredis';
@@ -473,17 +474,41 @@ export class MagicLinkService {
     const ONE_DAY = 86400;
     const booking = await this.prisma.booking.findUnique({
       where: { id: record.bookingId },
-      select: { checkOut: true },
+      select: {
+        checkOut: true,
+        primaryGuest: { select: { firstName: true } },
+      },
     });
     const secondsUntilRevocation = booking
       ? Math.floor((booking.checkOut.getTime() - Date.now()) / 1000) + ONE_DAY
       : ONE_DAY;
     const expiresIn = Math.max(ONE_DAY, secondsUntilRevocation);
 
+    // The name the PWA greets them by, taken from our own records first.
+    //
+    // It used to come only from the Auth0 profile — and getUserByEmail
+    // swallows every error and returns null, so an Auth0 blip, a rate limit
+    // or a profile saved without a name all produced a token with an empty
+    // given_name and a home screen that couldn't say whose stay it was. We
+    // have the name locally the whole time: the reservation for a primary,
+    // the manifest row for anyone else.
+    const localFirstName =
+      record.guestTier === 'primary'
+        ? realFirstName(booking?.primaryGuest?.firstName)
+        : realFirstName(
+            (
+              await this.prisma.manifestGuest.findFirst({
+                where: { bookingId: record.bookingId, email },
+                select: { firstName: true },
+              })
+            )?.firstName,
+          );
+
     const payload = {
       sub: auth0User?.user_id || email,
       email,
-      given_name: auth0User?.given_name || '',
+      given_name:
+        localFirstName ?? realFirstName(auth0User?.given_name) ?? '',
       iss: 'villa-timtavio',
       aud: this.config.get('AUTH0_AUDIENCE'),
       [`${AUTH0_NAMESPACE}/roles`]: [role],
