@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, Lock } from 'lucide-react';
 import { Button } from '@repo/ui/components/button';
 import { Drawer, DrawerContent } from '@repo/ui/components/drawer';
+import { AutoGrowTextarea } from '../AutoGrowTextarea';
 import { cn } from '@repo/ui/lib/utils';
 import { dietaryLabel } from '@repo/api-types';
 import type { ManifestGuest } from '@repo/api-types';
@@ -104,12 +105,12 @@ export function YourDetailsSheet({
               >
                 Allergies
               </label>
-              <input
+              <AutoGrowTextarea
                 id="own-allergies"
                 value={allergies}
                 onChange={(e) => setAllergies(e.target.value)}
-                placeholder="Severe shellfish allergy"
-                className="mt-2 w-full border-0 border-b border-[#E3E0DA] bg-transparent px-0 py-2 text-[14px] text-[#2B2824] placeholder:text-[#B5AEA4] focus:border-[#B4322B] focus:outline-none"
+                placeholder="Severe shellfish allergy — carries an EpiPen"
+                className="mt-2 w-full border-0 border-b border-[#E3E0DA] bg-transparent px-0 py-2 text-[14px] leading-relaxed text-[#2B2824] placeholder:text-[#B5AEA4] focus:border-[#B4322B] focus:outline-none"
               />
               <p className="mt-2 text-[10.5px] leading-relaxed text-[#797168]">
                 The chef reads this before every service.
@@ -174,12 +175,12 @@ export function YourDetailsSheet({
               >
                 Anything else
               </label>
-              <input
+              <AutoGrowTextarea
                 id="own-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Early riser — coffee from 7"
-                className="mt-2 w-full border-0 border-b border-[#E3E0DA] bg-transparent px-0 py-2 text-[14px] text-[#2B2824] placeholder:text-[#B5AEA4] focus:border-[#B08D57] focus:outline-none"
+                className="mt-2 w-full border-0 border-b border-[#E3E0DA] bg-transparent px-0 py-2 text-[14px] leading-relaxed text-[#2B2824] placeholder:text-[#B5AEA4] focus:border-[#B08D57] focus:outline-none"
               />
             </div>
 

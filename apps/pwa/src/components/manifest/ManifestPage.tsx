@@ -461,7 +461,7 @@ export const ManifestPage = () => {
       {manifest?.primaryGuest && (
         <div className="mt-6">
           <p className="text-[8px] uppercase tracking-[2.5px] text-[#9A9288] mb-3">
-            {isPrimary ? 'Your details' : 'Lead guest'}
+            {isPrimary ? 'Your details' : 'Who booked the stay'}
           </p>
           <div>
             <PrimaryDetailsCard
@@ -767,12 +767,12 @@ function GuestDetailCard({
     >
       {/* Name row */}
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <div className="flex items-center justify-center size-[30px] rounded-full bg-[#0F1F2E] text-[10px] font-bold text-white shrink-0">
             {`${guest.firstName[0] ?? ''}${guest.lastName[0] ?? ''}`.toUpperCase()}
           </div>
-          <div>
-            <p className="text-[13px] font-medium text-[#2B2824] leading-none">
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-medium text-[#2B2824] leading-none">
               {guest.firstName} {guest.lastName}
             </p>
             {guest.relationship && (
@@ -784,7 +784,7 @@ function GuestDetailCard({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {roomName && (
-            <span className="max-w-[54%] truncate text-[8.5px] font-medium text-[#2B2824] bg-[#F0EDE6] border border-[#E3E0DA] rounded-full px-2.5 py-1 leading-none">
+            <span className="shrink-0 whitespace-nowrap text-[8.5px] font-medium text-[#2B2824] bg-[#F0EDE6] border border-[#E3E0DA] rounded-full px-2.5 py-1 leading-none">
               {roomName}
             </span>
           )}

@@ -8,6 +8,7 @@ import { Button } from '@repo/ui/components/button';
 import { useUpdatePrimaryDetails } from '@/hooks/useManifest';
 import { DIETARY_VALUES } from '@/components/GuestManifestForm/schema';
 import { RoomPicker } from '@/components/GuestManifestForm/RoomPicker';
+import { AutoGrowTextarea } from '@/components/AutoGrowTextarea';
 import { type RoomOption } from '@/components/GuestManifestForm/rooms';
 import type { ManifestResponse, RoomWithAvailability } from '@repo/api-types';
 
@@ -90,12 +91,12 @@ export function PrimaryDetailsCard({
     >
       {/* Name row */}
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2.5">
+        <div className="flex min-w-0 items-center gap-2.5">
           <div className="flex items-center justify-center size-[30px] rounded-full bg-[#C7A046] text-[11px] font-bold text-white shrink-0">
             <Star className="size-3.5" fill="currentColor" aria-hidden />
           </div>
-          <div>
-            <p className="text-[13px] font-medium text-[#2B2824] leading-none">
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-medium text-[#2B2824] leading-none">
               {primary.firstName} {primary.lastName}
             </p>
             <p className="text-[9px] uppercase tracking-[1.5px] text-[#B08A2E] mt-0.5">
@@ -106,7 +107,7 @@ export function PrimaryDetailsCard({
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {!isEditing && roomName && (
-            <span className="max-w-[54%] truncate text-[8.5px] font-medium text-[#2B2824] bg-[#F0EDE6] border border-[#E3E0DA] rounded-full px-2.5 py-1 leading-none">
+            <span className="shrink-0 whitespace-nowrap text-[8.5px] font-medium text-[#2B2824] bg-[#F0EDE6] border border-[#E3E0DA] rounded-full px-2.5 py-1 leading-none">
               {roomName}
             </span>
           )}
@@ -284,11 +285,11 @@ function PrimaryEditor({
           <label className="text-[8px] uppercase tracking-[2px] text-[#9A9288]">
             Allergies
           </label>
-          <input
+          <AutoGrowTextarea
             value={allergies}
             onChange={(e) => setAllergies(e.target.value)}
-            placeholder="e.g. Severe peanut allergy"
-            className="h-10 rounded-[10px] border border-[#E3E0DA] bg-white px-3 text-[12px] text-[#2B2824] outline-none placeholder:text-[#B0AAA0] focus:border-[#0F1F2E]"
+            placeholder="e.g. Severe peanut allergy — carries an EpiPen"
+            className="rounded-[10px] border border-[#E3E0DA] bg-white px-3 py-2.5 text-[12px] leading-relaxed text-[#2B2824] outline-none placeholder:text-[#B0AAA0] focus:border-[#0F1F2E]"
           />
         </div>
 
@@ -297,11 +298,11 @@ function PrimaryEditor({
           <label className="text-[8px] uppercase tracking-[2px] text-[#9A9288]">
             Beverage preferences
           </label>
-          <input
+          <AutoGrowTextarea
             value={beverages}
             onChange={(e) => setBeverages(e.target.value)}
             placeholder="e.g. Still water, no alcohol"
-            className="h-10 rounded-[10px] border border-[#E3E0DA] bg-white px-3 text-[12px] text-[#2B2824] outline-none placeholder:text-[#B0AAA0] focus:border-[#0F1F2E]"
+            className="rounded-[10px] border border-[#E3E0DA] bg-white px-3 py-2.5 text-[12px] leading-relaxed text-[#2B2824] outline-none placeholder:text-[#B0AAA0] focus:border-[#0F1F2E]"
           />
         </div>
 
