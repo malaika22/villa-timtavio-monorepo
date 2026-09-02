@@ -268,12 +268,6 @@ export class ManifestService {
           guestTier: 'secondary',
           checkOutDate: booking.checkOut,
         })
-        .then(() =>
-          this.prisma.manifestGuest.update({
-            where: { id: guest.id },
-            data: { pwaLinkSent: true },
-          }),
-        )
         .catch((err) =>
           this.logger.error(
             `Link to ${guest.email} failed: ${String(err)} — Rodrigo can resend`,
